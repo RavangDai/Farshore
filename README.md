@@ -60,7 +60,7 @@ FARSHORE_MODEL_NAME=llama3.2:3b
 FARSHORE_API_KEY=
 ```
 
-This optional integration still needs testing with your laptop and selected model. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
+Local Llama 3.2 3B was connected and verified through the API and browser on September 23, 2026. See the [setup guide](<Farshore Context and Assisment/docs/AI-SETUP.md>) and [verification record](<Farshore Context and Assisment/docs/AI-VERIFICATION.md>) for timings and remaining decision-consistency limitations. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
 
 ## Other commands
 

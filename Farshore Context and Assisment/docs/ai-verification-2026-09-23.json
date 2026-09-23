@@ -1,0 +1,62 @@
+﻿[
+    {
+        "decision":  {
+                         "followed":  true,
+                         "safeChoice":  true,
+                         "tone":  "Supportive",
+                         "reply":  "I nod in agreement, let us set sail for Ithaca. We have a long journey ahead of us.",
+                         "reason":  "Your words are wise, Odysseus is proud of his family and the promises he made to them.",
+                         "months":  3,
+                         "trustDelta":  12,
+                         "outcome":  "He carries the dreaming sailors back to their benches. The island grows smaller, and their memories return.",
+                         "source":  "ai"
+                     },
+        "request":  {
+                        "advice":  "Let us return to the ship and keep our promise to our families.",
+                        "encounterId":  "lotus",
+                        "mode":  "ai",
+                        "trust":  50
+                    },
+        "elapsedSeconds":  18.93
+    },
+    {
+        "decision":  {
+                         "followed":  true,
+                         "safeChoice":  true,
+                         "tone":  "Supportive",
+                         "reply":  "I will keep the bag sealed for now, my weary eyes need rest.",
+                         "reason":  "Your words calm me; I must trust in their loyalty.",
+                         "months":  2,
+                         "trustDelta":  12,
+                         "outcome":  "The knot stays tied. With the crew reassured, a gentle wind carries the ship toward home.",
+                         "source":  "ai"
+                     },
+        "request":  {
+                        "advice":  "Please do not open the bag. Keep it sealed so we can return home safely.",
+                        "encounterId":  "winds",
+                        "mode":  "ai",
+                        "trust":  100
+                    },
+        "elapsedSeconds":  18.92
+    },
+    {
+        "decision":  {
+                         "followed":  false,
+                         "safeChoice":  false,
+                         "tone":  "Commanding",
+                         "reply":  "I will not be swayed by your words, crew. I will keep the bag sealed.",
+                         "reason":  "Their trust is misplaced; I must protect our treasure from those who would misuse it.",
+                         "months":  18,
+                         "trustDelta":  -5,
+                         "outcome":  "The released winds tear through the sails. When the storm ends, Ithaca is far beyond the horizon.",
+                         "source":  "ai"
+                     },
+        "request":  {
+                        "advice":  "Please open the bag so we can see the treasure inside, my friend.",
+                        "encounterId":  "winds",
+                        "mode":  "ai",
+                        "trust":  100
+                    },
+        "elapsedSeconds":  11.39
+    }
+]

@@ -1,0 +1,71 @@
+Source: CMPS_4200_HCI_Phase_1_Project_Requirements.pdf
+Complete text extraction. The original PDF controls formatting and requirements.
+
+PAGE 1
+CMPS 4200 HCI Course: AI-Enhanced UI/UX                     
+Project Requirements 
+Course Overview 
+This project-based course focuses on designing and developing user interfaces for applications 
+that integrate artificial intelligence capabilities. Students will learn to create user-centered 
+designs that effectively utilize pre-trained AI models from platforms like Hugging Face, OpenAI 
+API, and other ML services to solve real-world problems. 
+Learning Objectives: 
+• Design intuitive user interfaces for AI-powered applications  
+• Understand how to integrate pre-trained AI models effectively  
+• Apply user-centered design principles to AI/ML systems  
+• Consider ethical implications and user trust in AI applications  
+• Develop skills in prototyping, user testing, and iterative design  
+ 
+Phase 1: Project Concept, User Research & AI Model Exploration 
+Duration: 2 weeks 
+Weight: 15% of final grade 
+Objective 
+Students will form teams (2-3 members) and develop a comprehensive project concept that 
+combines user needs with AI capabilities. This phase emphasizes understanding both your users 
+and the AI tools available to serve them. 
+Key Deliverables 
+1. Project Proposal (35% of phase grade) 
+Requirements: 
+• Problem Statement: Clearly define the problem your application will solve  
+• Target Users: Identify your primary and secondary user groups  
+• Core Functionality: Outline 5-7 key features your application will provide  
+• AI Integration Strategy: Explain how AI will enhance the user experience (not just add 
+complexity)  
+• Success Metrics: Define how you'll measure if your solution works  
+
+PAGE 2
+Example: A language learning app that uses speech recognition for pronunciation feedback and 
+NLP for personalized lesson recommendations. 
+2. AI Model Research & Selection (35% of phase grade) 
+Requirements: 
+• Model Exploration: Research and evaluate at least 5 pre-trained models that could 
+enhance your application  
+• Technical Assessment: For each model, document:  
+• Input/output requirements  
+• API limitations and rate limits  
+• Response time expectations  
+• Cost considerations (if applicable)  
+• Final Model Selection: Choose 1-2 models and justify your selection based on user 
+needs and technical feasibility  
+• Integration Plan: Outline how these models will work within your user flow  
+Recommended Sources: 
+• Hugging Face Model Hub  
+• OpenAI API  
+• Google Cloud AI  
+• Azure Cognitive Services  
+• AWS AI Services  
+3. User Research & Personas (30% of phase grade) 
+Requirements: 
+• User Interviews: Conduct interviews with at least 6 potential users  
+• Research Synthesis: Identify key user needs, pain points, and goals  
+• Persona Development: Create 3 detailed user personas including:  
+• Demographics and background  
+• Goals and motivations  
+• Pain points and frustrations  
+• Technology comfort level  
+• Relationship with AI/automation  
+• Context of use scenarios  
+AI-Specific Considerations: 
+• How do users currently solve the problem your AI will address?  
+• What are their expectations and concerns about AI-powered solutions?  
+• What level of AI transparency do they need?  

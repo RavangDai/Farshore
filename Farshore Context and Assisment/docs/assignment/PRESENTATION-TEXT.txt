@@ -1,0 +1,94 @@
+Source: Farshore_Phase12nd.pptx
+Complete slide-text extraction. Proposal claims are not independent evidence of completed research or benchmarks.
+
+SLIDE 1
+FARSHORE
+Odysseus took twenty years to get home.
+You try to get him there faster.
+CMPS 4200   ·   PHASE 1   ·   BIBEK PATHAK   ·   SOLO
+
+SLIDE 2
+THE IDEA
+Every AI app: it advises, you decide.
+Farshore: you advise, it decides.
+How you say it changes his answer.
+"Do not open the bag."
+SOUNDS LIKE AN ORDER
+He refuses. You lose nine months.
+"You are almost home. Do not risk it."
+SOUNDS LIKE A FRIEND
+He listens. You save time.
+Odysseus is proud. Order him around and he says no.
+
+SLIDE 3
+HOW IT WORKS
+You talk. He decides. Time passes.
+1
+A problem appears
+Sirens ahead. A stranger offers food.
+2
+You speak
+You say what you would really say.
+3
+He chooses
+He may agree. He may ignore you.
+4
+Time is lost
+Weeks, months, or years.
+20
+Odysseus needed twenty years. That is the score to beat.
+
+SLIDE 4
+WHAT IT DOES, AND WHO FOR
+Six features. Three kinds of player.
+SIX FEATURES
+Speak freely. No menus.
+He has a personality: pride, curiosity, loyalty.
+Trust goes up and down as you are right or wrong.
+A clock that runs out.
+New problems every game.
+A report at the end of every time he ignored you.
+THREE PLAYERS
+Maya, 21
+Gamer. Wants to win fast. Will be angry if it feels unfair.
+Daniel, 19
+Read the poem, never felt it. Not technical.
+Rosa, 34
+Does not trust AI. Wants to see why it said no.
+I am working alone, so features 1, 2 and 4 come first. Six interviews are booked to check the three players.
+
+SLIDE 5
+AI MODEL RESEARCH
+Six models tested. Five chosen.
+Llama 3.2 3B
+Plays Odysseus and writes what happens.
+2.5 GB
+faster-whisper
+Turns my speech into text.
+1.0 GB
+SER-Odyssey
+Reads the feeling in my voice.
+1.5 GB
+all-MiniLM-L6-v2
+Works out what my advice meant.
+0.15 GB
+Piper / VITS
+Gives Odysseus a voice.
+0.2 GB
+bart-large-mnli
+Tested for tone. Too slow, so not used.
+SET ASIDE
+All six are from our class lecture. All free. SER-Odyssey is on lecture slide 60.
+
+SLIDE 6
+CAN MY LAPTOP RUN IT
+Yes. I checked the numbers.
+My laptop
+Intel Core Ultra 5, 16 GB RAM
+All five models together
+About 10 GB. It fits.
+Llama 3.1 8B
+Too big. I chose the 3B version instead.
+Waiting time per turn
+Under one second
+I prepare both possible answers while the player is still thinking, so there is almost no waiting.

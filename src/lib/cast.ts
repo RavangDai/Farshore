@@ -1,0 +1,164 @@
+export const cast = [
+  {
+    name: "Odysseus",
+    role: "King of Ithaca",
+    book: "Books 1–24",
+    bio: "A resourceful, proud veteran of Troy. He longs to return to Penelope and Telemachus. You advise him, but the final choice is his.",
+  },
+  {
+    name: "Athena",
+    role: "Goddess of wisdom",
+    book: "Books 1, 13–24",
+    bio: "Odysseus’ divine ally. She guides Telemachus and helps the returning king conceal his identity on Ithaca.",
+  },
+  {
+    name: "Poseidon",
+    role: "God of the sea",
+    book: "Books 1, 5, 9",
+    bio: "Father of Polyphemus. His anger at the blinding of his son makes the sea a dangerous road home.",
+  },
+  {
+    name: "Penelope",
+    role: "Queen of Ithaca",
+    book: "Books 1–4, 18–23",
+    bio: "A patient and ingenious ruler facing the suitors. She tests the returned Odysseus with the secret of their marriage bed.",
+  },
+  {
+    name: "Telemachus",
+    role: "Son of Odysseus",
+    book: "Books 1–4, 15–24",
+    bio: "A young prince seeking news of his missing father. When they reunite, he helps reclaim their household.",
+  },
+  {
+    name: "Polyphemus",
+    role: "The Cyclops",
+    book: "Book 9",
+    bio: "The one-eyed son of Poseidon. Odysseus escapes his cave using the name Nobody, then risks everything by announcing his true name.",
+  },
+  {
+    name: "Aeolus",
+    role: "Keeper of the winds",
+    book: "Book 10",
+    bio: "A generous host who binds the contrary winds in a bag. The suspicious crew opens the gift while Odysseus sleeps.",
+  },
+  {
+    name: "Circe",
+    role: "Enchantress of Aeaea",
+    book: "Books 10–12",
+    bio: "She transforms the sailors into pigs, later restores them, and offers vital guidance for the Underworld and the perils beyond.",
+  },
+  {
+    name: "Hermes",
+    role: "Messenger of the gods",
+    book: "Books 5, 10",
+    bio: "He gives Odysseus the herb moly to resist Circe and later carries the command that Calypso release the hero.",
+  },
+  {
+    name: "Eurylochus",
+    role: "Companion and challenger",
+    book: "Books 10, 12",
+    bio: "A leading member of the crew who distrusts Circe. On Thrinacia, he persuades the hungry sailors to slaughter the sacred cattle.",
+  },
+  {
+    name: "Tiresias",
+    role: "Prophet among the dead",
+    book: "Book 11",
+    bio: "The blind Theban prophet foretells the trials of the return and warns Odysseus to leave the cattle of the sun unharmed.",
+  },
+  {
+    name: "The Sirens",
+    role: "Voices on the rocks",
+    book: "Book 12",
+    bio: "Their song promises knowledge but lures sailors to destruction. This portrait represents the Sirens, whom Homer does not individually name.",
+  },
+  {
+    name: "Scylla",
+    role: "Terror of the strait",
+    book: "Book 12",
+    bio: "A six-headed monster beside Charybdis. Circe warns that trying to fight her will only bring greater loss.",
+  },
+  {
+    name: "Helios",
+    role: "God of the sun",
+    book: "Book 12",
+    bio: "His cattle are forbidden to the hungry crew. When they are killed, he demands punishment from the gods.",
+  },
+  {
+    name: "Calypso",
+    role: "Nymph of Ogygia",
+    book: "Book 5",
+    bio: "She holds Odysseus on her island and offers him immortality. After Hermes arrives, she helps him prepare a raft.",
+  },
+  {
+    name: "Nausicaa",
+    role: "Phaeacian princess",
+    book: "Books 6–8",
+    bio: "She finds the shipwrecked stranger and helps him reach her parents’ palace. Her people provide his final passage to Ithaca.",
+  },
+  {
+    name: "Eumaeus",
+    role: "Loyal swineherd",
+    book: "Books 14–17, 21–22",
+    bio: "He shelters the disguised Odysseus without knowing his identity. His hospitality and loyalty help the king return.",
+  },
+  {
+    name: "Antinous",
+    role: "A leading suitor",
+    book: "Books 1–4, 17–22",
+    bio: "An arrogant suitor consuming Odysseus’ household. He insults and strikes the disguised king before the final reckoning.",
+  },
+  {
+    name: "Laertes",
+    role: "Father of Odysseus",
+    book: "Book 24",
+    bio: "The ageing father lives on his farm, grieving for his son. Their reunion is one of the final homecomings in the poem.",
+  },
+  {
+    name: "Argos",
+    role: "The faithful hound",
+    book: "Book 17",
+    bio: "Odysseus’ old dog recognizes him even through his disguise. In the poem, Argos dies after seeing his master return.",
+  },
+];
+export const sceneArt: Record<
+  string,
+  { tile: number; actors: number[]; book: string }
+> = {
+  lotus: { tile: 2, actors: [9], book: "BOOK IX" },
+  cyclops: { tile: 0, actors: [5, 2], book: "BOOK IX" },
+  winds: { tile: 1, actors: [6, 9], book: "BOOK X" },
+  circe: { tile: 2, actors: [7, 8], book: "BOOK X" },
+  underworld: { tile: 3, actors: [10], book: "BOOK XI" },
+  sirens: { tile: 4, actors: [11], book: "BOOK XII" },
+  scylla: { tile: 4, actors: [12], book: "BOOK XII" },
+  cattle: { tile: 1, actors: [9, 13], book: "BOOK XII" },
+  calypso: { tile: 2, actors: [14, 8], book: "BOOK V" },
+  nausicaa: { tile: 5, actors: [15, 1], book: "BOOK VI" },
+  ithaca: { tile: 5, actors: [3, 4, 16, 17, 18, 19], book: "BOOKS XIII–XXIV" },
+};
+export const prologue = [
+  {
+    kicker: "AFTER THE FALL OF TROY",
+    title: "Ten years of war.",
+    text: "Troy has fallen. Odysseus sets sail for Ithaca. Across the sea, Penelope and Telemachus wait for a husband and a father.",
+    actors: [0, 3, 4],
+  },
+  {
+    kicker: "A SEA OF GODS & MONSTERS",
+    title: "The way home is not a straight line.",
+    text: "A proud king. A restless sea. Every island has a temptation, and every choice takes something from him.",
+    actors: [2, 5, 7],
+  },
+  {
+    kicker: "ATHENA HAS ONE LAST HOPE",
+    title: "You are the voice beside him.",
+    text: "Give Odysseus your counsel in your own words. Appeal to his loyalty. Challenge his pride. He will listen, but he may not obey.",
+    actors: [1, 0],
+  },
+  {
+    kicker: "YOUR ODYSSEY BEGINS",
+    title: "Bring him home before twenty years pass.",
+    text: "The clock begins with ten years at Troy. Win his trust, survive eleven encounters, and change the shape of the legend.",
+    actors: [0, 3],
+  },
+];

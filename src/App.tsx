@@ -17,6 +17,7 @@ import {
   Hourglass,
   Mic,
   MicOff,
+  Music2,
   Pause,
   Play,
   RotateCcw,
@@ -46,6 +47,8 @@ import {
   type Game,
 } from "@/lib/game";
 import { cast, prologue, sceneArt } from "@/lib/cast";
+import { SpeechBubble } from "@/components/speech-bubble";
+import { VoyageAudio, musicMood, type AudioCue } from "@/lib/voyage-audio";
 type SpeechEvent = { results: { 0: { 0: { transcript: string } } } };
 type Recognition = {
   lang: string;
@@ -83,11 +86,13 @@ function Portrait({ id, className = "" }: { id: number; className?: string }) {
     />
   );
 }
-function Words({ text }: { text: string }) {
+function Words({ text, instant = false }: { text: string; instant?: boolean }) {
   const [length, setLength] = useState(0);
+  const [revealed, setRevealed] = useState(false);
   useEffect(() => {
     setLength(0);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    setRevealed(false);
+    if (instant) {
       setLength(text.length);
       return;
     }
@@ -98,14 +103,15 @@ function Words({ text }: { text: string }) {
       if (n >= text.length) clearInterval(timer);
     }, 22);
     return () => clearInterval(timer);
-  }, [text]);
+  }, [text, instant]);
   return (
     <>
       <span className="sr-only">{text}</span>
       <span aria-hidden="true">
-        {text.slice(0, length)}
-        {length < text.length && <span className="type-cursor">▌</span>}
+        {revealed || instant ? text : text.slice(0, length)}
+        {!revealed && !instant && length < text.length && <span className="type-cursor">▌</span>}
       </span>
+      {!revealed && !instant && length < text.length && <button className="reveal-text intro-reveal" onClick={() => setRevealed(true)}>Show full text</button>}
     </>
   );
 }
@@ -122,6 +128,15 @@ export default function Home() {
     [selected, setSelected] = useState(0),
     [voice, setVoice] = useState(false),
     [sound, setSound] = useState(false),
+    [musicVolume, setMusicVolume] = useState(.35),
+    [effectsVolume, setEffectsVolume] = useState(.55),
+    [instantText, setInstantText] = useState(false),
+    [reduceMotion, setReduceMotion] = useState(false),
+    [systemReducedMotion, setSystemReducedMotion] = useState(false),
+    [speaking, setSpeaking] = useState(false),
+    [pageHidden, setPageHidden] = useState(false),
+    [keyboardInput, setKeyboardInput] = useState(false),
+    [audioError, setAudioError] = useState(""),
     [listening, setListening] = useState(false),
     [micAvailable, setMicAvailable] = useState(false),
     [aiAvailable, setAiAvailable] = useState(false),
@@ -131,7 +146,7 @@ export default function Home() {
     recognition = useRef<Recognition | null>(null),
     inputRef = useRef<HTMLTextAreaElement>(null),
     resultRef = useRef<HTMLDivElement>(null),
-    audio = useRef<AudioContext | null>(null),
+    audio = useRef<VoyageAudio | null>(null),
     gameRef = useRef(game);
   gameRef.current = game;
   const encounter =
@@ -139,35 +154,66 @@ export default function Home() {
     current = game.log[game.index],
     won = game.finished && game.months < 240,
     scene = sceneArt[encounter.id],
-    story = prologue[intro];
+    story = prologue[intro],
+    reducedMotion = reduceMotion || systemReducedMotion,
+    mood = musicMood(screen, encounter.id, game.finished, won);
   const chime = useCallback(
-    (success = true) => {
-      if (!sound) return;
-      try {
-        const ctx = audio.current ?? new AudioContext();
-        audio.current = ctx;
-        void ctx.resume();
-        [0, 1, 2].forEach((n) => {
-          const o = ctx.createOscillator(),
-            v = ctx.createGain();
-          o.type = "triangle";
-          o.frequency.value = (
-            success ? [261.63, 329.63, 392] : [196, 174.61, 146.83]
-          )[n];
-          v.gain.setValueAtTime(0.045, ctx.currentTime + n * 0.09);
-          v.gain.exponentialRampToValueAtTime(
-            0.001,
-            ctx.currentTime + n * 0.09 + 0.22,
-          );
-          o.connect(v);
-          v.connect(ctx.destination);
-          o.start(ctx.currentTime + n * 0.09);
-          o.stop(ctx.currentTime + n * 0.09 + 0.23);
-        });
-      } catch {}
+    (cue: AudioCue = "sail") => {
+      audio.current?.cue(cue);
     },
-    [sound],
+    [],
   );
+  function toggleAudio() {
+    if (sound) { setSound(false); return; }
+    void audio.current?.unlock().then(() => {
+      setSound(true);
+      setAudioError("");
+    }).catch(() => setAudioError("Audio could not start. Try enabling it again."));
+  }
+  useEffect(() => {
+    audio.current = new VoyageAudio();
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const motion = () => setSystemReducedMotion(preference.matches);
+    const visibility = () => {
+      setPageHidden(document.hidden);
+      if (document.hidden) {
+        recognition.current?.abort();
+        window.speechSynthesis?.cancel();
+        setSpeaking(false);
+        setListening(false);
+      }
+    };
+    const keyboard = () => setKeyboardInput(true);
+    const pointer = () => setKeyboardInput(false);
+    motion();
+    visibility();
+    preference.addEventListener("change", motion);
+    document.addEventListener("visibilitychange", visibility);
+    document.addEventListener("keydown", keyboard, true);
+    document.addEventListener("pointerdown", pointer, true);
+    return () => {
+      preference.removeEventListener("change", motion);
+      document.removeEventListener("visibilitychange", visibility);
+      document.removeEventListener("keydown", keyboard, true);
+      document.removeEventListener("pointerdown", pointer, true);
+      audio.current?.dispose();
+    };
+  }, []);
+  useEffect(() => {
+    audio.current?.update({ enabled: sound, music: musicVolume, effects: effectsVolume, ducked: speaking || modal === "pause", quiet: listening || pageHidden, mood });
+  }, [sound, musicVolume, effectsVolume, speaking, listening, pageHidden, mood, modal]);
+  useEffect(() => {
+    if (!sound) return;
+    const unlock = () => {
+      void audio.current?.unlock().catch(() => setAudioError("Audio could not start. Try enabling it again."));
+    };
+    document.addEventListener("pointerdown", unlock);
+    document.addEventListener("keydown", unlock);
+    return () => {
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+  }, [sound]);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SAVE);
@@ -183,6 +229,10 @@ export default function Home() {
       );
       setSound(prefs.sound === true);
       setVoice(prefs.voice === true);
+      if (typeof prefs.musicVolume === "number" && Number.isFinite(prefs.musicVolume)) setMusicVolume(Math.max(0, Math.min(1, prefs.musicVolume)));
+      if (typeof prefs.effectsVolume === "number" && Number.isFinite(prefs.effectsVolume)) setEffectsVolume(Math.max(0, Math.min(1, prefs.effectsVolume)));
+      setInstantText(prefs.instantText === true);
+      setReduceMotion(prefs.reduceMotion === true);
     } catch {}
     setReady(true);
     setMicAvailable(
@@ -198,7 +248,6 @@ export default function Home() {
     return () => {
       recognition.current?.abort();
       window.speechSynthesis?.cancel();
-      void audio.current?.close();
     };
   }, []);
   useEffect(() => {
@@ -215,10 +264,10 @@ export default function Home() {
       try {
         localStorage.setItem(
           "farshore-preferences",
-          JSON.stringify({ sound, voice }),
+          JSON.stringify({ sound, voice, musicVolume, effectsVolume, instantText, reduceMotion }),
         );
       } catch {}
-  }, [sound, voice, ready]);
+  }, [sound, voice, musicVolume, effectsVolume, instantText, reduceMotion, ready]);
   function begin() {
     chime();
     setGame(newGame());
@@ -274,6 +323,7 @@ export default function Home() {
       lock.current = true;
       setBusy(true);
       setError("");
+      chime("send");
       try {
         const active = gameRef.current,
           e = encounters.find((e) => e.id === active.route[active.index])!;
@@ -294,12 +344,14 @@ export default function Home() {
         gameRef.current = updated;
         setGame(updated);
         setAdvice("");
-        chime(d.safeChoice);
+        chime(d.safeChoice ? "reply" : "costly");
         if (voice && window.speechSynthesis) {
           window.speechSynthesis.cancel();
           const u = new SpeechSynthesisUtterance(d.reply);
           u.rate = 0.88;
           u.pitch = 0.85;
+          setSpeaking(true);
+          u.onend = u.onerror = () => setSpeaking(false);
           window.speechSynthesis.speak(u);
         }
         setTimeout(() => resultRef.current?.focus(), 50);
@@ -321,6 +373,7 @@ export default function Home() {
   function next() {
     if (lock.current) return;
     window.speechSynthesis?.cancel();
+    setSpeaking(false);
     chime();
     setGame((g) => advance(g));
     setError("");
@@ -333,6 +386,7 @@ export default function Home() {
       return;
     }
     window.speechSynthesis?.cancel();
+    setSpeaking(false);
     const C =
       (window as SpeechWindow).SpeechRecognition ||
       (window as SpeechWindow).webkitSpeechRecognition;
@@ -366,6 +420,7 @@ export default function Home() {
   function returnTitle() {
     recognition.current?.abort();
     window.speechSynthesis?.cancel();
+    setSpeaking(false);
     setScreen("title");
     setModal(null);
   }
@@ -439,14 +494,16 @@ export default function Home() {
     <Button
       variant="ghost"
       size="icon"
-      aria-label={sound ? "Mute game sounds" : "Enable game sounds"}
-      onClick={() => setSound(!sound)}
+      aria-label={sound ? "Mute all audio" : "Enable music and sounds"}
+      aria-pressed={sound}
+      title={sound ? "Mute all audio" : "Enable music and sounds"}
+      onClick={toggleAudio}
     >
       {sound ? <Volume2 /> : <VolumeX />}
     </Button>
   );
   return (
-    <main className={`game-shell screen-${screen}`}>
+    <main className={`game-shell screen-${screen} ${reducedMotion ? "reduce-motion" : ""}`} data-input={keyboardInput ? "keyboard" : "pointer"}>
       <div className="scanlines" aria-hidden="true" />
       {screen === "title" ? (
         <section className="title-screen" aria-label="Farshore title screen">
@@ -513,6 +570,12 @@ export default function Home() {
                 <span>·</span>
                 <button onClick={() => setModal("help")}>HOW TO PLAY</button>
               </div>
+              <button className={`audio-invitation ${sound ? "audio-on" : ""}`} onClick={toggleAudio} aria-pressed={sound}>
+                <Music2 size={16} />
+                {sound ? "Soundtrack on" : "Enable music & sounds"}
+                <span>{sound ? "A song for the way home" : "Best with sound"}</span>
+              </button>
+              {audioError && <p className="error-message" role="alert">{audioError}</p>}
             </div>
           </div>
           <div className="title-captain">
@@ -560,7 +623,7 @@ export default function Home() {
               ))}
             </div>
             <p className="intro-text">
-              <Words text={story.text} />
+              <Words text={story.text} instant={instantText || reducedMotion || keyboardInput} />
             </p>
           </div>
           <div className="intro-controls">
@@ -584,16 +647,17 @@ export default function Home() {
             >
               FARSHORE
             </button>
-            <div className="hud-clock">
+            <div className="hud-clock" key={`time-${game.months}`}>
               <Hourglass />
               <span>
                 <small>AWAY FROM HOME</small>
                 <strong>
                   {formatTime(game.months)} <em>/ 20y</em>
                 </strong>
+                <span className="time-remaining">{Math.max(0, 240 - game.months)} months to reach home</span>
               </span>
             </div>
-            <div className="hud-trust">
+            <div className="hud-trust" key={`trust-${game.trust}`}>
               <span>
                 TRUST <b>{game.trust}/100</b>
               </span>
@@ -684,7 +748,7 @@ export default function Home() {
           ) : (
             <>
               <section
-                className={`encounter-stage scene-${encounter.id}`}
+                className={`encounter-stage scene-${encounter.id} mood-${mood}`}
                 aria-label={encounter.place}
                 key={encounter.id}
               >
@@ -695,6 +759,10 @@ export default function Home() {
                   }}
                 />
                 <div className="stage-shade" />
+                <div className="scene-atmosphere" aria-hidden="true">
+                  <div className="sea-mist" />
+                  {Array.from({ length: 8 }, (_, i) => <i key={i} style={{ "--particle": i } as CSSProperties} />)}
+                </div>
                 <div className="chapter-banner">
                   <span className="pixel">
                     CHAPTER {String(game.index + 1).padStart(2, "0")} /{" "}
@@ -703,13 +771,23 @@ export default function Home() {
                   <h1>{encounter.place}</h1>
                   <p>{encounter.title}</p>
                 </div>
-                <div className="stage-captain">
-                  <Portrait id={0} className={busy ? "thinking" : "idle"} />
-                  <span className="actor-name">ODYSSEUS</span>
-                </div>
                 <div className="scene-context">
                   <p>{encounter.scene}</p>
                 </div>
+                <div className="conversation-stage">
+                  <div className="captain-conversation">
+                    <div className={`stage-captain ${busy ? "captain-thinking" : ""}`}>
+                      <Portrait id={0} className="idle" />
+                      <span className="actor-name">YOUR CAPTAIN</span>
+                    </div>
+                    <SpeechBubble
+                      key={`${encounter.id}-${current ? "reply" : "opening"}`}
+                      text={current?.reply || encounter.speech}
+                      instant={instantText || reducedMotion || keyboardInput}
+                      busy={busy}
+                      decided={!!current}
+                    />
+                  </div>
                 <div className="stage-visitors">
                   {scene.actors.slice(0, 2).map((id, i) => (
                     <button
@@ -717,6 +795,7 @@ export default function Home() {
                       key={id}
                       style={{ "--delay": `${i * 0.7}s` } as CSSProperties}
                       onClick={() => {
+                        chime("select");
                         setSelected(id);
                         setModal("cast");
                       }}
@@ -729,18 +808,17 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                </div>
                 <span className="stage-book">HOMER · {scene.book}</span>
               </section>
               <section className="dialogue-box" aria-label="Advise Odysseus">
                 <div className="dialogue-header">
-                  <span className="pixel">ODYSSEUS</span>
-                  <span>
-                    {current
-                      ? "THE CAPTAIN HAS DECIDED"
-                      : busy
-                        ? "CONSIDERING YOUR WORDS…"
-                        : "PROUD · CURIOUS · HOMESICK"}
-                  </span>
+                  <span className="pixel">{current ? "THE CONSEQUENCE" : "YOUR NEXT MOVE"}</span>
+                  <button className="mode-switch" onClick={() => setModal("settings")}>
+                    <span className={`mode-dot ${mode}`} />
+                    {mode === "story" ? "Story mode · scripted" : "AI dialogue"}
+                    <Settings2 size={14} />
+                  </button>
                 </div>
                 {current ? (
                   <div
@@ -748,6 +826,7 @@ export default function Home() {
                     tabIndex={-1}
                     ref={resultRef}
                     aria-live="polite"
+                    aria-label={`Odysseus replied: ${current.reply}`}
                   >
                     <div className="result-summary">
                       <span
@@ -757,19 +836,19 @@ export default function Home() {
                             : "result-tag costly"
                         }
                       >
-                        {current.followed ? "HE LISTENED" : "HIS OWN CHOICE"}
+                        <small>HIS CHOICE</small>
+                        <strong>{current.followed ? "He listened" : "His own choice"}</strong>
+                        <em>{current.safeChoice ? "Passage earned" : "A costly turn"}</em>
                       </span>
                       <span className="result-time">
-                        +{current.months} MONTHS
+                        <small>TIME PASSED</small>
+                        <strong>+{current.months} <em>months</em></strong>
                       </span>
-                      <span>
-                        TRUST {current.trustDelta > 0 ? "+" : ""}
-                        {current.trustDelta}
+                      <span className={current.trustDelta >= 0 ? "good" : "costly"}>
+                        <small>TRUST</small>
+                        <strong>{current.trustDelta > 0 ? "+" : ""}{current.trustDelta} <em>points</em></strong>
                       </span>
                     </div>
-                    <p className="captain-line">
-                      <Words text={`“${current.reply}”`} />
-                    </p>
                     <p className="outcome">{current.outcome}</p>
                     <div className="decision-actions">
                       <details>
@@ -793,9 +872,6 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    <p className="captain-line">
-                      <Words text={`“${encounter.speech}”`} />
-                    </p>
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
@@ -815,6 +891,8 @@ export default function Home() {
                           placeholder="Odysseus, think of home…"
                           maxLength={800}
                           disabled={busy || !ready}
+                          aria-describedby={`counsel-hint${error ? " counsel-error" : ""}`}
+                          aria-invalid={!!error}
                           onKeyDown={(e) => {
                             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                               e.preventDefault();
@@ -826,7 +904,6 @@ export default function Home() {
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
                             onClick={microphone}
                             disabled={!micAvailable || busy}
                             aria-label={
@@ -836,7 +913,7 @@ export default function Home() {
                             }
                             className={listening ? "recording" : ""}
                           >
-                            {listening ? <MicOff /> : <Mic />}
+                            {listening ? <MicOff /> : <Mic />}<span>{listening ? "Stop" : "Dictate"}</span>
                           </Button>
                           <span>{advice.length}/800</span>
                           <Button
@@ -846,19 +923,24 @@ export default function Home() {
                               busy || advice.trim().length < 3 || !ready
                             }
                           >
-                            {busy ? "THINKING…" : "SPEAK"}
+                            {busy ? "THINKING…" : "SEND COUNSEL"}
                             <Send size={16} />
                           </Button>
                         </div>
                       </div>
+                      <p className="composer-hint" id="counsel-hint">
+                        <span>{busy ? "Your words are with the captain. This may take a moment." : "You advise. He decides. Every choice changes the journey."}</span>
+                        <span className="shortcut-hint">Ctrl / ⌘ + Enter to send</span>
+                      </p>
+                      {!micAvailable && <p className="input-note">Dictation is unavailable in this browser. You can always type your counsel.</p>}
                       {listening && (
                         <p className="input-note">
                           Listening. Review the transcript before sending.
                         </p>
                       )}
                       {error && (
-                        <p className="error-message" role="alert">
-                          {error}
+                        <p className="error-message" role="alert" id="counsel-error">
+                          {error} Your counsel is still here. You can edit it and send again.
                         </p>
                       )}
                     </form>
@@ -867,6 +949,8 @@ export default function Home() {
               </section>
             </>
           )}
+          {saveError && <p className="save-warning" role="alert">Progress could not be saved on this device. Keep this tab open to continue your voyage.</p>}
+          {audioError && <p className="save-warning" role="alert">{audioError}</p>}
           <footer className="game-footer">
             <div>
               <button onClick={() => setModal("cast")}>
@@ -886,7 +970,7 @@ export default function Home() {
                   : "LOADING"}
             </span>
             <button onClick={() => setModal("settings")}>
-              {mode === "story" ? "STORY MODE · SCRIPTED" : "AI DIALOGUE"}
+              MUSIC & SETTINGS
               <Settings2 size={14} />
             </button>
           </footer>
@@ -899,7 +983,7 @@ export default function Home() {
         }}
       >
         <DialogContent
-          className={`game-dialog ${modal === "cast" ? "cast-dialog" : ""} ${modal === "map" ? "map-dialog" : ""}`}
+          className={`game-dialog ${modal === "cast" ? "cast-dialog" : ""} ${modal === "map" ? "map-dialog" : ""} ${reducedMotion || keyboardInput ? "reduce-motion" : ""}`}
         >
           <DialogHeader>
             <DialogTitle className="pixel">
@@ -1177,17 +1261,27 @@ export default function Home() {
               </fieldset>
               <label>
                 <span>
-                  <strong>Game sounds</strong>
+                  <strong>Music & sounds</strong>
                   <small>
-                    Short retro tones for choices and scene changes.
+                    A sea-worn melody, soft strings, and the sound of each choice.
                   </small>
                 </span>
                 <input
                   type="checkbox"
                   checked={sound}
-                  onChange={(e) => setSound(e.target.checked)}
+                  onChange={toggleAudio}
                 />
               </label>
+              <div className="audio-mixer">
+                <label htmlFor="music-volume"><span>Music <output>{Math.round(musicVolume * 100)}%</output></span>
+                  <input id="music-volume" type="range" min="0" max="100" value={Math.round(musicVolume * 100)} onChange={(e) => setMusicVolume(Number(e.target.value) / 100)} />
+                </label>
+                <label htmlFor="effects-volume"><span>Sound effects <output>{Math.round(effectsVolume * 100)}%</output></span>
+                  <input id="effects-volume" type="range" min="0" max="100" value={Math.round(effectsVolume * 100)} onChange={(e) => setEffectsVolume(Number(e.target.value) / 100)} onPointerUp={() => chime("select")} onKeyUp={() => chime("select")} />
+                </label>
+                <span className="audio-caption">{sound ? "Playing" : "Muted"} · {mood === "title" ? "A song for the way home" : mood === "danger" ? "Beneath an uneasy sea" : mood === "home" ? "The lights of Ithaca" : "On a following wind"}</span>
+              </div>
+              {audioError && <p className="error-message" role="alert">{audioError}</p>}
               <label>
                 <span>
                   <strong>Read replies aloud</strong>
@@ -1198,13 +1292,21 @@ export default function Home() {
                   checked={voice}
                   onChange={(e) => {
                     setVoice(e.target.checked);
-                    if (!e.target.checked) window.speechSynthesis?.cancel();
+                    if (!e.target.checked) {
+                      window.speechSynthesis?.cancel();
+                      setSpeaking(false);
+                    }
                   }}
                 />
               </label>
+              <fieldset className="reading-settings">
+                <legend>Reading & motion</legend>
+                <label><span><strong>Instant dialogue</strong><small>Show the whole line without the typewriter effect.</small></span><input type="checkbox" checked={instantText} onChange={(e) => setInstantText(e.target.checked)} /></label>
+                <label><span><strong>Reduced motion</strong><small>{systemReducedMotion ? "Your device already requests reduced motion." : "Still scenery and characters, with instant transitions."}</small></span><input type="checkbox" checked={reducedMotion} disabled={systemReducedMotion} onChange={(e) => setReduceMotion(e.target.checked)} /></label>
+              </fieldset>
               <p>
                 Voice input may use your browser’s online speech service. Only
-                the reviewed transcript is sent when you choose Speak. Your
+                the reviewed transcript is sent when you choose Send counsel. Your
                 progress is saved in this browser.
               </p>
               <Button

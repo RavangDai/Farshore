@@ -22,8 +22,8 @@ export function SpeechBubble({ text, instant = false, busy = false, decided = fa
   }, [text, instant, revealed]);
 
   useEffect(() => {
-    if (length >= text.length) setRevealed(true);
-  }, [length, text]);
+    if (instant || length >= text.length) setRevealed(true);
+  }, [instant, length, text]);
 
   return (
     <div className={`speech-bubble ${busy ? "is-thinking" : ""}`} data-speaking={!complete && !busy}>

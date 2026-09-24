@@ -182,7 +182,8 @@ export class VoyageAudio {
       while (layer.next < ctx.currentTime + .22) {
         const step = layer.step, at = layer.next, root = score.roots[Math.floor(step / 16) % 4];
         // Broken lyre chords, a slower flute phrase, and a soft frame drum.
-        const arpeggio = [0, 7, 12, 7, 3, 7, 12, 15];
+        const third = [46, 48, 53].includes(root) ? 4 : 3;
+        const arpeggio = [0, 7, 12, 7, third, 7, 12, 12 + third];
         if (step % 2 === 0) this.note(root + arpeggio[(step / 2) % 8], at, 1.35, .065, layer.gain);
         if (step % 16 === 0) {
           this.note(root - 12, at, beat * 7, .042, layer.gain, "sine");

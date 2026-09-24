@@ -90,12 +90,12 @@ function Words({ text, instant = false }: { text: string; instant?: boolean }) {
   const [length, setLength] = useState(0);
   const [revealed, setRevealed] = useState(false);
   useEffect(() => {
-    setLength(0);
-    setRevealed(false);
     if (instant) {
       setLength(text.length);
+      setRevealed(true);
       return;
     }
+    if (revealed) return;
     let n = 0;
     const timer = setInterval(() => {
       n += 3;
@@ -103,7 +103,7 @@ function Words({ text, instant = false }: { text: string; instant?: boolean }) {
       if (n >= text.length) clearInterval(timer);
     }, 22);
     return () => clearInterval(timer);
-  }, [text, instant]);
+  }, [text, instant, revealed]);
   return (
     <>
       <span className="sr-only">{text}</span>

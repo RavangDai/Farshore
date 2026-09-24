@@ -11,3 +11,7 @@ The atlas is rendered with percentage background positions, avoiding a separate 
 Press Start 2P by CodeMan38 is bundled under the SIL Open Font License. See `public/fonts/OFL.txt`. Source: https://github.com/google/fonts/tree/main/ofl/pressstart2p.
 
 The original version used a moonlit image from the supplied presentation. The laptop edition uses the new pixel assets listed above.
+
+## Music and sound
+
+The four voyage themes and matching cues are original procedural compositions for Farshore, defined in `src/lib/voyage-audio.ts`. Plucked and flute-like synthesized voices, bass, a soft drum, and filtered sea noise are generated locally with Web Audio. No external recordings, samples, or third-party music are bundled. Scene changes crossfade between themes.

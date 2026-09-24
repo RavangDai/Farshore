@@ -1734,13 +1734,13 @@ a {
   content: "";
   position: absolute;
   left: -20px;
-  bottom: 45px;
+  bottom: 66px;
   width: 20px;
   height: 24px;
   background: #c6a76d;
   clip-path: polygon(100% 0,100% 100%,0 100%,0 75%,25% 75%,25% 50%,50% 50%,50% 25%,75% 25%,75% 0);
 }
-.speech-bubble::after { left: -15px; bottom: 48px; width: 17px; height: 18px; background: #0b2033; }
+.speech-bubble::after { left: -15px; bottom: 69px; width: 17px; height: 18px; background: #0b2033; }
 .speech-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
 .speech-heading .pixel { font-size: .67rem; line-height: 1.7; color: #f1cf89; }
 .speech-state { font-size: .75rem; color: #a5bdc5; text-align: right; }
@@ -1839,7 +1839,10 @@ a {
 @media (max-width: 800px) {
   .conversation-stage { display: grid; grid-template-columns: minmax(0,1fr); padding: 20px 22px 0; }
   .captain-conversation { grid-template-columns: 135px minmax(0,1fr); }
-  .stage-visitors { display: none; }
+  .stage-visitors { display: flex; order: -1; justify-content: flex-end; margin: -9px 0 8px; }
+  .stage-person { width: 82px; }
+  .stage-person + .stage-person { margin-left: -8px; }
+  .stage-person .actor-name { font-size: .55rem; padding: 6px 3px; }
   .composer { flex-direction: column; }
   .composer-actions { border-top: 1px solid #293d4d; padding-top: 8px; justify-content: flex-end; }
   .composer-actions > button:first-child { margin-right: auto; }
@@ -1922,7 +1925,8 @@ a {
 [data-input="keyboard"] .location-art, [data-input="keyboard"] .decision,
 [data-input="keyboard"] .intro-content, [data-input="keyboard"] .intro-person,
 [data-input="keyboard"] .hud-clock, [data-input="keyboard"] .hud-trust {
-  animation: none !important;
+  animation-duration: 0ms !important;
+  animation-delay: 0ms !important;
 }
 @media (max-width: 700px) {
   .cast-grid {

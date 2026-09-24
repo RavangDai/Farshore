@@ -2,6 +2,10 @@
 
 The complete retro browser game with twenty character portraits, six illustrated backdrops, an animated intro, eleven encounters, a character book, a voyage map, and saved progress.
 
+Dialogue now appears in character-linked speech bubbles, with animated scenery and clearer time/trust feedback. Select **Enable music & sounds** on the title screen for an original retro maritime soundtrack. Music changes with the voyage, with separate music/effect volumes in **Music & Settings**. Audio is synthesized locally with Web Audio; it needs no downloads or account. It pauses in hidden tabs and during dictation, and music lowers during spoken replies.
+
+Settings also include instant dialogue and reduced motion. **Show full text** skips an individual text reveal. The system reduced-motion preference is always respected. Audio, volume, and reading preferences are saved in this browser.
+
 ## Start in VS Code (Windows, macOS, or Linux)
 
 1. Install Node.js 24 from https://nodejs.org/ if needed. Node 22.13 or newer also works. Restart VS Code after installing Node.
@@ -37,6 +41,8 @@ No PowerShell security policy change is needed. If npm is not recognized, instal
 | --- | --- |
 | `src/App.tsx` | Title screen, intro, UI, sound, speech, saves |
 | `src/styles.css` | Retro theme, motion, responsive layouts |
+| `src/components/speech-bubble.tsx` | Character dialogue and text reveal |
+| `src/lib/voyage-audio.ts` | Original music, ambience, and sound effects |
 | `src/lib/game.ts` | Encounters, scoring, trust, scripted decisions |
 | `src/lib/cast.ts` | Characters, lore, scene assignments, intro |
 | `server/turn.ts` | Dialogue validation and optional model connection |

@@ -1782,8 +1782,8 @@ a {
 .dialogue-box form label { font-size: .73rem; letter-spacing: .08em; }
 .dialogue-box form label span { font-size: .82rem; color: #b0c4cc; letter-spacing: 0; }
 .composer { border-color: #4d6979; padding: 8px; transition: border-color 160ms ease; }
-.composer textarea { min-height: 80px; }
-.composer-actions { gap: 12px; }
+.composer textarea { min-height: 80px; min-width: 0; flex: 1 1 0%; }
+.composer-actions { gap: 12px; flex-shrink: 0; }
 .composer-actions > button:first-child { min-width: 82px; min-height: 44px; color: #bed4d5; }
 .composer-actions > span { font-size: .75rem; color: #9db6c1; }
 .composer-actions .pixel-button { min-width: 173px; }

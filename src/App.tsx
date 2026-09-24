@@ -49,17 +49,7 @@ import {
 import { cast, prologue, sceneArt } from "@/lib/cast";
 import { SpeechBubble } from "@/components/speech-bubble";
 import { VoyageAudio, musicMood, type AudioCue } from "@/lib/voyage-audio";
-type SpeechEvent = { results: { 0: { 0: { transcript: string } } } };
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  onresult: ((e: SpeechEvent) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-};
+import { DictationSession, dictationIssue, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/dictation";
 type SpeechWindow = Window & {
   SpeechRecognition?: new () => Recognition;
   webkitSpeechRecognition?: new () => Recognition;
@@ -137,13 +127,15 @@ export default function Home() {
     [pageHidden, setPageHidden] = useState(false),
     [keyboardInput, setKeyboardInput] = useState(false),
     [audioError, setAudioError] = useState(""),
-    [listening, setListening] = useState(false),
+    [dictationState, setDictationState] = useState<DictationState>("idle"),
+    [voiceIssue, setVoiceIssue] = useState<DictationIssue | null>(null),
     [micAvailable, setMicAvailable] = useState(false),
     [aiAvailable, setAiAvailable] = useState(false),
     [mode, setMode] = useState<"story" | "ai">("story"),
     [saveError, setSaveError] = useState(false);
   const lock = useRef(false),
-    recognition = useRef<Recognition | null>(null),
+    recognition = useRef<DictationSession | null>(null),
+    brave = useRef(false),
     inputRef = useRef<HTMLTextAreaElement>(null),
     sceneRef = useRef<HTMLElement>(null),
     resultRef = useRef<HTMLDivElement>(null),
@@ -157,7 +149,8 @@ export default function Home() {
     scene = sceneArt[encounter.id],
     story = prologue[intro],
     reducedMotion = reduceMotion || systemReducedMotion,
-    mood = musicMood(screen, encounter.id, game.finished, won);
+    mood = musicMood(screen, encounter.id, game.finished, won),
+    listening = dictationState !== "idle";
   const chime = useCallback(
     (cue: AudioCue = "sail") => {
       audio.current?.cue(cue);
@@ -178,10 +171,10 @@ export default function Home() {
     const visibility = () => {
       setPageHidden(document.hidden);
       if (document.hidden) {
-        recognition.current?.abort();
+        recognition.current?.cancel();
         window.speechSynthesis?.cancel();
         setSpeaking(false);
-        setListening(false);
+        setDictationState("idle");
       }
     };
     const keyboard = () => setKeyboardInput(true);
@@ -216,6 +209,9 @@ export default function Home() {
     };
   }, [sound]);
   useEffect(() => {
+    if (modal) recognition.current?.cancel();
+  }, [modal]);
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(SAVE);
       if (raw) {
@@ -236,6 +232,8 @@ export default function Home() {
       setReduceMotion(prefs.reduceMotion === true);
     } catch {}
     setReady(true);
+    const browser = navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } };
+    void browser.brave?.isBrave().then((value) => { brave.current = value; }).catch(() => {});
     setMicAvailable(
       !!(
         (window as SpeechWindow).SpeechRecognition ||
@@ -247,7 +245,7 @@ export default function Home() {
       .then((d) => setAiAvailable(d.aiAvailable === true))
       .catch(() => {});
     return () => {
-      recognition.current?.abort();
+      recognition.current?.cancel();
       window.speechSynthesis?.cancel();
     };
   }, []);
@@ -270,6 +268,8 @@ export default function Home() {
       } catch {}
   }, [sound, voice, musicVolume, effectsVolume, instantText, reduceMotion, ready]);
   function begin() {
+    recognition.current?.cancel();
+    setVoiceIssue(null);
     chime();
     setGame(newGame());
     setHasSave(true);
@@ -309,6 +309,10 @@ export default function Home() {
   });
   const submit = useCallback(
     async (text = advice) => {
+      if (recognition.current) {
+        setVoiceIssue({ title: "Finish dictating first", detail: "Stop dictation and review the transcript before sending your counsel." });
+        return { error: "Review the transcript before sending." };
+      }
       if (
         lock.current ||
         gameRef.current.finished ||
@@ -320,10 +324,10 @@ export default function Home() {
         setError("Write between 3 and 800 characters.");
         return { error: "Invalid advice length." };
       }
-      recognition.current?.stop();
       lock.current = true;
       setBusy(true);
       setError("");
+      setVoiceIssue(null);
       chime("send");
       try {
         const active = gameRef.current,
@@ -378,6 +382,7 @@ export default function Home() {
     chime();
     setGame((g) => advance(g));
     setError("");
+    setVoiceIssue(null);
     setAdvice("");
     requestAnimationFrame(() => {
       sceneRef.current?.focus({ preventScroll: true });
@@ -385,8 +390,9 @@ export default function Home() {
     });
   }
   function microphone() {
-    if (listening) {
-      recognition.current?.stop();
+    if (recognition.current) {
+      if (dictationState === "starting") recognition.current.cancel();
+      else recognition.current.stop();
       return;
     }
     window.speechSynthesis?.cancel();
@@ -394,35 +400,30 @@ export default function Home() {
     const C =
       (window as SpeechWindow).SpeechRecognition ||
       (window as SpeechWindow).webkitSpeechRecognition;
-    if (!C) return;
-    const rec = new C();
-    recognition.current = rec;
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.onresult = (e) => {
-      setAdvice((a) =>
-        (a + " " + e.results[0][0].transcript).trim().slice(0, 800),
-      );
-      setError("");
-    };
-    rec.onerror = (e) => {
-      setError(
-        e.error === "not-allowed"
-          ? "Microphone access was declined. You can still type your advice."
-          : "Voice input could not hear you. Try again or type your advice.",
-      );
-      setListening(false);
-    };
-    rec.onend = () => setListening(false);
+    if (!C) { setVoiceIssue(dictationIssue("service-not-allowed")); return; }
+    setVoiceIssue(null);
     try {
-      rec.start();
-      setListening(true);
+      const session = new DictationSession(new C(), {
+        onState: (state) => {
+          setDictationState(state);
+          if (state === "idle" && recognition.current === session) recognition.current = null;
+        },
+        onTranscript: (text) => {
+          setAdvice((previous) => (previous + " " + text).trim().slice(0, 800));
+          setVoiceIssue(null);
+          setError("");
+        },
+        onError: (code) => setVoiceIssue(dictationIssue(code, brave.current)),
+      });
+      recognition.current = session;
+      session.start();
     } catch {
-      setError("The microphone could not start. Please type your advice.");
+      recognition.current?.cancel();
+      setVoiceIssue(dictationIssue("start-failed"));
     }
   }
   function returnTitle() {
-    recognition.current?.abort();
+    recognition.current?.cancel();
     window.speechSynthesis?.cancel();
     setSpeaking(false);
     setScreen("title");
@@ -897,7 +898,7 @@ export default function Home() {
                           placeholder="Odysseus, think of home…"
                           maxLength={800}
                           disabled={busy || !ready}
-                          aria-describedby={`counsel-hint${error ? " counsel-error" : ""}`}
+                          aria-describedby={`counsel-hint${error ? " counsel-error" : ""}${voiceIssue ? " dictation-error" : ""}`}
                           aria-invalid={!!error}
                           onKeyDown={(e) => {
                             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -911,22 +912,22 @@ export default function Home() {
                             type="button"
                             variant="ghost"
                             onClick={microphone}
-                            disabled={!micAvailable || busy}
+                            disabled={!micAvailable || busy || dictationState === "finishing"}
                             aria-label={
-                              listening
-                                ? "Stop recording"
-                                : "Dictate your advice"
+                              dictationState === "starting" ? "Cancel dictation"
+                                : dictationState === "finishing" ? "Finishing dictation"
+                                : listening ? "Stop dictation" : "Dictate your advice"
                             }
                             className={listening ? "recording" : ""}
                           >
-                            {listening ? <MicOff /> : <Mic />}<span>{listening ? "Stop" : "Dictate"}</span>
+                            {listening ? <MicOff /> : <Mic />}<span>{dictationState === "starting" ? "Cancel" : dictationState === "finishing" ? "Finishing" : listening ? "Stop" : "Dictate"}</span>
                           </Button>
                           <span>{advice.length}/800</span>
                           <Button
                             className="pixel-button primary"
                             type="submit"
                             disabled={
-                              busy || advice.trim().length < 3 || !ready
+                              busy || listening || advice.trim().length < 3 || !ready
                             }
                           >
                             {busy ? "THINKING…" : "SEND COUNSEL"}
@@ -940,9 +941,25 @@ export default function Home() {
                       </p>
                       {!micAvailable && <p className="input-note">Dictation is unavailable in this browser. You can always type your counsel.</p>}
                       {listening && (
-                        <p className="input-note">
-                          Listening. Review the transcript before sending.
+                        <p className="input-note" role="status">
+                          {dictationState === "starting" ? "Starting dictation. Allow microphone access if your browser asks."
+                            : dictationState === "finishing" ? "Finishing your transcript. Review it before sending."
+                            : "Listening. Speak now, then stop and review your words before sending."}
                         </p>
+                      )}
+                      {voiceIssue && (
+                        <div className="dictation-error" role="alert" id="dictation-error">
+                          <strong>{voiceIssue.title}</strong>
+                          <p>{voiceIssue.detail}</p>
+                          <div className="dictation-recovery">
+                            {!listening && micAvailable && <button type="button" onClick={microphone} disabled={busy}>Try dictation again</button>}
+                            <button type="button" onClick={() => {
+                              recognition.current?.cancel();
+                              setVoiceIssue(null);
+                              inputRef.current?.focus();
+                            }}>Type instead</button>
+                          </div>
+                        </div>
                       )}
                       {error && (
                         <p className="error-message" role="alert" id="counsel-error">

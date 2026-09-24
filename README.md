@@ -6,6 +6,10 @@ Dialogue now appears in character-linked speech bubbles, with animated scenery a
 
 Settings also include instant dialogue and reduced motion. **Show full text** skips an individual text reveal. The system reduced-motion preference is always respected. Audio, volume, and reading preferences are saved in this browser.
 
+Dictation depends on the browser's speech service as well as microphone access. Wait for **Listening**, speak, then stop and review the transcript before sending. A connection failure is different from no speech being detected. The game now reports microphone permission, capture, service, network, and silence failures separately, with retry and typing options. Existing text remains intact.
+
+Brave can expose the speech API without a working recognition service. If it reports **Speech service could not connect**, Windows users can choose **Type instead**, then press **Windows + H** to use [Windows voice typing](https://support.microsoft.com/en-US/accessibility/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc) in the counsel box. This requires an internet connection and a working microphone. You can also try browser dictation in Chrome or use typing. See [Brave's speech-recognition issue](https://github.com/brave/brave-browser/issues/2802). Progress is local to each browser, so switching browsers does not move your save.
+
 ## Start in VS Code (Windows, macOS, or Linux)
 
 1. Install Node.js 24 from https://nodejs.org/ if needed. Node 22.13 or newer also works. Restart VS Code after installing Node.

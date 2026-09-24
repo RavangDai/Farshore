@@ -1661,6 +1661,7 @@ a {
 .hud-buttons button, .title-top button { min-width: 44px; min-height: 44px; }
 .game-hud { min-height: 90px; gap: 32px; }
 .hud-clock, .hud-trust { animation: stat-arrive 260ms ease-out; }
+.hud-clock strong { white-space: nowrap; }
 .hud-clock small, .hud-trust > span { font-size: .72rem; }
 .time-remaining { display: block; font-size: .72rem; color: #a8c3cc; margin-top: 6px; }
 .trust-meter i { transition: background-color 200ms ease; }
@@ -1910,7 +1911,11 @@ a {
   .captain-conversation { grid-template-columns: 62px minmax(0,1fr); gap: 14px; }
   .speech-bubble { padding-inline: 12px; }
   .hud-brand { font-size: .67rem; }
-  .game-hud { padding-inline: 12px; }
+  .hud-clock strong { font-size: .62rem; }
+  .game-hud { padding-inline: 12px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 12px; }
+  .hud-clock { min-width: 0; gap: 0; }
+  .hud-clock > svg { display: none; }
+  .hud-buttons button { min-width: 40px; width: 40px; }
   .composer-actions .pixel-button { min-width: 0; }
 }
 .reduce-motion *, .reduce-motion *::before, .reduce-motion *::after,

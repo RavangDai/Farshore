@@ -145,6 +145,7 @@ export default function Home() {
   const lock = useRef(false),
     recognition = useRef<Recognition | null>(null),
     inputRef = useRef<HTMLTextAreaElement>(null),
+    sceneRef = useRef<HTMLElement>(null),
     resultRef = useRef<HTMLDivElement>(null),
     audio = useRef<VoyageAudio | null>(null),
     gameRef = useRef(game);
@@ -378,7 +379,10 @@ export default function Home() {
     setGame((g) => advance(g));
     setError("");
     setAdvice("");
-    setTimeout(() => inputRef.current?.focus(), 100);
+    requestAnimationFrame(() => {
+      sceneRef.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
   }
   function microphone() {
     if (listening) {
@@ -698,7 +702,7 @@ export default function Home() {
             </div>
           </header>
           {game.finished ? (
-            <section className="ending">
+            <section className="ending" ref={sceneRef} tabIndex={-1} aria-label="Journey report">
               <div className="ending-landscape" />
               <div className="ending-content">
                 <span className="pixel overline">
@@ -750,6 +754,8 @@ export default function Home() {
               <section
                 className={`encounter-stage scene-${encounter.id} mood-${mood}`}
                 aria-label={encounter.place}
+                ref={sceneRef}
+                tabIndex={-1}
                 key={encounter.id}
               >
                 <div

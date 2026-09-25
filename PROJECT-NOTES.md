@@ -79,7 +79,7 @@ In Homer, the crew opens Aeolus’ bag while Odysseus sleeps; Eurylochus leads t
 
 ## Saves and controls
 
-Version 2 uses `farshore-voyage-v2` in localStorage. Existing version 1 saves are left untouched because the route and score rules changed. Game sounds and spoken replies are opt-in. The system reduced-motion preference removes motion and text reveal.
+Version 2 uses `farshore-voyage-v2` in localStorage. Existing version 1 saves are left untouched because the route and score rules changed. Game sounds and spoken replies are opt-in. Scene motion defaults to the system preference. Players can explicitly choose Animated or Still in Settings; Still removes motion and text reveal.
 
 - Enter starts/resumes at the title and advances the intro when no button or input has focus.
 - Ctrl/Cmd + Enter sends your counsel.

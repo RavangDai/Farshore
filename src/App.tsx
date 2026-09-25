@@ -48,6 +48,9 @@ import {
 } from "@/lib/game";
 import { cast, prologue, sceneArt } from "@/lib/cast";
 import { SpeechBubble } from "@/components/speech-bubble";
+import { SceneWater } from "@/components/scene-water";
+import { CaptainPortrait } from "@/components/captain-portrait";
+import { captainEmotion } from "@/lib/character-performance";
 import { VoyageAudio, musicMood, type AudioCue } from "@/lib/voyage-audio";
 import { DictationSession, dictationIssue, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/dictation";
 type SpeechWindow = Window & {
@@ -121,7 +124,7 @@ export default function Home() {
     [musicVolume, setMusicVolume] = useState(.35),
     [effectsVolume, setEffectsVolume] = useState(.55),
     [instantText, setInstantText] = useState(false),
-    [reduceMotion, setReduceMotion] = useState(false),
+    [motionPreference, setMotionPreference] = useState<"system" | "full" | "reduced">("system"),
     [systemReducedMotion, setSystemReducedMotion] = useState(false),
     [speaking, setSpeaking] = useState(false),
     [pageHidden, setPageHidden] = useState(false),
@@ -148,7 +151,8 @@ export default function Home() {
     won = game.finished && game.months < 240,
     scene = sceneArt[encounter.id],
     story = prologue[intro],
-    reducedMotion = reduceMotion || systemReducedMotion,
+    reducedMotion = motionPreference === "reduced" || (motionPreference === "system" && systemReducedMotion),
+    emotion = captainEmotion(encounter.id, current, busy),
     mood = musicMood(screen, encounter.id, game.finished, won),
     listening = dictationState !== "idle";
   const chime = useCallback(
@@ -229,7 +233,7 @@ export default function Home() {
       if (typeof prefs.musicVolume === "number" && Number.isFinite(prefs.musicVolume)) setMusicVolume(Math.max(0, Math.min(1, prefs.musicVolume)));
       if (typeof prefs.effectsVolume === "number" && Number.isFinite(prefs.effectsVolume)) setEffectsVolume(Math.max(0, Math.min(1, prefs.effectsVolume)));
       setInstantText(prefs.instantText === true);
-      setReduceMotion(prefs.reduceMotion === true);
+      setMotionPreference(["system", "full", "reduced"].includes(prefs.motionPreference) ? prefs.motionPreference : prefs.reduceMotion === true ? "reduced" : "system");
     } catch {}
     setReady(true);
     const browser = navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } };
@@ -263,10 +267,10 @@ export default function Home() {
       try {
         localStorage.setItem(
           "farshore-preferences",
-          JSON.stringify({ sound, voice, musicVolume, effectsVolume, instantText, reduceMotion }),
+          JSON.stringify({ sound, voice, musicVolume, effectsVolume, instantText, motionPreference }),
         );
       } catch {}
-  }, [sound, voice, musicVolume, effectsVolume, instantText, reduceMotion, ready]);
+  }, [sound, voice, musicVolume, effectsVolume, instantText, motionPreference, ready]);
   function begin() {
     recognition.current?.cancel();
     setVoiceIssue(null);
@@ -355,7 +359,8 @@ export default function Home() {
           const u = new SpeechSynthesisUtterance(d.reply);
           u.rate = 0.88;
           u.pitch = 0.85;
-          setSpeaking(true);
+          setSpeaking(false);
+          u.onstart = () => setSpeaking(true);
           u.onend = u.onerror = () => setSpeaking(false);
           window.speechSynthesis.speak(u);
         }
@@ -508,11 +513,11 @@ export default function Home() {
     </Button>
   );
   return (
-    <main className={`game-shell screen-${screen} ${reducedMotion ? "reduce-motion" : ""}`} data-input={keyboardInput ? "keyboard" : "pointer"}>
+    <main className={`game-shell screen-${screen} ${reducedMotion ? "reduce-motion" : ""}`} data-motion={motionPreference} data-motion-paused={pageHidden || !!modal} data-input={keyboardInput ? "keyboard" : "pointer"}>
       <div className="scanlines" aria-hidden="true" />
       {screen === "title" ? (
         <section className="title-screen" aria-label="Farshore title screen">
-          <div className="title-landscape" />
+          <div className="title-landscape"><SceneWater title /></div>
           <div className="title-vignette" />
           <header className="title-top">
             <span>BIBEK PATHAK PRESENTS</span>
@@ -765,6 +770,7 @@ export default function Home() {
                     backgroundPosition: `${(scene.tile % 3) * 50}% ${Math.floor(scene.tile / 3) * 100}%`,
                   }}
                 />
+                <SceneWater tile={scene.tile} />
                 <div className="stage-shade" />
                 <div className="scene-atmosphere" aria-hidden="true">
                   <div className="sea-mist" />
@@ -784,7 +790,7 @@ export default function Home() {
                 <div className="conversation-stage">
                   <div className="captain-conversation">
                     <div className={`stage-captain ${busy ? "captain-thinking" : ""}`}>
-                      <Portrait id={0} className="idle" />
+                      <CaptainPortrait emotion={emotion} />
                       <span className="actor-name">YOUR CAPTAIN</span>
                     </div>
                     <SpeechBubble
@@ -793,6 +799,9 @@ export default function Home() {
                       instant={instantText || reducedMotion || keyboardInput}
                       busy={busy}
                       decided={!!current}
+                      emotion={emotion}
+                      voicing={speaking}
+                      paused={pageHidden || !!modal}
                     />
                   </div>
                 <div className="stage-visitors">
@@ -1007,6 +1016,7 @@ export default function Home() {
       >
         <DialogContent
           className={`game-dialog ${modal === "cast" ? "cast-dialog" : ""} ${modal === "map" ? "map-dialog" : ""} ${reducedMotion || keyboardInput ? "reduce-motion" : ""}`}
+          data-motion={motionPreference}
         >
           <DialogHeader>
             <DialogTitle className="pixel">
@@ -1325,7 +1335,11 @@ export default function Home() {
               <fieldset className="reading-settings">
                 <legend>Reading & motion</legend>
                 <label><span><strong>Instant dialogue</strong><small>Show the whole line without the typewriter effect.</small></span><input type="checkbox" checked={instantText} onChange={(e) => setInstantText(e.target.checked)} /></label>
-                <label><span><strong>Reduced motion</strong><small>{systemReducedMotion ? "Your device already requests reduced motion." : "Still scenery and characters, with instant transitions."}</small></span><input type="checkbox" checked={reducedMotion} disabled={systemReducedMotion} onChange={(e) => setReduceMotion(e.target.checked)} /></label>
+                <label htmlFor="scene-motion"><span><strong>Scene motion</strong><small>{motionPreference === "system" && systemReducedMotion ? "Your device prefers still scenes. Choose Animated to see the sea and character acting." : "Moving seas and expressive characters, or a quieter voyage."}</small></span>
+                  <select id="scene-motion" value={motionPreference} onChange={(e) => setMotionPreference(e.target.value as "system" | "full" | "reduced")}>
+                    <option value="system">Follow device</option><option value="full">Animated</option><option value="reduced">Still</option>
+                  </select>
+                </label>
               </fieldset>
               <p>
                 Voice input may use your browser’s online speech service. Only

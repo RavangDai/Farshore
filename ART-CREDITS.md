@@ -8,6 +8,8 @@ Original generated game assets, made for this project with OpenAI image generati
 
 The atlas is rendered with percentage background positions, avoiding a separate image dependency for every character. Idle motion, entrances, title drift, and text reveal are CSS/React animations. These are not full walking or combat sprite sheets.
 
+Water currents, shore foam, reflections, and the captain's brows, blink, and speaking mouth are original SVG/CSS overlays on the existing artwork. Character reactions are authored from the encounter and decision, rather than acoustic emotion detection or phoneme-level lip sync.
+
 Press Start 2P by CodeMan38 is bundled under the SIL Open Font License. See `public/fonts/OFL.txt`. Source: https://github.com/google/fonts/tree/main/ofl/pressstart2p.
 
 The original version used a moonlit image from the supplied presentation. The laptop edition uses the new pixel assets listed above.

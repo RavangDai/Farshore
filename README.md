@@ -4,7 +4,9 @@ The complete retro browser game with twenty character portraits, six illustrated
 
 Dialogue now appears in character-linked speech bubbles, with animated scenery and clearer time/trust feedback. Select **Enable music & sounds** on the title screen for an original retro maritime soundtrack. Music changes with the voyage, with separate music/effect volumes in **Music & Settings**. Audio is synthesized locally with Web Audio; it needs no downloads or account. It pauses in hidden tabs and during dictation, and music lowers during spoken replies.
 
-Settings also include instant dialogue and reduced motion. **Show full text** skips an individual text reveal. The system reduced-motion preference is always respected. Audio, volume, and reading preferences are saved in this browser.
+The sea has separate moving currents, foam, and shimmering reflections, masked to the water in each landscape. Odysseus blinks and speaks with small pixel mouth movements, expressive brows, nods, and a head shake. His acting follows the scene and his decision; it does not analyze emotion in your voice. Speaking motion follows both the text reveal and spoken replies.
+
+Settings also include instant dialogue and **Scene motion**: **Follow device** respects your system's reduced-motion preference, **Animated** explicitly enables the scenery and character acting, and **Still** stops the motion. Scenery pauses while a menu is open or the tab is hidden. **Show full text** skips an individual text reveal. Audio, volume, and reading preferences are saved in this browser.
 
 Dictation depends on the browser's speech service as well as microphone access. Wait for **Listening**, speak, then stop and review the transcript before sending. A connection failure is different from no speech being detected. The game now reports microphone permission, capture, service, network, and silence failures separately, with retry and typing options. Existing text remains intact.
 
@@ -46,6 +48,9 @@ No PowerShell security policy change is needed. If npm is not recognized, instal
 | `src/App.tsx` | Title screen, intro, UI, sound, speech, saves |
 | `src/styles.css` | Retro theme, motion, responsive layouts |
 | `src/components/speech-bubble.tsx` | Character dialogue and text reveal |
+| `src/components/scene-water.tsx` | Water currents, foam, and landscape masks |
+| `src/components/captain-portrait.tsx` | Pixel facial features and character acting |
+| `src/lib/character-performance.ts` | Scene and decision based expressions |
 | `src/lib/voyage-audio.ts` | Original music, ambience, and sound effects |
 | `src/lib/game.ts` | Encounters, scoring, trust, scripted decisions |
 | `src/lib/cast.ts` | Characters, lore, scene assignments, intro |

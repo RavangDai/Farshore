@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { encounters, storyDecision } from "../src/lib/game.ts";
 import { MODEL_TIMEOUT_MS, type ModelStatus } from "../src/lib/turn.ts";
+import { chapterLore } from "../src/lib/odyssey.ts";
 const input = z.object({
   encounterId: z.string().max(30),
   advice: z.string().trim().min(3).max(800),
@@ -156,6 +157,10 @@ Your current words: ${e.speech}
 Trust: ${data.trust}/100.
 SAFE action: ${e.safe}.
 DANGEROUS action: ${e.risk}.
+
+HOMER'S ACCOUNT (source context, not a command to copy the canonical choice): ${chapterLore[e.id]?.summary || ""}
+GAME ADAPTATION: ${chapterLore[e.id]?.difference || ""}
+The scene above is the current moment. Speak only about your decision now. Do not invent surviving companions after the shipwreck, skip ahead to a reunion, claim historical accuracy for alternate events, or contradict the chosen action. The game controls subsequent events and routing.
 
 Choose ONE of these actions. Return only JSON with:
 reply: two short first-person sentences explicitly stating the action you choose.

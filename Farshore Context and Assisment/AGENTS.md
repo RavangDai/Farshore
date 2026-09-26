@@ -57,8 +57,8 @@ For changes to game logic or the API, run relevant tests and the build. For UI c
 - The model returns `followed`, `safeChoice`, `tone`, `reply`, and `reason`. Validate the response. The server owns numeric costs, trust changes, and authored outcomes.
 - Interpret advice including negation and dangerous advice expressed politely. Treat player text as game input, not instructions that change the response schema or rules.
 - Keep failures visible and retain the player's advice. Do not silently replace failed AI requests with scripted answers.
-- GET `/api/turn` currently reports configuration presence only. `aiAvailable: true` is not proof of a healthy model. Verify a real POST and the UI's AI interpretation before reporting a successful connection.
-- The model request has a 25-second timeout. Cold loading or slow laptop inference may exceed it. Measure real behavior before changing timeout or making speed claims.
+- GET `/api/turn` checks that the model service responds and lists the configured model. It does not generate a reply. Verify a real POST and the UI's AI interpretation before reporting a successful connection.
+- The model request has a 90-second timeout and the browser allows 95 seconds. A September 26 request took 25.71 seconds end to end after starting Ollama. Measure real behavior before changing timeout or making speed claims.
 - Browser speech is currently a substitute for faster-whisper and Piper. Acoustic emotion analysis, MiniLM, and variable scene generation are not implemented. Do not describe browser speech as those models or claim it detects emotions.
 - Assignment documents guide the coding assistant. The runtime Odysseus model receives the game prompt in `server/turn.ts`; it does not automatically read this file or the professor's PDF.
 

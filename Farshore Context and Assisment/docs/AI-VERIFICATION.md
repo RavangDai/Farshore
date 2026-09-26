@@ -2,6 +2,16 @@
 
 Farshore is connected to local Ollama with `llama3.2:3b`. The connection is verified, with model-quality limitations described below. Phase 1 was already submitted and presented; no assignment or presentation was restarted.
 
+## September 26 recovery update
+
+- Reproduced a stopped Ollama service while the old status endpoint still reported `aiAvailable: true`. Starting Ollama restored a real API turn, which returned `source: "ai"` in 25.71 seconds end to end. This is one observed request, not a benchmark.
+- Status now checks the model catalog. Settings provides a connection recheck. Generation allows 90 seconds, with a 95-second browser deadline, and distinguishes connection, provider, timeout, and invalid-reply failures.
+- Brave on Windows offers Windows voice typing guidance and focuses the counsel box. A browser check confirmed that existing counsel stays intact. Actual microphone transcription and the Windows voice panel were not exercised.
+- A separate preview voyage at `http://[::1]:4173/` completed a real AI lotus turn: 3 months and +12 trust. With only the preview process pointed at an unavailable test endpoint, a Cyclops turn displayed the connection error, retained counsel, and kept time/trust unchanged across retry. **Send in Story mode** then completed the same counsel with 4 months and +12 trust. Settings correctly disabled AI while that test endpoint was unavailable.
+- All 34 automated tests and the production build passed. The test preview was stopped; the main server at port 5173 was checked again and reported the configured model available. The root `.env` was unchanged.
+
+The remaining sections record the September 23 checks and implementation at that time. The decision-consistency limitation remains unresolved.
+
 ## Setup and changes
 
 - Ollama was already installed (client 0.21.0). Its stopped background server was started, and `llama3.2:3b` was downloaded successfully.

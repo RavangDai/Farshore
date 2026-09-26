@@ -10,7 +10,7 @@ Settings also include instant dialogue and **Scene motion**: **Follow device** r
 
 Dictation depends on the browser's speech service as well as microphone access. Wait for **Listening**, speak, then stop and review the transcript before sending. A connection failure is different from no speech being detected. The game now reports microphone permission, capture, service, network, and silence failures separately, with retry and typing options. Existing text remains intact.
 
-Brave can expose the speech API without a working recognition service. If it reports **Speech service could not connect**, Windows users can choose **Type instead**, then press **Windows + H** to use [Windows voice typing](https://support.microsoft.com/en-US/accessibility/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc) in the counsel box. This requires an internet connection and a working microphone. You can also try browser dictation in Chrome or use typing. See [Brave's speech-recognition issue](https://github.com/brave/brave-browser/issues/2802). Progress is local to each browser, so switching browsers does not move your save.
+Brave exposes a speech API without a working recognition service. On Windows, Farshore offers **Voice typing** in Brave: click it to focus the counsel box, then press **Windows + H** to start [Windows voice typing](https://support.microsoft.com/en-US/accessibility/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc). The webpage cannot open the Windows voice panel itself. This requires an internet connection and a working microphone. Other supported browsers keep the **Dictate** control. See [Brave's speech-recognition issue](https://github.com/brave/brave-browser/issues/2802). Progress is local to each browser, so switching browsers does not move your save.
 
 ## Start in VS Code (Windows, macOS, or Linux)
 
@@ -76,6 +76,8 @@ FARSHORE_API_KEY=
 ```
 
 Local Llama 3.2 3B was connected and verified through the API and browser on September 23, 2026. See the [setup guide](<Farshore Context and Assisment/docs/AI-SETUP.md>) and [verification record](<Farshore Context and Assisment/docs/AI-VERIFICATION.md>) for timings and remaining decision-consistency limitations. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
+
+Keep Ollama running while you play. Settings checks the model service's `/models` endpoint and confirms that the configured model is listed. If Ollama was closed, open it and select **Check connection again**. A successful status check confirms availability; a real turn still needs to produce a valid reply. The app allows up to 90 seconds for a reply, including loading the model. A failed turn keeps your counsel and offers **Try AI again** or **Send in Story mode**. Story mode is used only when you choose it.
 
 ## Other commands
 

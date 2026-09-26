@@ -52,7 +52,7 @@ If dependencies have not been installed, run `npm install` first. If PowerShell 
 
 Open http://localhost:5173, or the address printed by Vite. Open the game's Settings and choose **AI dialogue**. Start or continue a voyage, type advice, and submit it. A successful model turn displays **AI interpretation** with Odysseus' response. Story mode remains available separately.
 
-The AI option becoming selectable proves only that the URL and model name were configured. It does not prove the model can answer.
+Settings now checks the model service and confirms that it lists the configured model. Use **Check connection again** after starting Ollama. This check does not generate a reply; verify a real turn as described below.
 
 ## 4. Verify a real request
 
@@ -79,11 +79,11 @@ Success returns `source: "ai"`, a reply, a reason, and validated decision fields
 
 | Problem | What to check |
 | --- | --- |
-| AI dialogue is unavailable | `.env` is beside package.json, URL and model entries are uncommented, dev server was restarted, page was refreshed |
+| AI dialogue is unavailable | Check the status message in Settings. Ensure `.env` is beside package.json, the model is installed, and Ollama is running. Select **Check connection again** after starting it. Restart the dev server after changing `.env` |
 | Model is absent | Run `ollama list`; check that `llama3.2:3b` is installed |
 | Ollama is unreachable | Start the Ollama application; use `ollama run llama3.2:3b` to check it directly |
-| Request takes too long | The adapter times out after 25 seconds. Warm the model and retry; if still slow, measure latency and ask Codex to adjust the timeout/loading experience or evaluate a smaller model |
-| Game shows a model error | The provider may have failed or returned JSON that does not match the schema. Ask Codex to inspect a local reproduction. Do not claim a connection succeeded from configuration alone |
+| Request takes too long | The adapter allows 90 seconds for loading and inference. Use **Try AI again** after a timeout, or explicitly choose **Send in Story mode** |
+| Game shows a model error | The message distinguishes an unreachable service, provider rejection, timeout, or invalid reply. Counsel stays in the input for retry. A successful connection check alone does not verify generation |
 | Port differs | Use Vite's printed port in both the browser and the API-check URI |
 
 ## What the game model sees

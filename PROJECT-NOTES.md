@@ -35,7 +35,7 @@ For the original local Llama plan, install Ollama from its official source, pull
 Ollama API reference: https://docs.ollama.com/api/openai-compatibility
 Structured outputs: https://docs.ollama.com/capabilities/structured-outputs
 
-When server configuration is present, the AI dialogue option is enabled in Settings. A model error keeps the advice and shows a retry message. The app does not silently substitute scripted responses for an AI request. Local Llama 3.2 3B was verified on September 23, 2026 with real API and browser turns. The adapter now requests strict JSON-schema output. See the [verification record](<Farshore Context and Assisment/docs/AI-VERIFICATION.md>) for measured timings and an unresolved dialogue/decision inconsistency. The under-one-second and total laptop memory claims remain unverified.
+Settings enables AI dialogue after checking that the model service responds and lists the configured model. A model error keeps the advice and offers retry or an explicit Story mode submission. The app does not silently substitute scripted responses for an AI request. The model deadline is 90 seconds to allow for cold loading. Local Llama 3.2 3B was verified on September 23, 2026 with real API and browser turns. The adapter requests strict JSON-schema output. See the [verification record](<Farshore Context and Assisment/docs/AI-VERIFICATION.md>) for measured timings and an unresolved dialogue/decision inconsistency. The under-one-second and total laptop memory claims remain unverified.
 
 ## Simplifications from the slides
 

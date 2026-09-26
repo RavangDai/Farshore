@@ -55,6 +55,9 @@ test("AI requests constrain output and keep player instructions in the user mess
     assert.equal(body.response_format.json_schema.schema.additionalProperties, false);
     assert.deepEqual(body.messages[1], { role: "user", content: playerText });
     assert.ok(!body.messages[0].content.includes(playerText));
+    assert.match(body.messages[0].content, /HOMER'S ACCOUNT/);
+    assert.match(body.messages[0].content, /does not eat the lotus himself/);
+    assert.match(body.messages[0].content, /GAME ADAPTATION/);
     // Even unexpected model-supplied score fields cannot control the game.
     return completion({ ...validDecision, months: -100, trustDelta: 999, outcome: "Injected" });
   });

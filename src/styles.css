@@ -380,7 +380,7 @@ a {
   display: flex;
   gap: 9px;
 }
-.intro-dots span {
+.intro-dots button {
   height: 7px;
   width: 20px;
   background: #46616d;
@@ -720,6 +720,127 @@ a {
   margin: 14px 0 0;
 }
 .error-message p { margin: 0 0 8px; line-height: 1.6; }
+
+/* The story and its sources stay close to the player's decisions. */
+.intro-screen { min-height: 760px; }
+.intro-content { padding-bottom: 20px; }
+.intro-content h1 { max-width: 860px; margin-left: auto; margin-right: auto; }
+.intro-text { max-width: 770px; margin-left: auto; margin-right: auto; }
+.intro-source { max-width: 720px; margin: 22px auto 0; color: #b4c6cc; font-size: .8rem; line-height: 1.7; }
+.intro-source a, .ending-source-note a { color: #edd18d; text-decoration: underline; text-underline-offset: 4px; }
+.intro-dots button { border: 0; padding: 0; cursor: pointer; position: relative; }
+.intro-dots button::after { content: ""; position: absolute; inset: -12px -6px; }
+.intro-dots button:focus-visible { outline: 2px solid #ffe1a1; outline-offset: 7px; }
+.sub-menu { flex-wrap: wrap; }
+.chapter-source { border-top: 1px solid #365362; margin-top: 25px; padding-top: 19px; }
+.chapter-source > summary { cursor: pointer; color: #d9c48d; font-size: .88rem; line-height: 1.6; }
+.chapter-source > summary span { color: #99b0b9; font-size: .75rem; margin-left: 12px; }
+.chapter-source-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 30px; padding: 17px 0 0; }
+.chapter-source h3, .atlas-detail h3 { color: #d3c7a5; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; margin: 0 0 7px; }
+.chapter-source p { color: #c3d0d2; font-size: .88rem; line-height: 1.8; margin: 0; }
+.source-link { color: #e8cf91; display: inline-flex; gap: 6px; align-items: center; font-size: .8rem; line-height: 1.7; text-underline-offset: 4px; text-decoration: underline; }
+.chapter-source-body > a { grid-column: 1 / -1; }
+.branch-note { display: flex; gap: 12px; align-items: flex-start; padding: 15px 18px; border-left: 3px solid #c8b37b; background: #183b40; color: #dfddbb; line-height: 1.7; font-size: .88rem; }
+.branch-note svg { flex-shrink: 0; margin-top: 3px; }
+.ending-content > .ending-source-note { font-size: .85rem; line-height: 1.8; max-width: 640px; color: #b5c6ce; }
+.help-story-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0; }
+.story-sources { line-height: 1.8; color: #b9cbd1; }
+.story-sources .sources-intro { margin-top: 0; font-size: 1.03rem; color: #e2decf; }
+.story-sources section { padding: 22px 0; border-top: 1px solid #304b5b; }
+.story-sources h2 { font-size: 1.2rem; color: #f1dec0; font-weight: 500; margin: 10px 0; }
+.story-sources section p { font-size: .91rem; }
+.story-sources a { color: #e8cf91; text-underline-offset: 4px; }
+.source-book-list { list-style: none; padding: 0; margin: 15px 0 0; }
+.source-book-list li { display: grid; grid-template-columns: 130px 1fr; gap: 15px; padding: 10px 0; font-size: .88rem; border-bottom: 1px solid #294454; }
+.source-download { display: block; padding: 16px; text-align: center; border: 1px solid #ad9967; background: #213a43; text-decoration: none; }
+
+/* Geographic data, quiet chart detail, and an accessible narrative index. */
+.game-dialog.map-dialog { max-width: min(1320px, calc(100% - 36px)) !important; padding: 26px !important; gap: 17px !important; }
+.atlas-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 0 0 15px; color: #b6c8c8; font-size: .78rem; }
+.atlas-tools { display: flex; align-items: center; gap: 6px; }
+.atlas-tools button { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 36px; min-height: 36px; padding: 7px 9px; color: #e3d4ad; background: #183540; border: 1px solid #3b5860; transition: background 160ms ease-out, transform 160ms ease-out; }
+.atlas-tools button:active { transform: scale(.97); }
+.atlas-tools button:disabled { opacity: .4; cursor: default; }
+.atlas-tools > span { min-width: 47px; text-align: center; font-variant-numeric: tabular-nums; }
+.atlas-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 22px; align-items: start; }
+.atlas-scroll { overflow: auto; border: 1px solid #748677; box-shadow: 0 0 0 4px #172d37; max-height: 57svh; background: #102b3a; scrollbar-color: #5d756d #102b3a; }
+.atlas-scroll:focus-visible { outline: 2px solid #e8cf91; outline-offset: 4px; }
+.atlas-chart { display: block; min-width: 620px; max-width: none; height: auto; }
+.atlas-coasts path { fill: url(#atlas-land); stroke: #c4c6a0; stroke-width: .7; fill-rule: evenodd; }
+.atlas-geography text { font-family: Georgia, serif; fill: #263e3c; font-size: 20px; text-anchor: middle; letter-spacing: 4px; opacity: .9; }
+.atlas-geography .atlas-sea-name { fill: #80a1a9; font-size: 18px; letter-spacing: 6px; font-style: italic; opacity: .65; }
+.atlas-geography .atlas-island-name { font-size: 12px; letter-spacing: 1px; }
+.atlas-legend-route { stroke: #acbcc0; stroke-width: 2; stroke-dasharray: 3 7; opacity: .55; }
+.atlas-player-route { stroke: #dab774; stroke-width: 2; stroke-dasharray: 5 6; opacity: .38; }
+.atlas-player-route.travelled { opacity: 1; stroke-width: 3; stroke-dasharray: none; }
+.atlas-stop { cursor: pointer; outline: none; }
+.atlas-hit { fill: transparent; }
+.atlas-leader { fill: none; stroke: #e4d7b4; stroke-width: .7; opacity: .7; }
+.atlas-marker { fill: #183944; stroke: #bfd0bd; stroke-width: 1.8; transition: fill 160ms ease-out, stroke 160ms ease-out; }
+.atlas-marker-number { fill: #f3e5be; font-size: 11px; font-weight: bold; text-anchor: middle; pointer-events: none; }
+.atlas-stop.visited .atlas-marker { fill: #35564c; stroke: #bad1b2; }
+.atlas-stop.current .atlas-marker, .atlas-stop.selected .atlas-marker { fill: #ecd096; stroke: #fff4d8; }
+.atlas-stop.current .atlas-marker-number, .atlas-stop.selected .atlas-marker-number { fill: #142c35; }
+.atlas-stop:focus-visible .atlas-marker { stroke: #fff; stroke-width: 5; }
+.atlas-port-name { fill: #fff0ce; font-family: Georgia, serif; font-size: 15px; font-weight: 500; text-anchor: middle; paint-order: stroke; stroke: #112d39; stroke-width: 3.5; stroke-linejoin: round; pointer-events: none; }
+.atlas-current-ring { fill: none; stroke: #e8c77d; stroke-width: 1.3; pointer-events: none; }
+.atlas-compass { stroke: #a5b7ad; fill: none; stroke-width: 1; opacity: .7; }
+.atlas-compass path { fill: #a5b7ad; fill-opacity: .2; }
+.atlas-compass text { fill: #b9c5b7; stroke: none; font-family: Georgia, serif; font-size: 15px; text-anchor: middle; }
+.atlas-key { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 17px; color: #becbc7; font-size: .7rem; }
+.atlas-key span { display: flex; align-items: center; gap: 7px; }
+.atlas-key i { width: 20px; display: inline-block; }
+.key-gold { height: 2px; background: #d9ba80; }
+.key-dotted { border-top: 2px dotted #9daeb4; }
+.atlas-key .key-ring { width: 11px; height: 11px; border: 1px solid #e6c88a; border-radius: 50%; }
+.atlas-map-note, .atlas-credit { color: #a1b8bf; font-size: .73rem; line-height: 1.7; margin: 12px 0 0; }
+.atlas-detail { border-left: 1px solid #45606a; padding-left: 20px; }
+.atlas-eyebrow { font-size: .63rem; letter-spacing: .1em; color: #d7bd80; line-height: 1.8; }
+.atlas-detail h2 { font-family: Georgia, serif; font-size: 1.8rem; line-height: 1.2; margin: 9px 0 24px; color: #f5e4bf; font-weight: 400; }
+.atlas-detail p { color: #c8d1d0; font-size: .85rem; line-height: 1.8; margin: 7px 0 12px; }
+.atlas-detail .source-link { font-size: .73rem; }
+.atlas-chapter-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: -7px 0 20px; }
+.atlas-chapter-tabs button { padding: 8px 10px; border: 1px solid #3d5a66; background: transparent; color: #b8c8ce; font-size: .75rem; }
+.atlas-chapter-tabs button[aria-pressed="true"] { background: #25434b; color: #f0d59c; border-color: #bca875; }
+.atlas-your-choice { border-top: 1px solid #3d5660; padding-top: 16px; margin-top: 20px; }
+.atlas-your-choice h3 { color: #aed1b9; }
+.atlas-location { border-top: 1px solid #3b535e; margin-top: 20px; padding-top: 15px; }
+.atlas-location summary, .atlas-index > summary { color: #c4cfc9; font-size: .78rem; cursor: pointer; }
+.atlas-location p { font-size: .76rem; color: #aabec1; }
+.atlas-index { border-top: 1px solid #344d58; padding-top: 17px; margin-top: 20px; }
+.atlas-index ol { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.atlas-index button { text-align: left; padding: 11px 12px; background: #102936; border: 1px solid #304c58; color: #d4d8c9; width: 100%; height: 100%; font-size: .76rem; }
+.atlas-index button small { display: block; color: #91b0b8; margin-top: 5px; }
+.atlas-credit a { color: #d7c187; text-underline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .atlas-stop:hover .atlas-marker { stroke: #fff0bc; fill: #507065; }
+  .atlas-tools button:hover, .atlas-index button:hover { background: #29454c; }
+}
+@media (max-width: 1000px) {
+  .atlas-layout { grid-template-columns: minmax(0, 1fr); }
+  .atlas-detail { border-left: 0; border-top: 1px solid #45606a; padding: 18px 0 0; }
+  .atlas-detail h2 { margin-bottom: 15px; }
+  .atlas-scroll { max-height: 52svh; }
+}
+@media (max-width: 700px) {
+  .intro-screen { min-height: 850px; }
+  .intro-controls { gap: 12px; flex-wrap: wrap; padding: 16px 20px; }
+  .intro-controls .pixel-button { min-width: 140px; }
+  .intro-source { font-size: .73rem; }
+  .intro-text { line-height: 1.8; }
+  .chapter-source-body { grid-template-columns: 1fr; }
+  .chapter-source > summary span { display: block; margin-left: 17px; }
+  .game-dialog.map-dialog { padding: 19px !important; max-width: calc(100% - 22px) !important; }
+  .atlas-tools { flex-wrap: wrap; }
+  .atlas-index ol { grid-template-columns: 1fr 1fr; }
+  .source-book-list li { grid-template-columns: 1fr; gap: 3px; }
+  .game-footer { flex-wrap: wrap; }
+  .game-footer > div { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-stop .atlas-marker, .atlas-tools button { transition: none; }
+}
+[data-input="keyboard"] .atlas-tools button { transition: none; }
 .game-footer {
   display: flex;
   justify-content: space-between;

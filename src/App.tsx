@@ -12,7 +12,6 @@ import {
   Check,
   ChevronRight,
   Compass,
-  Flag,
   HelpCircle,
   Hourglass,
   Mic,
@@ -42,7 +41,8 @@ import {
   firstGame,
   formatTime,
   newGame,
-  validSave,
+  restoreSave,
+  branchExplanation,
   type Decision,
   type Game,
 } from "@/lib/game";
@@ -54,6 +54,9 @@ import { captainEmotion } from "@/lib/character-performance";
 import { VoyageAudio, musicMood, type AudioCue } from "@/lib/voyage-audio";
 import { DictationSession, dictationIssue, dictationMethod, type DictationMethod, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/dictation";
 import { MODEL_TIMEOUT_MS, type ModelStatus } from "@/lib/turn";
+import { VoyageMap } from "@/components/voyage-map";
+import { ChapterSource, StorySources } from "@/components/story-sources";
+import { homerLink } from "@/lib/odyssey";
 type SpeechWindow = Window & {
   SpeechRecognition?: new () => Recognition;
   webkitSpeechRecognition?: new () => Recognition;
@@ -66,6 +69,7 @@ type Modal =
   | "help"
   | "settings"
   | "restart"
+  | "sources"
   | null;
 const SAVE = "farshore-voyage-v2";
 function Portrait({ id, className = "" }: { id: number; className?: string }) {
@@ -240,8 +244,8 @@ export default function Home() {
     try {
       const raw = localStorage.getItem(SAVE);
       if (raw) {
-        const saved = JSON.parse(raw);
-        if (validSave(saved)) {
+        const saved = restoreSave(JSON.parse(raw));
+        if (saved) {
           setGame(saved);
           setHasSave(true);
         }
@@ -604,6 +608,8 @@ export default function Home() {
                 <button onClick={() => setModal("cast")}>CHARACTERS</button>
                 <span>·</span>
                 <button onClick={() => setModal("help")}>HOW TO PLAY</button>
+                <span>·</span>
+                <button onClick={() => setModal("sources")}>STORY & SOURCES</button>
               </div>
               <button className={`audio-invitation ${sound ? "audio-on" : ""}`} onClick={toggleAudio} aria-pressed={sound}>
                 <Music2 size={16} />
@@ -622,7 +628,7 @@ export default function Home() {
             <span className="keyboard-hint">
               ENTER TO {hasSave ? "CONTINUE" : "START"}
             </span>
-            <span>STORY MODE · v2.0</span>
+            <span>HOMER’S ODYSSEY · YOUR VOYAGE</span>
           </footer>
         </section>
       ) : screen === "intro" ? (
@@ -660,15 +666,17 @@ export default function Home() {
             <p className="intro-text">
               <Words text={story.text} instant={instantText || reducedMotion || keyboardInput} />
             </p>
+            <p className="intro-source">{story.caption} <a href={homerLink(story.book)} target="_blank" rel="noreferrer">Read Homer ↗</a></p>
           </div>
           <div className="intro-controls">
-            <span className="intro-dots" aria-label={`Scene ${intro + 1} of 4`}>
+            <Button variant="ghost" onClick={() => setIntro(i => Math.max(0, i - 1))} disabled={intro === 0}>Back</Button>
+            <span className="intro-dots" aria-label={`Scene ${intro + 1} of ${prologue.length}`}>
               {prologue.map((_, i) => (
-                <span className={i === intro ? "active" : ""} key={i} />
+                <button type="button" className={i === intro ? "active" : ""} key={i} onClick={() => setIntro(i)} aria-label={`Read introduction part ${i + 1}`} aria-current={i === intro ? "step" : undefined} />
               ))}
             </span>
             <Button className="pixel-button primary" onClick={nextIntro}>
-              {intro === 3 ? "SET SAIL" : "CONTINUE"}
+              {intro === prologue.length - 1 ? "SET SAIL" : "CONTINUE"}
               <ChevronRight />
             </Button>
           </div>
@@ -746,9 +754,10 @@ export default function Home() {
                 </div>
                 <p>
                   {won
-                    ? `Odysseus returns to Ithaca in ${formatTime(game.months)}. You beat the twenty-year legend by ${formatTime(240 - game.months)}.`
-                    : "The twenty-year mark has passed. Another voyage might turn on a different word."}
+                    ? `Your Odysseus restores his household in ${formatTime(game.months)}. Penelope knows him through the secret of their rooted bed; Laertes sees his son again. Athena brings the fighting on Ithaca to an end.`
+                    : "Your voyage reached the twenty-year limit before the homecoming was complete. This ends the game’s time challenge. In Homer’s poem, Odysseus does return and reclaim his home."}
                 </p>
+                <p className="ending-source-note">{won ? `Your alternate voyage finishes ${formatTime(240 - game.months)} before the game’s limit. ` : ""}The month costs are game rules. Homer’s final recognition and peace are in <a href={homerLink(23)} target="_blank" rel="noreferrer">Books 23–24</a>.</p>
                 <div className="ending-score">
                   <span>
                     <b>
@@ -891,6 +900,7 @@ export default function Home() {
                       </span>
                     </div>
                     <p className="outcome">{current.outcome}</p>
+                    {branchExplanation(encounter.id, current.safeChoice) && <p className="branch-note"><Compass size={18} />{branchExplanation(encounter.id, current.safeChoice)}</p>}
                     <div className="decision-actions">
                       <details>
                         <summary>Why this choice?</summary>
@@ -1012,6 +1022,7 @@ export default function Home() {
                     </form>
                   </>
                 )}
+                <ChapterSource key={encounter.id} id={encounter.id} />
               </section>
             </>
           )}
@@ -1027,6 +1038,7 @@ export default function Home() {
               <button onClick={() => setModal("help")} aria-label="How to play">
                 <HelpCircle />
               </button>
+              <button onClick={() => setModal("sources")}><BookOpen /> STORY SOURCES</button>
             </div>
             <span>
               {saveError
@@ -1063,6 +1075,7 @@ export default function Home() {
                   help: "HOW TO PLAY",
                   settings: "GAME SETTINGS",
                   restart: "A NEW VOYAGE?",
+                  sources: "THE STORY BEHIND FARSHORE",
                 }[modal || "pause"]
               }
             </DialogTitle>
@@ -1072,11 +1085,12 @@ export default function Home() {
                   pause: "The sea can wait.",
                   cast: "Twenty figures from Homer’s Odyssey. Select a portrait to meet them.",
                   log: "Your words. His choices. Every consequence.",
-                  map: "Eleven trials between Troy and home.",
+                  map: "From Troy to Ithaca. Select a shore to explore the story and its source.",
                   help: "You advise. Odysseus decides.",
                   settings: "Set the voice of your adventure.",
                   restart:
                     "This replaces your current saved voyage on this device.",
+                  sources: "Read the poem, follow the references, and see what the game changes.",
                 }[modal || "pause"]
               }
             </DialogDescription>
@@ -1153,47 +1167,8 @@ export default function Home() {
               </p>
             </div>
           ) : null}
-          {modal === "map" ? (
-            <div className="voyage-map">
-              <ol>
-                {game.route.map((id, i) => (
-                  <li
-                    key={id}
-                    className={
-                      i === game.index
-                        ? "map-current"
-                        : game.log[i]
-                          ? "map-complete"
-                          : ""
-                    }
-                  >
-                    <span>
-                      {game.log[i] ? (
-                        <Check size={18} />
-                      ) : (
-                        String(i + 1).padStart(2, "0")
-                      )}
-                    </span>
-                    <div>
-                      <strong>
-                        {encounters.find((e) => e.id === id)?.place}
-                      </strong>
-                      <small>
-                        {game.log[i]
-                          ? `${game.log[i].safeChoice ? "Passage earned" : "A costly turn"} · +${game.log[i].months} months`
-                          : i === game.index
-                            ? "YOU ARE HERE"
-                            : "Uncharted"}
-                      </small>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              <p>
-                <Flag size={17} /> Reach the final homecoming before 20 years.
-              </p>
-            </div>
-          ) : null}
+          {modal === "map" && <VoyageMap game={game} />}
+          {modal === "sources" && <StorySources />}
           {modal === "log" ? (
             <div className="journal">
               {!game.log.length ? (
@@ -1253,9 +1228,16 @@ export default function Home() {
               </ol>
               <p>
                 The clock starts at ten years for the war at Troy. Complete
-                eleven encounters before twenty total years pass. These time
-                costs and branching outcomes are invented game rules.
+                the homecoming before twenty total years pass. The full route
+                has fifteen chapters; wise choices at the wind bag or Helios’s
+                cattle can open a shorter route. Month costs, trust scores, and
+                alternate outcomes are invented game rules.
               </p>
+              <p>Open “What happens in Homer?” under any encounter to compare your choice with the poem. The voyage map includes every chapter, including those your route avoids.</p>
+              <div className="help-story-actions">
+                <Button variant="outline" disabled={busy} onClick={() => { setIntro(0); setScreen("intro"); setModal(null); }}>Replay the story introduction</Button>
+                <Button variant="outline" onClick={() => setModal("sources")}>Story sources</Button>
+              </div>
               <p>
                 <b>Story mode uses simple wording rules.</b> It can miss nuance.
                 AI dialogue requires a connected model. Speech input transcribes

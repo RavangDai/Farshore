@@ -81,8 +81,10 @@ export async function GET() {
           ? "Model service connected. The first reply may take longer while the model loads."
           : "The configured model is not available from the model service. Check that it is installed and its name is correct.";
       }
-    } catch {
-      status.message = connectionMessage(c.url);
+    } catch (error) {
+      status.message = error instanceof z.ZodError || error instanceof SyntaxError
+        ? "The model service returned an unreadable status. Check its settings and try again."
+        : connectionMessage(c.url);
     }
   }
   return Response.json(status, { headers: { "Cache-Control": "no-store" } });
@@ -178,10 +180,10 @@ If no action is recommended, followed=false. Your reply and reason must describe
       { error: providerMessage(r.status, c.url), code: "model_provider_error" },
       { status: 502 },
     );
-    const body = (await r.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const raw = body.choices?.[0]?.message?.content || "";
+    const body = z.object({
+      choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1),
+    }).parse(await r.json());
+    const raw = body.choices[0].message.content;
     const d = output.parse(
       JSON.parse(raw.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "")),
     );

@@ -1,6 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DictationSession, dictationIssue } from "../src/lib/dictation.ts";
+import { DictationSession, dictationIssue, dictationMethod } from "../src/lib/dictation.ts";
+
+test("Brave on Windows offers system voice typing instead of its unusable speech API", () => {
+  assert.equal(dictationMethod(true, true, "Win32"), "windows");
+  assert.equal(dictationMethod(false, true, "Win32"), "windows");
+  assert.equal(dictationMethod(true, true, "MacIntel"), "unavailable");
+});
+
+test("other supported browsers retain dictation and Windows can fill in when the API is absent", () => {
+  assert.equal(dictationMethod(true, false, "Win32"), "browser");
+  assert.equal(dictationMethod(true, false, "MacIntel"), "browser");
+  assert.equal(dictationMethod(false, false, "Win32"), "windows");
+  assert.equal(dictationMethod(false, false, "Linux x86_64"), "unavailable");
+});
 
 class Recognition {
   starts = 0;

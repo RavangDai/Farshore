@@ -52,7 +52,8 @@ import { SceneWater } from "@/components/scene-water";
 import { CaptainPortrait } from "@/components/captain-portrait";
 import { captainEmotion } from "@/lib/character-performance";
 import { VoyageAudio, musicMood, type AudioCue } from "@/lib/voyage-audio";
-import { DictationSession, dictationIssue, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/dictation";
+import { DictationSession, dictationIssue, dictationMethod, type DictationMethod, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/dictation";
+import { MODEL_TIMEOUT_MS, type ModelStatus } from "@/lib/turn";
 type SpeechWindow = Window & {
   SpeechRecognition?: new () => Recognition;
   webkitSpeechRecognition?: new () => Recognition;
@@ -132,11 +133,13 @@ export default function Home() {
     [audioError, setAudioError] = useState(""),
     [dictationState, setDictationState] = useState<DictationState>("idle"),
     [voiceIssue, setVoiceIssue] = useState<DictationIssue | null>(null),
-    [micAvailable, setMicAvailable] = useState(false),
-    [aiAvailable, setAiAvailable] = useState(false),
+    [voiceInput, setVoiceInput] = useState<DictationMethod>("unavailable"),
+    [modelStatus, setModelStatus] = useState<ModelStatus>({ aiConfigured: false, aiAvailable: false, message: "Checking the model connection…" }),
+    [checkingModel, setCheckingModel] = useState(false),
     [mode, setMode] = useState<"story" | "ai">("story"),
     [saveError, setSaveError] = useState(false);
   const lock = useRef(false),
+    modelCheck = useRef(false),
     recognition = useRef<DictationSession | null>(null),
     brave = useRef(false),
     inputRef = useRef<HTMLTextAreaElement>(null),
@@ -154,7 +157,24 @@ export default function Home() {
     reducedMotion = motionPreference === "reduced" || (motionPreference === "system" && systemReducedMotion),
     emotion = captainEmotion(encounter.id, current, busy),
     mood = musicMood(screen, encounter.id, game.finished, won),
-    listening = dictationState !== "idle";
+    listening = dictationState !== "idle",
+    micAvailable = voiceInput === "browser",
+    aiAvailable = modelStatus.aiAvailable;
+  const checkModel = useCallback(async () => {
+    if (modelCheck.current) return;
+    modelCheck.current = true;
+    setCheckingModel(true);
+    try {
+      const response = await fetch("/api/turn", { cache: "no-store", signal: AbortSignal.timeout(6000) });
+      if (!response.ok) throw new Error("Status request failed");
+      setModelStatus(await response.json() as ModelStatus);
+    } catch {
+      setModelStatus({ aiConfigured: false, aiAvailable: false, message: "The game server could not be reached. Check that Farshore is running, then check again." });
+    } finally {
+      modelCheck.current = false;
+      setCheckingModel(false);
+    }
+  }, []);
   const chime = useCallback(
     (cue: AudioCue = "sail") => {
       audio.current?.cue(cue);
@@ -214,7 +234,8 @@ export default function Home() {
   }, [sound]);
   useEffect(() => {
     if (modal) recognition.current?.cancel();
-  }, [modal]);
+    if (modal === "settings") void checkModel();
+  }, [modal, checkModel]);
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SAVE);
@@ -237,22 +258,19 @@ export default function Home() {
     } catch {}
     setReady(true);
     const browser = navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } };
-    void browser.brave?.isBrave().then((value) => { brave.current = value; }).catch(() => {});
-    setMicAvailable(
-      !!(
-        (window as SpeechWindow).SpeechRecognition ||
-        (window as SpeechWindow).webkitSpeechRecognition
-      ),
-    );
-    fetch("/api/turn")
-      .then((r) => r.json() as Promise<{ aiAvailable: boolean }>)
-      .then((d) => setAiAvailable(d.aiAvailable === true))
-      .catch(() => {});
+    const recognitionAvailable = !!((window as SpeechWindow).SpeechRecognition || (window as SpeechWindow).webkitSpeechRecognition);
+    const updateVoiceInput = (isBrave: boolean) => {
+      brave.current = isBrave;
+      setVoiceInput(dictationMethod(recognitionAvailable, isBrave, navigator.platform));
+    };
+    updateVoiceInput(!!browser.brave);
+    void browser.brave?.isBrave().then(updateVoiceInput).catch(() => {});
+    void checkModel();
     return () => {
       recognition.current?.cancel();
       window.speechSynthesis?.cancel();
     };
-  }, []);
+  }, [checkModel]);
   useEffect(() => {
     if (ready && hasSave)
       try {
@@ -312,7 +330,7 @@ export default function Home() {
     return () => window.removeEventListener("keydown", key);
   });
   const submit = useCallback(
-    async (text = advice) => {
+    async (text = advice, requestedMode = mode) => {
       if (recognition.current) {
         setVoiceIssue({ title: "Finish dictating first", detail: "Stop dictation and review the transcript before sending your counsel." });
         return { error: "Review the transcript before sending." };
@@ -343,9 +361,9 @@ export default function Home() {
             encounterId: e.id,
             advice: trimmed,
             trust: active.trust,
-            mode,
+            mode: requestedMode,
           }),
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(MODEL_TIMEOUT_MS + 5000),
         });
         const d = (await r.json()) as Decision & { error?: string };
         if (!r.ok) throw new Error(d.error || "The sea is quiet. Try again.");
@@ -367,18 +385,20 @@ export default function Home() {
         setTimeout(() => resultRef.current?.focus(), 50);
         return { decision: d, months: updated.months, trust: updated.trust };
       } catch (e) {
-        const message =
-          e instanceof Error
-            ? e.message
-            : "Unable to send. Your advice is still here.";
+        const message = e instanceof Error && ["TimeoutError", "AbortError"].includes(e.name)
+          ? "The reply took too long. Try again, or choose Story mode."
+          : e instanceof TypeError || e instanceof SyntaxError
+            ? "The game server could not be reached. Check that Farshore is running, then try again."
+            : e instanceof Error ? e.message : "Unable to send. Try again.";
         setError(message);
+        if (requestedMode === "ai") void checkModel();
         return { error: message };
       } finally {
         lock.current = false;
         setBusy(false);
       }
     },
-    [advice, mode, voice, chime],
+    [advice, mode, voice, chime, checkModel],
   );
   function next() {
     if (lock.current) return;
@@ -395,6 +415,11 @@ export default function Home() {
     });
   }
   function microphone() {
+    if (voiceInput === "windows") {
+      setVoiceIssue({ title: "Use Windows voice typing", detail: "Press Windows + H to start voice typing in the counsel box. Review your words, then select Send counsel. Windows voice typing needs an internet connection." });
+      inputRef.current?.focus();
+      return;
+    }
     if (recognition.current) {
       if (dictationState === "starting") recognition.current.cancel();
       else recognition.current.stop();
@@ -921,15 +946,15 @@ export default function Home() {
                             type="button"
                             variant="ghost"
                             onClick={microphone}
-                            disabled={!micAvailable || busy || dictationState === "finishing"}
+                            disabled={voiceInput === "unavailable" || busy || dictationState === "finishing"}
                             aria-label={
                               dictationState === "starting" ? "Cancel dictation"
                                 : dictationState === "finishing" ? "Finishing dictation"
-                                : listening ? "Stop dictation" : "Dictate your advice"
+                                : listening ? "Stop dictation" : voiceInput === "windows" ? "Use Windows voice typing" : "Dictate your advice"
                             }
                             className={listening ? "recording" : ""}
                           >
-                            {listening ? <MicOff /> : <Mic />}<span>{dictationState === "starting" ? "Cancel" : dictationState === "finishing" ? "Finishing" : listening ? "Stop" : "Dictate"}</span>
+                            {listening ? <MicOff /> : <Mic />}<span>{dictationState === "starting" ? "Cancel" : dictationState === "finishing" ? "Finishing" : listening ? "Stop" : voiceInput === "windows" ? "Voice typing" : "Dictate"}</span>
                           </Button>
                           <span>{advice.length}/800</span>
                           <Button
@@ -948,7 +973,8 @@ export default function Home() {
                         <span>{busy ? "Your words are with the captain. This may take a moment." : "You advise. He decides. Every choice changes the journey."}</span>
                         <span className="shortcut-hint">Ctrl / ⌘ + Enter to send</span>
                       </p>
-                      {!micAvailable && <p className="input-note">Dictation is unavailable in this browser. You can always type your counsel.</p>}
+                      {voiceInput === "windows" && <p className="input-note">To speak your counsel, click the text box and press Windows + H. Review your words before sending.</p>}
+                      {voiceInput === "unavailable" && <p className="input-note">Browser dictation is unavailable here. You can use your device's voice typing or type your counsel.</p>}
                       {listening && (
                         <p className="input-note" role="status">
                           {dictationState === "starting" ? "Starting dictation. Allow microphone access if your browser asks."
@@ -971,9 +997,17 @@ export default function Home() {
                         </div>
                       )}
                       {error && (
-                        <p className="error-message" role="alert" id="counsel-error">
-                          {error} Your counsel is still here. You can edit it and send again.
-                        </p>
+                        <div className="error-message" role="alert" id="counsel-error">
+                          <p>{error}</p>
+                          <p>Your counsel is still here. You can edit it before trying again.</p>
+                          <div className="dictation-recovery">
+                            <button type="button" disabled={busy || listening || advice.trim().length < 3} onClick={() => void submit()}>{mode === "ai" ? "Try AI again" : "Try again"}</button>
+                            {mode === "ai" && <button type="button" disabled={busy || listening || advice.trim().length < 3} onClick={() => {
+                              setMode("story");
+                              void submit(advice, "story");
+                            }}>Send in Story mode</button>}
+                          </div>
+                        </div>
                       )}
                     </form>
                   </>
@@ -1291,6 +1325,10 @@ export default function Home() {
                     </small>
                   </span>
                 </label>
+                <p role="status">{checkingModel ? "Checking the model connection…" : modelStatus.message}</p>
+                <Button type="button" variant="outline" disabled={checkingModel || busy} onClick={() => void checkModel()}>
+                  {checkingModel ? "Checking…" : "Check connection again"}
+                </Button>
               </fieldset>
               <label>
                 <span>

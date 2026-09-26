@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { POST } from "../server/turn.ts";
+import { GET, POST } from "../server/turn.ts";
+import { MODEL_TIMEOUT_MS } from "../src/lib/turn.ts";
 import { encounters } from "../src/lib/game.ts";
 
 const lotus = encounters.find((e) => e.id === "lotus");
@@ -84,7 +85,8 @@ test("malformed model decisions are rejected and a later retry can succeed", asy
   const failed = await POST(request());
   assert.equal(failed.status, 502);
   const error = await failed.json();
-  assert.match(error.error, /Your advice is kept/);
+  assert.equal(error.code, "model_invalid_reply");
+  assert.match(error.error, /invalid reply/);
   assert.equal(error.source, undefined);
   const retry = await POST(request());
   assert.equal(retry.status, 200);
@@ -97,8 +99,105 @@ test("provider failures and timeouts stay errors without scripted fallback", asy
   assert.equal((await POST(request())).status, 502);
   fetchMock.mock.mockImplementation(async () => { throw new DOMException("Timed out", "TimeoutError"); });
   const response = await POST(request());
-  assert.equal(response.status, 502);
-  assert.equal((await response.json()).source, undefined);
+  assert.equal(response.status, 504);
+  const error = await response.json();
+  assert.equal(error.code, "model_timeout");
+  assert.equal(error.source, undefined);
+});
+
+test("AI allows a cold model to load before the request deadline", async (t) => {
+  configure(t);
+  let deadline;
+  t.mock.method(AbortSignal, "timeout", (ms) => { deadline = ms; return new AbortController().signal; });
+  t.mock.method(globalThis, "fetch", async () => completion(validDecision));
+  assert.equal((await POST(request())).status, 200);
+  assert.equal(deadline, MODEL_TIMEOUT_MS);
+  assert.equal(deadline, 90_000);
+});
+
+test("a stopped Ollama service gets actionable recovery without a scripted decision", async (t) => {
+  configure(t);
+  t.mock.method(globalThis, "fetch", async () => { throw new TypeError("fetch failed"); });
+  const response = await POST(request());
+  const error = await response.json();
+  assert.equal(response.status, 503);
+  assert.equal(error.code, "model_unreachable");
+  assert.match(error.error, /Open the Ollama app/);
+  assert.equal(error.source, undefined);
+});
+
+test("provider errors show recovery guidance without leaking the upstream response", async (t) => {
+  configure(t);
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => new Response("secret provider details", { status: 401 }));
+  assert.match((await (await POST(request())).json()).error, /API key/);
+  fetchMock.mock.mockImplementation(async () => new Response("secret provider details", { status: 404 }));
+  assert.match((await (await POST(request())).json()).error, /configured model/);
+  fetchMock.mock.mockImplementation(async () => new Response("secret provider details", { status: 429 }));
+  const error = await (await POST(request())).json();
+  assert.match(error.error, /busy/);
+  assert.ok(!JSON.stringify(error).includes("secret"));
+});
+
+test("invalid completion envelopes are reported as invalid replies", async (t) => {
+  configure(t);
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => Response.json(null));
+  for (const envelope of [null, {}, { choices: [] }, { choices: [{ message: { content: 42 } }] }]) {
+    fetchMock.mock.mockImplementation(async () => Response.json(envelope));
+    const response = await POST(request());
+    assert.equal(response.status, 502);
+    assert.equal((await response.json()).code, "model_invalid_reply");
+  }
+});
+
+test("status does not call a model when no connection is configured", async (t) => {
+  configure(t);
+  delete process.env.FARSHORE_MODEL_URL;
+  t.mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected model request"); });
+  const response = await GET();
+  const status = await response.json();
+  assert.equal(status.aiConfigured, false);
+  assert.equal(status.aiAvailable, false);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+});
+
+test("configuration alone does not make a stopped model available; a new check recovers", async (t) => {
+  configure(t);
+  let online = false;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    assert.equal(String(url), "http://127.0.0.1:11434/v1/models");
+    assert.equal(init.body, undefined, "status must not generate a reply");
+    if (!online) throw new TypeError("fetch failed");
+    return Response.json({ data: [{ id: "llama3.2:3b" }] });
+  });
+  const offline = await (await GET()).json();
+  assert.equal(offline.aiConfigured, true);
+  assert.equal(offline.aiAvailable, false);
+  assert.match(offline.message, /Open the Ollama app/);
+  online = true;
+  assert.equal((await (await GET()).json()).aiAvailable, true);
+});
+
+test("status checks model presence and keeps the provider key on the server", async (t) => {
+  configure(t);
+  process.env.FARSHORE_API_KEY = "test-private-key";
+  t.mock.method(globalThis, "fetch", async (_url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer test-private-key");
+    return Response.json({ data: [{ id: "another-model" }] });
+  });
+  const status = await (await GET()).json();
+  assert.equal(status.aiAvailable, false);
+  assert.match(status.message, /name is correct/);
+  assert.ok(!JSON.stringify(status).includes("test-private-key"));
+});
+
+test("status handles rejected, malformed, and timed out health checks", async (t) => {
+  configure(t);
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 403 }));
+  assert.match((await (await GET()).json()).message, /API key/);
+  fetchMock.mock.mockImplementation(async () => Response.json({}));
+  assert.match((await (await GET()).json()).message, /unreadable status/);
+  fetchMock.mock.mockImplementation(async () => { throw new DOMException("Timed out", "TimeoutError"); });
+  assert.equal((await (await GET()).json()).aiAvailable, false);
 });
 
 test("Story mode works without calling the model", async (t) => {

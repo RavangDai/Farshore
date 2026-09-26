@@ -14,6 +14,12 @@ export type SpeechRecognition = {
   abort: () => void;
 };
 export type DictationIssue = { title: string; detail: string };
+export type DictationMethod = "browser" | "windows" | "unavailable";
+
+export function dictationMethod(recognitionAvailable: boolean, brave: boolean, platform: string): DictationMethod {
+  if (recognitionAvailable && !brave) return "browser";
+  return /win/i.test(platform) ? "windows" : "unavailable";
+}
 
 /** Recognition availability does not guarantee that a browser has a working service. */
 export function dictationIssue(code: string, brave = false): DictationIssue {

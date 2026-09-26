@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { encounters, storyDecision } from "../src/lib/game.ts";
+import { MODEL_TIMEOUT_MS, type ModelStatus } from "../src/lib/turn.ts";
 const input = z.object({
   encounterId: z.string().max(30),
   advice: z.string().trim().min(3).max(800),
@@ -38,12 +39,53 @@ function config() {
     key: e.FARSHORE_API_KEY,
   };
 }
-export function GET() {
+function isLocalOllama(url: string) {
+  try {
+    const endpoint = new URL(url);
+    return ["localhost", "127.0.0.1", "[::1]"].includes(endpoint.hostname) && endpoint.port === "11434";
+  } catch { return false; }
+}
+function connectionMessage(url: string) {
+  return isLocalOllama(url)
+    ? "Ollama is not reachable. Open the Ollama app, then try again."
+    : "The model service is not reachable. Check that it is running and try again.";
+}
+function providerMessage(status: number, url: string) {
+  if (status === 401 || status === 403) return "The model service rejected the connection. Check its API key and access settings.";
+  if (status === 404) return isLocalOllama(url)
+    ? "Ollama could not find the configured model. Check that it is installed."
+    : "The model or its endpoint was not found. Check the model settings.";
+  if (status === 429) return "The model service is busy. Wait a moment and try again.";
+  return "The model service could not complete the request. Try again in a moment.";
+}
+export async function GET() {
   const c = config();
-  return Response.json(
-    { aiAvailable: !!(c.url && c.model) },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+  const status: ModelStatus = {
+    aiConfigured: !!(c.url && c.model),
+    aiAvailable: false,
+    message: "No AI model is configured. Story mode is ready to play.",
+  };
+  if (c.url && c.model) {
+    try {
+      const modelsUrl = new URL(c.url);
+      modelsUrl.pathname = modelsUrl.pathname.replace(/\/chat\/completions\/?$/, "/models");
+      const response = await fetch(modelsUrl, {
+        headers: c.key ? { Authorization: `Bearer ${c.key}` } : {},
+        signal: AbortSignal.timeout(4000),
+      });
+      if (!response.ok) status.message = providerMessage(response.status, c.url);
+      else {
+        const catalog = z.object({ data: z.array(z.object({ id: z.string() })) }).parse(await response.json());
+        status.aiAvailable = catalog.data.some((model) => model.id === c.model);
+        status.message = status.aiAvailable
+          ? "Model service connected. The first reply may take longer while the model loads."
+          : "The configured model is not available from the model service. Check that it is installed and its name is correct.";
+      }
+    } catch {
+      status.message = connectionMessage(c.url);
+    }
+  }
+  return Response.json(status, { headers: { "Cache-Control": "no-store" } });
 }
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
@@ -76,7 +118,8 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error:
-          "No AI model is connected. Switch to story mode to keep playing.",
+          "No AI model is configured. Choose Story mode to keep playing.",
+        code: "model_unconfigured",
       },
       { status: 503 },
     );
@@ -129,9 +172,12 @@ If no action is recommended, followed=false. Your reply and reason must describe
           { role: "user", content: data.advice },
         ],
       }),
-      signal: AbortSignal.timeout(25000),
+      signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     });
-    if (!r.ok) throw new Error("Model request failed");
+    if (!r.ok) return Response.json(
+      { error: providerMessage(r.status, c.url), code: "model_provider_error" },
+      { status: 502 },
+    );
     const body = (await r.json()) as {
       choices?: { message?: { content?: string } }[];
     };
@@ -146,13 +192,19 @@ If no action is recommended, followed=false. Your reply and reason must describe
       outcome: d.safeChoice ? e.good : e.bad,
       source: "ai",
     });
-  } catch {
+  } catch (error) {
+    const timeout = error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name);
+    const invalid = error instanceof z.ZodError || error instanceof SyntaxError;
     return Response.json(
       {
-        error:
-          "Odysseus could not answer through the connected model. Your advice is kept. Try again or use story mode.",
+        error: timeout
+          ? "The model took too long to reply. Try again once it has loaded, or choose Story mode."
+          : invalid
+            ? "The model returned an incomplete or invalid reply. Try again, or choose Story mode."
+            : connectionMessage(c.url),
+        code: timeout ? "model_timeout" : invalid ? "model_invalid_reply" : "model_unreachable",
       },
-      { status: 502 },
+      { status: timeout ? 504 : invalid ? 502 : 503 },
     );
   }
 }

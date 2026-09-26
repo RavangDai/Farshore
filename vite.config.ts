@@ -9,7 +9,7 @@ function gameApi(): Plugin {
     if (req.url?.split("?")[0] !== "/api/turn") return next();
     try {
       let response: Response;
-      if (req.method === "GET") response = GET();
+      if (req.method === "GET") response = await GET();
       else if (req.method === "POST") {
         let size = 0;
         const chunks: Buffer[] = [];

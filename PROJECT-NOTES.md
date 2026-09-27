@@ -51,6 +51,14 @@ Test whether participants can complete a turn without help, understand why Odyss
 
 ## Checks
 
+### Story and map verification, September 27, 2026
+
+- All 41 automated tests passed, including the full route, both shortcuts, source coverage, and save migration. The final TypeScript and Vite production build passed.
+- Inspected the introduction, source comparison, source dialog, and map in Brave at the desktop viewport and at 390 × 844. Verified mouse and keyboard map selection, both Ithaca chapters, zoom, and current-shore centering. Restored the normal viewport afterward.
+- A live AI turn in the browser accepted counsel to leave Ismarus, applied the authored outcome (+2 months, +12 trust), and advanced to the Lotus-eaters. A separate real API request completed in 27.59 seconds. These checks are examples, not a model benchmark or a guarantee of every interpretation.
+- Verified the presentation guide returns HTTP 200 and the Gutenberg chapter anchors match the intended book headings. Rebuilding the map from its upstream GeoJSON reproduced the committed coastline paths.
+- Windows voice typing was not exercised in this check. Brave displayed the Windows + H guidance correctly.
+
 - `node --experimental-strip-types --test tests/game.test.mjs`
 - `node node_modules/typescript/bin/tsc --noEmit`
 

@@ -774,7 +774,7 @@ a {
 .atlas-legend-route { stroke: #acbcc0; stroke-width: 2; stroke-dasharray: 3 7; opacity: .55; }
 .atlas-player-route { stroke: #dab774; stroke-width: 2; stroke-dasharray: 5 6; opacity: .38; }
 .atlas-player-route.travelled { opacity: 1; stroke-width: 3; stroke-dasharray: none; }
-.atlas-stop { cursor: pointer; outline: none; }
+.atlas-stop { cursor: pointer; outline: none; pointer-events: bounding-box; }
 .atlas-hit { fill: transparent; }
 .atlas-leader { fill: none; stroke: #e4d7b4; stroke-width: .7; opacity: .7; }
 .atlas-marker { fill: #183944; stroke: #bfd0bd; stroke-width: 1.8; transition: fill 160ms ease-out, stroke 160ms ease-out; }
@@ -783,7 +783,7 @@ a {
 .atlas-stop.current .atlas-marker, .atlas-stop.selected .atlas-marker { fill: #ecd096; stroke: #fff4d8; }
 .atlas-stop.current .atlas-marker-number, .atlas-stop.selected .atlas-marker-number { fill: #142c35; }
 .atlas-stop:focus-visible .atlas-marker { stroke: #fff; stroke-width: 5; }
-.atlas-port-name { fill: #fff0ce; font-family: Georgia, serif; font-size: 15px; font-weight: 500; text-anchor: middle; paint-order: stroke; stroke: #112d39; stroke-width: 3.5; stroke-linejoin: round; pointer-events: none; }
+.atlas-port-name { fill: #fff0ce; font-family: Georgia, serif; font-size: 15px; font-weight: 500; text-anchor: middle; paint-order: stroke; stroke: #112d39; stroke-width: 3.5; stroke-linejoin: round; pointer-events: auto; }
 .atlas-current-ring { fill: none; stroke: #e8c77d; stroke-width: 1.3; pointer-events: none; }
 .atlas-compass { stroke: #a5b7ad; fill: none; stroke-width: 1; opacity: .7; }
 .atlas-compass path { fill: #a5b7ad; fill-opacity: .2; }

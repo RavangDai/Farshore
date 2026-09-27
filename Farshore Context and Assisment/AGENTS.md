@@ -17,7 +17,7 @@ Only the Phase 1 brief has been supplied. Do not invent later-phase requirements
 
 - Build a playable retro browser game. Use the existing pixel art, animated intro, character portraits, navy/teal/gold palette, and prominent Begin Voyage action. Avoid turning the game into a SaaS dashboard or marketing landing page.
 - The player advises Odysseus in free language. Odysseus interprets that advice and chooses. His pride, curiosity, loyalty, and trust affect the reply and consequences.
-- Preserve the time challenge: begin at 120 months after ten years at Troy, complete the eleven encounters before 240 total months, and show time/trust changes and explanations.
+- Preserve the time challenge: begin at 120 months after ten years at Troy, complete the homecoming before 240 total months, and show time/trust changes and explanations. The revised full route has fifteen chapters, with earlier-homecoming branches at the wind bag and the cattle.
 - Keep actual figures and episodes from Homer's Odyssey. They are mythological/literary characters, not documented historical people. Original portraits are imaginative. Film inspiration concerns atmosphere; use the included original art and source material.
 - Keep text input, editable speech transcripts, keyboard controls, reduced motion, clear errors, saved progress, and explanations of decisions. Typing must remain usable without voice access.
 - Simple changes that make the game nicer or easier to build are welcome. Preserve the user's existing edits and the central game concept. Use plain explanations and no em dashes in new prose.
@@ -37,7 +37,10 @@ This laptop edition uses React, TypeScript, Vite, Tailwind CSS, and Radix UI. It
 | Path | Role |
 | --- | --- |
 | `src/App.tsx` | Title, intro, game UI, speech, sound, saves |
-| `src/lib/game.ts` | Eleven authored encounters, scoring, scripted logic |
+| `src/lib/game.ts` | Fifteen authored encounters, branching routes, scoring, save migration |
+| `src/lib/odyssey.ts` | Primary-source notes and illustrative map locations |
+| `src/components/voyage-map.tsx` | Natural Earth coastlines, route progress, interactive story notes |
+| `public/story-sources.md` | Presentation-ready sources and adaptation guide |
 | `src/lib/cast.ts` | Cast, lore, prologue, scene assignments |
 | `src/styles.css` | Retro appearance, responsive layout, motion |
 | `server/turn.ts` | Validated game API and model adapter |

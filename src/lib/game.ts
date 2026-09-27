@@ -23,7 +23,7 @@ export const encounters: Encounter[] = [
     "speech": "They think I keep a treasure from them. If I rest now, will they leave the knot alone? I cannot watch it forever.",
     "temptation": "Leave the bag unguarded and let the suspicious crew open it",
     "safe": "Keep the bag sealed and reassure the crew",
-    "risk": "Open the bag",
+    "risk": "Let the crew open the bag",
     "good": "The crew trusts their captain and leaves the bag sealed. The west wind carries the fleet to Ithaca. Your counsel has opened an earlier homecoming; the later sea trials are avoided.",
     "bad": "The crew opens the bag while Odysseus sleeps. The released winds carry the fleet back to Aeolus, who refuses another gift. Exhausted, they row on toward the Laestrygonian coast.",
     "keywords": [
@@ -197,7 +197,7 @@ export const encounters: Encounter[] = [
     "speech": "Eurylochus says one animal would save them. If I leave to pray, who will hold the crew to its promise?",
     "temptation": "Slaughter one of the sacred cattle",
     "safe": "Keep the oath, ration other food, and leave the cattle unharmed",
-    "risk": "Kill the sacred cattle",
+    "risk": "Leave the hungry crew unwatched to pray inland",
     "good": "Odysseus holds the crew to its oath until the wind changes. The cattle live and the remaining companions sail toward Ithaca. Your choice avoids the wreck and Calypso’s captivity.",
     "bad": "While Odysseus is away praying and falls asleep, Eurylochus leads the slaughter. Helios demands punishment. After they sail, Zeus destroys the ship with a thunderbolt. Every remaining companion dies; Odysseus alone survives on the wreckage.",
     "keywords": [
@@ -220,7 +220,9 @@ export const encounters: Encounter[] = [
       "kill",
       "slaughter",
       "eat",
-      "sacrifice"
+      "sacrifice",
+      "unwatched",
+      "pray inland"
     ],
     "cost": 4,
     "loss": 28
@@ -582,6 +584,7 @@ export function validSave(value: unknown): value is Game {
     Array.isArray(g.log) &&
     g.log.length >= g.index &&
     g.log.length <= g.index + 1 &&
+    (!g.finished || (g.log.length === g.index + 1 && (g.months >= 240 || g.index === g.route.length - 1))) &&
     g.log.every(
       (x, i) =>
         x &&
@@ -605,10 +608,13 @@ export function restoreSave(value: unknown): Game | null {
   const old = value as Game & { version: number };
   if (Number(old.version) !== 2 || !Array.isArray(old.route) || old.route.join(",") !== legacyRoute.join(",")) return null;
   const upgraded = { ...old, version: 3 as const };
+  if (upgraded.finished && Array.isArray(upgraded.log) && upgraded.log.length > 0) upgraded.index = upgraded.log.length - 1;
   if (!validSave(upgraded)) return null;
   if (!upgraded.finished) {
     const currentId = upgraded.route[upgraded.index];
     upgraded.route = [...upgraded.route.slice(0, upgraded.index), ...route.slice(route.indexOf(currentId))];
+    const decision = upgraded.log[upgraded.index];
+    if (decision) upgraded.route = routeAfterChoice(upgraded.route, upgraded.index, decision.safeChoice);
   }
   return upgraded;
 }
@@ -710,10 +716,11 @@ export function applyDecision(
   };
 }
 export function advance(game: Game): Game {
-  if (game.log.length <= game.index) return game;
+  if (game.finished || game.log.length <= game.index) return game;
+  const finished = game.months >= 240 || game.index === game.route.length - 1;
   return {
     ...game,
-    index: Math.min(game.index + 1, game.route.length - 1),
-    finished: game.months >= 240 || game.index === game.route.length - 1,
+    index: finished ? game.index : game.index + 1,
+    finished,
   };
 }

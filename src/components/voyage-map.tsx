@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Minus, Plus, LocateFixed, ExternalLink } from "lucide-react";
 import { encounters, type Game } from "../lib/game";
 import { chapterLore, homerLink, mapStops, projectMap, type MapStop } from "../lib/odyssey";
@@ -24,6 +24,8 @@ export function VoyageMap({ game }: { game: Game }) {
   const [selectedId, setSelectedId] = useState(stopFor(currentId).id);
   const [chapter, setChapter] = useState(currentId);
   const [zoom, setZoom] = useState(1);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const detailRef = useRef<HTMLElement>(null);
   const selected = mapStops.find(stop => stop.id === selectedId)!;
   const activeChapter = selected.chapters.includes(chapter) ? chapter : selected.chapters[0];
   const lore = chapterLore[activeChapter];
@@ -34,6 +36,16 @@ export function VoyageMap({ game }: { game: Game }) {
   function choose(stop: MapStop) {
     setSelectedId(stop.id);
     setChapter(stop.chapters.includes(currentId) ? currentId : stop.chapters[0]);
+  }
+  function showCurrent() {
+    choose(currentStop);
+    setZoom(1);
+    requestAnimationFrame(() => {
+      const chart = chartRef.current;
+      if (!chart) return;
+      const [x, y] = point(currentStop);
+      chart.scrollTo({ left: x / 1200 * chart.scrollWidth - chart.clientWidth / 2, top: y / 710 * chart.scrollHeight - chart.clientHeight / 2 });
+    });
   }
   const status = selected.id === "troy" ? "THE DEPARTURE"
     : activeChapter === currentId ? game.finished ? "YOUR VOYAGE ENDED HERE" : entry ? "DECISION RECORDED" : "YOU ARE HERE"
@@ -48,12 +60,12 @@ export function VoyageMap({ game }: { game: Game }) {
           <button type="button" aria-label="Zoom out on the voyage map" disabled={zoom === 1} onClick={() => setZoom(Math.max(1, zoom - .5))}><Minus size={17} /></button>
           <span aria-live="polite">{zoom * 100}%</span>
           <button type="button" aria-label="Zoom in on the voyage map" disabled={zoom === 2} onClick={() => setZoom(Math.min(2, zoom + .5))}><Plus size={17} /></button>
-          <button type="button" onClick={() => { choose(currentStop); setZoom(1); }}><LocateFixed size={16} /> Current shore</button>
+          <button type="button" onClick={showCurrent}><LocateFixed size={16} /> Current shore</button>
         </div>
       </div>
       <div className="atlas-layout">
         <div>
-          <div className="atlas-scroll" tabIndex={0} role="region" aria-label="Mediterranean voyage chart. Scroll when zoomed. Select a shore to read its story.">
+          <div className="atlas-scroll" ref={chartRef} tabIndex={0} role="region" aria-label="Mediterranean voyage chart. Scroll when zoomed. Select a shore to read its story.">
             <svg viewBox="0 0 1200 710" className="atlas-chart" style={{ width: `${zoom * 100}%` }} aria-label="Mediterranean coastlines with Odysseus’s route from Troy to Ithaca">
               <defs>
                 <pattern id="atlas-grid" width="150" height="118.333" patternUnits="userSpaceOnUse"><path d="M150 0H0V118.333" fill="none" stroke="#b0c4b5" strokeOpacity=".1" strokeWidth="1" /></pattern>
@@ -99,7 +111,7 @@ export function VoyageMap({ game }: { game: Game }) {
           <div className="atlas-key"><span><i className="key-gold" /> Your route</span><span><i className="key-dotted" /> Homer’s sequence</span><span><i className="key-ring" /> Current shore</span></div>
           <p className="atlas-map-note">Real coastlines. Legendary stops are approximate, and Oceanus is shown symbolically. Lines show narrative order, not proven sailing courses.</p>
         </div>
-        <article className="atlas-detail" aria-live="polite">
+        <article className="atlas-detail" ref={detailRef} aria-live="polite">
           <span className="atlas-eyebrow">{status}</span>
           <h2>{selected.name}</h2>
           {selected.chapters.length > 1 && <div className="atlas-chapter-tabs" aria-label="Chapters at this shore">{selected.chapters.map(id => <button type="button" key={id} aria-pressed={activeChapter === id} onClick={() => setChapter(id)}>{id === "nausicaa" ? "Nausicaa" : id === "phaeacians" ? "The court" : id === "ithaca" ? "The hidden king" : "The reunion"}</button>)}</div>}
@@ -112,7 +124,7 @@ export function VoyageMap({ game }: { game: Game }) {
       </div>
       <details className="atlas-index">
         <summary>Browse every chapter and source</summary>
-        <ol>{mapStops.flatMap(stop => stop.chapters.map(id => <li key={id}><button type="button" onClick={() => { choose(stop); setChapter(id); }}><span>{encounters.find(e => e.id === id)?.place}</span><small>{game.log.some(e => e.encounterId === id) ? "Visited" : id === currentId ? "Current chapter" : game.route.includes(id) ? "Ahead" : "Alternate route"}</small></button></li>))}</ol>
+        <ol>{mapStops.flatMap(stop => stop.chapters.map(id => <li key={id}><button type="button" onClick={() => { choose(stop); setChapter(id); detailRef.current?.scrollIntoView({ block: "nearest" }); }}><span>{encounters.find(e => e.id === id)?.place}</span><small>{game.log.some(e => e.encounterId === id) ? "Visited" : id === currentId ? "Current chapter" : game.route.includes(id) ? "Ahead" : "Alternate route"}</small></button></li>))}</ol>
       </details>
       <p className="atlas-credit">Coastline data: <a href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/" target="_blank" rel="noreferrer">Natural Earth</a>, public domain. Story: Homer, <i>Odyssey</i>, translated by Samuel Butler.</p>
     </div>

@@ -1,5 +1,9 @@
 # Farshore art credits
 
+## Voyage map
+
+The Mediterranean chart uses Natural Earth’s public-domain [1:50m land polygons](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/), clipped and simplified into `src/lib/map-land.ts`. See the [terms of use](https://www.naturalearthdata.com/about/terms-of-use/). The chart styling, labels, markers, and route lines were made for Farshore. Coordinates for legendary locations are illustrative, not evidence of their historical position. Oceanus is shown symbolically. The coastline is modern and is not a Bronze Age reconstruction.
+
 Original generated game assets, made for this project with OpenAI image generation:
 
 - `public/art/title.png`: Mediterranean sea, Greek ship, and distant Ithaca at dusk.

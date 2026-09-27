@@ -9,8 +9,8 @@ export function captainEmotion(scene: string, decision?: { followed: boolean; sa
     return scene === "scylla" || scene === "underworld" ? "wary" : "resolute";
   }
   if (["circe", "calypso"].includes(scene)) return "homesick";
-  if (["cyclops", "underworld", "scylla", "cattle"].includes(scene)) return "wary";
-  if (["nausicaa", "ithaca"].includes(scene)) return "hopeful";
+  if (["cicones", "laestrygonians", "cyclops", "underworld", "scylla", "cattle"].includes(scene)) return "wary";
+  if (["nausicaa", "phaeacians", "ithaca", "reunion"].includes(scene)) return "hopeful";
   return "curious";
 }
 

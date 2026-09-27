@@ -722,7 +722,8 @@ a {
 .error-message p { margin: 0 0 8px; line-height: 1.6; }
 
 /* The story and its sources stay close to the player's decisions. */
-.intro-screen { min-height: 760px; }
+.intro-screen { min-height: max(760px, 100svh); height: auto; }
+.intro-top, .intro-controls { flex-shrink: 0; }
 .intro-content { padding-bottom: 20px; }
 .intro-content h1 { max-width: 860px; margin-left: auto; margin-right: auto; }
 .intro-text { max-width: 770px; margin-left: auto; margin-right: auto; }
@@ -823,7 +824,6 @@ a {
   .atlas-scroll { max-height: 52svh; }
 }
 @media (max-width: 700px) {
-  .intro-screen { min-height: 850px; }
   .intro-controls { gap: 12px; flex-wrap: wrap; padding: 16px 20px; }
   .intro-controls .pixel-button { min-width: 140px; }
   .intro-source { font-size: .73rem; }
@@ -1452,7 +1452,7 @@ a {
     width: 95px;
   }
   .intro-screen {
-    min-height: 750px;
+    min-height: max(750px, 100svh);
   }
   .intro-content {
     width: 91%;

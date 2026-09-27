@@ -888,7 +888,7 @@ export default function Home() {
                       >
                         <small>HIS CHOICE</small>
                         <strong>{current.followed ? "He listened" : "His own choice"}</strong>
-                        <em>{current.safeChoice ? "Passage earned" : "A costly turn"}</em>
+                        <em>{current.safeChoice ? ["scylla", "laestrygonians"].includes(encounter.id) ? "Survived with losses" : "Passage earned" : "A costly turn"}</em>
                       </span>
                       <span className="result-time">
                         <small>TIME PASSED</small>

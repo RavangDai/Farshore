@@ -61,9 +61,26 @@ test("Risky turns lose to the twenty-year benchmark and cannot continue", () => 
     );
   }
   assert.ok(g.months >= 240);
+  assert.equal(g.route[g.index], g.log.at(-1).encounterId, "the map must end at the last visited shore");
+  assert.deepEqual(advance(g), g, "a finished voyage cannot advance its map marker");
   assert.throws(() =>
     applyDecision(g, wind, "anything", storyDecision(wind, "anything", 50)),
   );
+});
+
+test("a restored wind-bag decision keeps the new shortcut and an old lost voyage keeps its final shore", () => {
+  const oldRoute = ["lotus", "cyclops", "winds", "circe", "underworld", "sirens", "scylla", "cattle", "calypso", "nausicaa", "ithaca"];
+  const log = oldRoute.slice(0, 3).map(id => {
+    const e = encounters.find(item => item.id === id);
+    return { ...storyDecision(e, `Friend, ${e.safe}`, 100), encounterId: id, advice: "Saved counsel", at: 120 };
+  });
+  const old = { version: 2, route: oldRoute, index: 2, months: 129, trust: 86, log, finished: false };
+  assert.deepEqual(restoreSave(old).route, ["lotus", "cyclops", "winds", "ithaca", "reunion"]);
+  const lost = restoreSave({ ...old, index: 3, months: 245, finished: true });
+  assert.equal(lost.index, 2);
+  assert.equal(lost.route[lost.index], "winds");
+  assert.equal(validSave(lost), true);
+  assert.equal(validSave({ ...newGame(), finished: true }), false);
 });
 test("Save validation rejects old versions and broken routes", () => {
   assert.equal(validSave(firstGame), true);

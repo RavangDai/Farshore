@@ -20,8 +20,8 @@ const scores: Record<MusicMood, { bpm: number; roots: number[]; melody: (number 
 export function musicMood(screen: string, encounter: string, finished: boolean, won: boolean): MusicMood {
   if (screen !== "play") return "title";
   if (finished) return won ? "home" : "danger";
-  if (["ithaca", "nausicaa"].includes(encounter)) return "home";
-  return ["cyclops", "underworld", "sirens", "scylla", "cattle"].includes(encounter) ? "danger" : "voyage";
+  if (["ithaca", "nausicaa", "phaeacians", "reunion"].includes(encounter)) return "home";
+  return ["cicones", "laestrygonians", "cyclops", "underworld", "sirens", "scylla", "cattle"].includes(encounter) ? "danger" : "voyage";
 }
 
 const frequency = (midi: number) => 440 * 2 ** ((midi - 69) / 12);

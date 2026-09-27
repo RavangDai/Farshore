@@ -1,5 +1,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-const data = JSON.parse(readFileSync('.tmp/ne_50m_land.geojson', 'utf8'));
+// Run from the project root with Natural Earth 1:50m land GeoJSON (public domain).
+// https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_land.geojson
+const source = process.argv[2];
+if (!source) {
+  console.error('Usage: node scripts/build-map.mjs <path-to-ne_50m_land.geojson>');
+  process.exit(1);
+}
+const data = JSON.parse(readFileSync(source, 'utf8'));
 function clip(ring, axis, limit, keepGreater) {
   const result = [];
   for (let i = 0; i < ring.length; i++) {

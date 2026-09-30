@@ -1,0 +1,80 @@
+{
+  "experiment": "Farshore Phase 2 technical spike",
+  "startedAt": "2026-09-30T22:24:09.059Z",
+  "model": "llama3.2:3b",
+  "endpoint": "http://127.0.0.1:11434/v1/chat/completions",
+  "localModel": true,
+  "method": "Six sequential realistic inputs through the production POST adapter in a standalone script. Capture each actual provider response separately from the adapter response. Wall-clock latency includes provider request, JSON parsing and validation. Failure timings are excluded from success statistics.",
+  "environment": {
+    "node": "v22.20.0",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) Ultra 5 125H",
+    "logicalCpus": 18,
+    "totalMemoryGiB": 15.68,
+    "freeMemoryGiBAtStart": 2.12,
+    "temperature": 0.2,
+    "maxTokens": 450,
+    "stream": false,
+    "appDeadlineSeconds": 90,
+    "installedModels": {
+      "status": 200,
+      "body": {
+        "models": [
+          {
+            "name": "llama3.2:3b",
+            "model": "llama3.2:3b",
+            "modified_at": "2026-09-23T13:12:09.8405872-05:00",
+            "size": 2019393189,
+            "digest": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "llama",
+              "families": [
+                "llama"
+              ],
+              "parameter_size": "3.2B",
+              "quantization_level": "Q4_K_M"
+            }
+          },
+          {
+            "name": "gpt-oss:20b",
+            "model": "gpt-oss:20b",
+            "modified_at": "2025-12-04T13:19:31.1690452-06:00",
+            "size": 13793441244,
+            "digest": "17052f91a42e97930aa6e28a6c6c06a983e6a58dbb00434885a0cf5313e376f7",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "gptoss",
+              "families": [
+                "gptoss"
+              ],
+              "parameter_size": "20.9B",
+              "quantization_level": "MXFP4"
+            }
+          }
+        ]
+      }
+    },
+    "loadedModelsBefore": {
+      "status": 200,
+      "body": {
+        "models": []
+      }
+    },
+    "ollamaVersion": {
+      "status": 200,
+      "body": {
+        "version": "0.21.0"
+      }
+    }
+  },
+  "samples": [],
+  "failures": [],
+  "qualityReview": {
+    "status": "Pending manual review",
+    "note": "Structural validation does not establish semantic accuracy. No confidence percentages."
+  }
+}

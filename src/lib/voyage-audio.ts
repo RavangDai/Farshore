@@ -203,6 +203,11 @@ export class VoyageAudio {
     });
   }
 
+  arcadeNote(lane: number) {
+    if (!this.context || !this.settings.enabled || this.settings.quiet || this.context.state !== "running" || !Number.isInteger(lane) || lane < 0 || lane > 3) return;
+    this.note([60, 64, 67, 72][lane], this.context.currentTime, .38, .1, this.effects!, "triangle");
+  }
+
   cue(cue: AudioCue) {
     if (!this.context || !this.settings.enabled || this.settings.quiet || this.context.state !== "running") return;
     const notes: Record<AudioCue, number[]> = { send: [74, 81], reply: [74, 77, 81], costly: [77, 76, 69], sail: [62, 69, 74, 81], select: [81] };

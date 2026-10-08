@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activeCue, assistTrial, challengeRules, clearedCount, finishAttempt, markerPosition, moveLane, newArcade, newRound, pressTiming, readArcade, roundSummary, standardPlan, tickRound, trialFor, unlocked, validPlan } from "../src/lib/arcade.ts";
+import { assistTrial, clearedCount, finishAttempt, newArcade, readArcade, standardPlan, trialFor, unlocked, validPlan } from "../src/lib/arcade.ts";
+import { activeCue, challengeRules, markerPosition, moveLane, newRound, pressTiming, roundSummary, tickRound } from "../src/lib/legacy-arcade.ts";
 import { POST } from "../server/arcade.ts";
 
 function advance(round, to) { let r = round; while (!r.done && r.elapsed < to) r = tickRound(r, Math.min(50, to - r.elapsed)); return r; }
@@ -16,8 +17,8 @@ test("campaign completes in order, saves round trips, and failures never remove 
   let s = started();
   assert.equal(unlocked(s, "cyclops"), true); assert.equal(unlocked(s, "sirens"), false);
   assert.equal(finishAttempt(s, "bow", win()), s);
-  s = assistTrial(s, "cyclops"); s = finishAttempt(s, "sirens", win()); s = finishAttempt(s, "bow", roundSummary(playTiming("bow")));
-  assert.equal(clearedCount(s), 3); assert.deepEqual(readArcade(JSON.stringify(s)), s);
+  s = assistTrial(s, "cyclops"); s = assistTrial(s, "circe"); s = finishAttempt(s, "sirens", win()); s = assistTrial(s, "scylla"); s = finishAttempt(s, "bow", roundSummary(playTiming("bow")));
+  assert.equal(clearedCount(s), 5); assert.deepEqual(readArcade(JSON.stringify(s)), s);
   const failed = { ...win(), won: false };
   s = finishAttempt(s, "sirens", failed);
   assert.equal(s.records.sirens.cleared, "cleared"); assert.equal(s.records.sirens.attempts, 2);
@@ -189,7 +190,7 @@ const providerReply = value => Response.json({ choices: [{ message: { content: J
 test("opponent API validates model IDs and preserves fixed game-owned descriptions", async () => {
   await mockedProvider(async () => {
     const response = await POST(request(sample)); assert.equal(response.status, 200);
-    const body = await response.json(); assert.equal(body.plan.source, "ai"); assert.equal(body.plan.planId, "focused"); assert.match(body.description, /left lane/);
+    const body = await response.json(); assert.equal(body.plan.source, "ai"); assert.equal(body.plan.planId, "focused"); assert.match(body.description, /heatmap/);
     assert.equal("score" in body, false);
   }, async (_url, options) => {
     const body = JSON.parse(options.body); assert.equal(body.response_format.type, "json_schema"); assert.equal(body.max_tokens, 100);

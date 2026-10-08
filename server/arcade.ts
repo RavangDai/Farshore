@@ -2,11 +2,11 @@ import { z } from "zod";
 import { trialFor, validPlan, planDescription, type TrialId, type OpponentPlan } from "../src/lib/arcade.ts";
 import { GET as modelGET } from "./turn.ts";
 
-const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]) }).strict();
-const input = z.object({ trialId: z.enum(["cyclops", "sirens", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
+const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
+const input = z.object({ trialId: z.enum(["cyclops", "circe", "sirens", "scylla", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
 export async function GET() {
   const response = await modelGET(), status = await response.json();
-  if (!status.aiConfigured) status.message = "Play is ready. Connect a model to prepare AI opponents.";
+  if (!status.aiConfigured) status.message = "Solo and adaptive AI are ready. Connect a model for optional strategy planning.";
   return Response.json(status, { headers: { "Cache-Control": "no-store" } });
 }
 export async function POST(request: Request) {
@@ -25,12 +25,19 @@ export async function POST(request: Request) {
   const maxLane = Math.max(...laneTotals);
   const dominantLane = maxLane > 0 ? ["left", "center", "right"][laneTotals.indexOf(maxLane)] : "no previous lane preference";
   const early = data.recent.reduce((sum, a) => sum + a.early, 0), late = data.recent.reduce((sum, a) => sum + a.late, 0);
-  const observations = { mostUsedLane: dominantLane, timingTendency: early > late ? "early" : late > early ? "late" : "balanced", repeatedLosses: data.recent.length === 2 && data.recent.every(a => !a.won) };
+  const laneMisses = [0, 1, 2, 3].map(i => data.recent.reduce((n, a) => n + (a.laneMisses?.[i] || 0), 0));
+  const observations = { mostUsedLane: dominantLane, weakestSongLane: Math.max(...laneMisses) ? ["red", "blue", "green", "gold"][laneMisses.indexOf(Math.max(...laneMisses))] : "no missed lane yet", timingTendency: early > late ? "early" : late > early ? "late" : "balanced", repeatedLosses: data.recent.length === 2 && data.recent.every(a => !a.won) };
   const expectedFocus = data.trialId === "cyclops" ? maxLane > 0 ? dominantLane : "center" : observations.timingTendency;
   // AI uses a different tactical catalog from the standard repeating pattern.
   const aiPlans = trial.plans.slice(1);
   const schema = { type: "object", properties: { planId: { type: "string", enum: aiPlans }, focus: { type: "string", enum: [expectedFocus] } }, required: ["planId", "focus"], additionalProperties: false };
-  const policyGuide = data.trialId === "cyclops" ? "focused hunts the favored lane and reacts to current lane habits; sweep cycles crossfire. Prefer focused when a lane habit is present, otherwise sweep." : data.trialId === "sirens" ? "swell alternates fast and slow beats; echo alternates beat direction with uneven pairs. Choose one to challenge this player's timing habits." : "surge alternates sight direction; feint varies sight speed. Choose one to challenge this player's release habits.";
+  const policyGuide = {
+    cyclops: "focused follows a heatmap of audible footsteps; sweep predicts the next grid position from the last two noise clues. The blind giant cannot see the player. Prefer focused for repeated losses, otherwise sweep.",
+    circe: "chain previews the next potion for multi-chain matches; hoard uses the same planning but banks curses until the other board is crowded. Prefer chain for repeated losses, otherwise hoard.",
+    sirens: "swell repeats the weakest missed sound lane in new melodies; echo also adds visible rests and changes tempo between melodies. Choose a melody strategy using the missed-lane history.",
+    scylla: "pincer sends heads around the shield and synchronizes moderate whirlpool pull; undertow adds stronger synchronized pull during approaching attacks. Prefer pincer for repeated losses, otherwise undertow.",
+    bow: "surge calculates wind compensation for scored shots; feint can sacrifice rings to block and narrow the player's next ring opening. Prefer surge for repeated losses, otherwise feint.",
+  }[data.trialId];
   try {
     const response = await fetch(url, {
       method: "POST", headers: { "Content-Type": "application/json", ...(process.env.FARSHORE_API_KEY ? { Authorization: "Bearer " + process.env.FARSHORE_API_KEY } : {}) },

@@ -1,4 +1,4 @@
-import { markerPosition, visibleCue, type Round } from "../lib/arcade";
+import { markerPosition, visibleCue, type Round } from "../lib/legacy-arcade";
 
 // Interactive scenery is code-native: projectile positions and sight positions
 // use the exact simulation clock and targets used by collision/timing checks.

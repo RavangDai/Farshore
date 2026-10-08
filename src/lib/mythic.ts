@@ -7,7 +7,7 @@ export type Point = { x: number; y: number };
 export type GridState = Base & { id: "cyclops"; player: Point; sheep: Point[]; walls: Point[]; noise: Point[]; heat: number[]; target: Point; turn: number; phase: "player" | "warning"; timer: number; evaded: boolean; stance: "sneak" | "dash"; hidden: boolean };
 export type Tile = 0 | 1 | 2 | 3 | 4 | 5;
 export const TILE_NAMES = ["Empty", "Wine", "Moly", "Swine", "Rune", "Curse"];
-export type PotionState = Base & { id: "circe"; board: Tile[]; rivalBoard: Tile[]; piece: Tile[]; rivalPiece: Tile[]; next: Tile[]; column: number; rivalColumn: number; rivalRotation: number; timer: number; rivalTimer: number; bank: number; turn: number; chains: number };
+export type PotionState = Base & { id: "circe"; board: Tile[]; rivalBoard: Tile[]; piece: Tile[]; rivalPiece: Tile[]; next: Tile[]; rivalNext: Tile[]; column: number; rivalColumn: number; rivalRotation: number; timer: number; rivalTimer: number; bank: number; turn: number; chains: number };
 export type SongNote = { lane: number; rest: boolean };
 export type SongState = Base & { id: "sirens"; notes: SongNote[]; phase: "listen" | "reply" | "rest"; timer: number; beat: number; entered: number[]; temptation: number; round: number; laneMisses: [number, number, number, number]; lastLane: number; flash: number };
 export type Strike = { x: number; y: number; vx: number; vy: number; reflected: boolean; head: number };
@@ -30,9 +30,9 @@ export function newMythic(id: TrialId, difficulty: Difficulty, plan: OpponentPla
   const b: Base = { id, difficulty, plan: { ...plan }, practice, seed, elapsed: 0, done: false, won: false, feedback: "", rivalLine: "", score: 0, rivalScore: 0, hits: 0, successes: 0, misses: 0, combo: 0, bestCombo: 0 };
   if (id === "cyclops") return { ...b, id, player: { x: 0, y: 7 }, sheep: [{ x: 1, y: 7 }, { x: 3, y: 5 }, { x: 5, y: 3 }, { x: 6, y: 7 }, { x: 4, y: 0 }], walls: [{ x: 2, y: 6 }, { x: 2, y: 5 }, { x: 4, y: 4 }, { x: 4, y: 3 }, { x: 1, y: 2 }, { x: 5, y: 1 }], noise: [], heat: Array(64).fill(0), target: { x: 3, y: 3 }, turn: 0, phase: "player", timer: 0, evaded: false, stance: "sneak", hidden: false, feedback: "Sneak toward either gold exit. Sheep conceal your footsteps.", rivalLine: "Nobody... where are you?" };
   if (id === "circe") {
-    const s: PotionState = { ...b, id, board: Array(60).fill(0), rivalBoard: Array(60).fill(0), piece: [], rivalPiece: [], next: [], column: 2, rivalColumn: 2, rivalRotation: 0, timer: 0, rivalTimer: 0, bank: 0, turn: 0, chains: 0, feedback: "Match three potions. Moly clears swine and curses the other board.", rivalLine: "Your crew will make such lovely swine." };
+    const s: PotionState = { ...b, id, board: Array(60).fill(0), rivalBoard: Array(60).fill(0), piece: [], rivalPiece: [], next: [], rivalNext: [], column: 2, rivalColumn: 2, rivalRotation: 0, timer: 0, rivalTimer: 0, bank: 0, turn: 0, chains: 0, feedback: "Match three potions. Moly clears swine and curses the other board.", rivalLine: "Your crew will make such lovely swine." };
     for (let y = 8; y < 10; y++) for (let x = 0; x < 6; x++) { s.board[y * 6 + x] = ((x + y) % 4 + 1) as Tile; s.rivalBoard[y * 6 + x] = ((x * 3 + y) % 4 + 1) as Tile; }
-    s.piece = [2, 2, 2]; s.next = nextPiece(s); s.rivalPiece = nextPiece(s); planPotion(s); return s;
+    s.piece = [2, 2, 2]; s.next = nextPiece(s); s.rivalPiece = nextPiece(s); s.rivalNext = nextPiece(s); planPotion(s); return s;
   }
   if (id === "sirens") { const s: SongState = { ...b, id, notes: [], phase: "listen", timer: 0, beat: 0, entered: [], temptation: 0, round: 1, laneMisses: [0, 0, 0, 0], lastLane: -1, flash: 0, feedback: "Listen first. Echo the numbered notes when YOUR REPLY appears.", rivalLine: "Come closer. Remember our song." }; compose(s); return s; }
   if (id === "scylla") return { ...b, id, paddle: 200, boat: 55, rowing: false, strikes: [], spawn: 1500, head: 0, pull: 0, duration: practice ? 12000 : [30000, 40000, 50000][tierOf(difficulty)], telegraph: 0, targetY: 200, feedback: "Move the shield up and down. Hold Row to resist the vortex.", rivalLine: "Six heads. One ship." };
@@ -127,7 +127,7 @@ export function potionChoice(board: Tile[], piece: Tile[], next: Tile[], adaptiv
   }
   return choice;
 }
-function planPotion(s: PotionState) { const c = potionChoice(s.rivalBoard, s.rivalPiece, s.next, s.plan.source === "ai"); s.rivalColumn = c.column; s.rivalRotation = c.rotation; }
+function planPotion(s: PotionState) { const c = potionChoice(s.rivalBoard, s.rivalPiece, s.rivalNext, s.plan.source === "ai"); s.rivalColumn = c.column; s.rivalRotation = c.rotation; }
 function potionDrop(s: PotionState, rival: boolean) {
   const result = dropPiece(rival ? s.rivalBoard : s.board, rival ? rotatePiece(s.rivalPiece, s.rivalRotation) : s.piece, rival ? s.rivalColumn : s.column);
   if (!result) { end(s, rival, rival ? "Circe's board reaches the ceiling. The enchantment breaks!" : "Your board reaches the ceiling. Keep columns open and brew moly."); return; }
@@ -137,7 +137,7 @@ function potionDrop(s: PotionState, rival: boolean) {
     const release = s.plan.planId !== "hoard" || s.bank >= 4 || crowded;
     s.rivalLine = release && s.bank ? `Circe sends ${s.bank} curse blocks!` : result.chains > 1 ? `Circe brews a ${result.chains}-chain combo.` : s.bank ? `Circe banks ${s.bank} curses for later.` : `Circe drops into column ${s.rivalColumn + 1}.`;
     if (release) { curse(s, false, s.bank); s.bank = 0; }
-    s.rivalPiece = nextPiece(s); planPotion(s); s.rivalTimer = 0;
+    s.rivalPiece = s.rivalNext; s.rivalNext = nextPiece(s); planPotion(s); s.rivalTimer = 0;
   } else {
     s.board = result.board; s.score += result.cleared * 10 * Math.max(1, result.chains); s.successes += result.cleared; s.chains = Math.max(s.chains, result.chains); streak(s, result.cleared > 0); s.turn++;
     s.feedback = result.moly >= 3 ? `Moly purified the swine! ${result.attack} curses sent to Circe.` : result.chains ? `${result.chains}-chain brew! ${result.cleared} potions cleared.` : "Potions placed. Build a match of three.";
@@ -184,7 +184,7 @@ export function bestAim(wind: number, blocked = 0, difficulty: Difficulty = "nor
   }
   return choice;
 }
-function setWind(s: BowState) { s.wind = Math.round((roll(s) - .5) * [24, 40, 56][tierOf(s.difficulty)]); }
+function setWind(s: BowState) { s.wind = Math.round((roll(s) - .5) * [40, 80, 110][tierOf(s.difficulty)]); }
 function rivalShot(s: BowState) {
   let aim: Aim;
   if (s.plan.source === "ai") {

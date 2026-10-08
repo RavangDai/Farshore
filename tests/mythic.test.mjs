@@ -51,8 +51,8 @@ test("moly match purifies swine and curses, gravity creates multi-chain clears",
 });
 test("Circe plays her own board; overflow decides the winner and curses remain bounded", () => {
   let s = newMythic("circe", "normal", adaptivePlan("circe"));
-  const board = structuredClone(s.rivalBoard); s = advance(s, 5500); assert.notDeepEqual(s.rivalBoard, board); assert.match(s.rivalLine, /Circe/);
-  const choice = potionChoice(s.rivalBoard, s.rivalPiece, s.next, true); assert.ok(choice.column >= 0 && choice.column <= 5);
+  const board = structuredClone(s.rivalBoard), rivalNext = [...s.rivalNext]; s = advance(s, 5500); assert.notDeepEqual(s.rivalBoard, board); assert.match(s.rivalLine, /Circe/); assert.deepEqual(s.rivalPiece, rivalNext);
+  const choice = potionChoice(s.rivalBoard, s.rivalPiece, s.rivalNext, true); assert.ok(choice.column >= 0 && choice.column <= 5);
   const lost = mythicAction({ ...s, board: Array(60).fill(5), column: 2 }, { type: "drop" }); assert.equal(lost.won, false); assert.equal(lost.done, true);
   const won = advance({ ...s, rivalBoard: Array(60).fill(5), rivalTimer: 5390 }, 50); assert.equal(won.won, true);
   for (let x = 0; x < 6; x++) assert.ok(columnHeight(s.rivalBoard, x) <= 10);
@@ -112,6 +112,11 @@ test("archery aim, tension and wind change scored paths; perfect shots can clear
     }
     assert.equal(s.shots.length, 5); assert.equal(s.rivalShots.length, 5); assert.ok(s.score > s.rivalScore); assert.equal(s.won, true);
   }
+});
+test("normal winds require trajectory adjustments instead of rewarding center aim every time", () => {
+  const examples = Array.from({ length: 20 }, (_, i) => newMythic("bow", "normal", adaptivePlan("bow"), false, i * 4700 + 1));
+  assert.ok(examples.some(s => archeryShot(s.aim, s.wind, 0, "player", s.difficulty).rings < 12));
+  for (const s of examples) assert.ok(archeryShot(bestAim(s.wind, 0, s.difficulty), s.wind, 0, "player", s.difficulty).rings >= 10);
 });
 test("Antinous takes an observable independent turn; block shot affects only the next player shot", () => {
   let s = newMythic("bow", "normal", { ...adaptivePlan("bow"), planId: "feint" }); s = mythicAction(s, { type: "shoot" });

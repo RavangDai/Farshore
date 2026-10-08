@@ -51,6 +51,9 @@ test("opponent plan changes actual hazard patterns without altering difficulty",
   const b = newRound("cyclops", "normal", { planId: "focused", focus: "right", source: "ai" });
   assert.notDeepEqual(a.targets, b.targets); assert.equal(a.warning, b.warning);
   assert.ok(a.targets.filter(t => t.lane === 0).length >= 12);
+  const sweep = newRound("cyclops", "normal", { planId: "sweep", focus: "center", source: "ai" });
+  const standard = newRound("cyclops", "normal", standardPlan("cyclops"));
+  assert.notDeepEqual(sweep.targets.map(t => t.blocked), standard.targets.map(t => t.blocked));
 });
 test("lane boundary input, collisions, escape, and completed round immutability", () => {
   let r = newRound("cyclops", "easy", standardPlan("cyclops"));
@@ -190,7 +193,22 @@ test("opponent API validates model IDs and preserves fixed game-owned descriptio
     assert.equal("score" in body, false);
   }, async (_url, options) => {
     const body = JSON.parse(options.body); assert.equal(body.response_format.type, "json_schema"); assert.equal(body.max_tokens, 100);
+    assert.deepEqual(body.response_format.json_schema.schema.properties.focus.enum, ["left"]);
+    assert.deepEqual(body.response_format.json_schema.schema.properties.planId.enum, ["focused", "sweep"]);
     return providerReply({ planId: "focused", focus: "left" });
+  });
+});
+test("hard preparation accepts first-time and timing histories with a single game-derived focus", async () => {
+  for (const [trialId, recent, expected, planId] of [
+    ["cyclops", [], "center", "sweep"],
+    ["sirens", [{ ...sample.recent[0], hits: 0, early: 4, late: 1 }], "early", "echo"],
+    ["bow", [{ ...sample.recent[0], hits: 0, early: 1, late: 4 }], "late", "surge"],
+  ]) await mockedProvider(async () => {
+    const r = await POST(request({ trialId, difficulty: "hard", recent })); assert.equal(r.status, 200);
+    assert.equal((await r.json()).plan.focus, expected);
+  }, async (_url, options) => {
+    assert.deepEqual(JSON.parse(options.body).response_format.json_schema.schema.properties.focus.enum, [expected]);
+    return providerReply({ planId, focus: expected });
   });
 });
 test("invalid opponent results are uncertain, never silently replaced", async () => {

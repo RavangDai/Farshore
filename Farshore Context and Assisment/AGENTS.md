@@ -55,7 +55,7 @@ For changes to game logic or the API, run relevant tests and the build. For UI c
 
 ## AI integration
 
-- Arcade AI selects permitted strategy and focus IDs before a round, using at most two numeric attempt summaries. Server-derived observations make lane habits explicit. No model call occurs during gameplay. Validate IDs; never accept model scoring or warning changes. Six October 8 refined calls were legal, with 2.606-10.718 s latency, but timing adaptation was inconsistent. Preserve cancellation, review, regeneration, and explicit standard play.
+- Arcade AI selects one of two AI-only policies before a round, using at most two numeric attempt summaries. The server computes and constrains the required habit focus; mismatched output is rejected. Six final October 8 calls satisfied the policy/focus constraints at 5.732-7.863 s latency; this is feasibility evidence, not a quality benchmark. No model call occurs during gameplay. Authored local lane-hunting logic can react to occupancy, but targets lock at the visible warning. Difficulty has Easy/Normal/Hard values independent of rival policy. Validate IDs; never accept model scoring or warning changes. Preserve cancellation, review, regeneration, and explicit standard play.
 
 - Mystery AI selects a permitted authored answer ID for a custom question. Label the returned dialogue as authored, and preserve suggested questions without a model. Free-form character reactions, question history, and dedicated mystery dictation are not implemented. Keep evidence, items, puzzles, and stars in authored code.
 - Codex's coding model and the model inside the game are separate connections. Signing into Codex does not configure `/api/turn`.

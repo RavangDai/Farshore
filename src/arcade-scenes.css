@@ -55,6 +55,11 @@
 .a-result-combo { color: #abcfbf; font-size: 15px; margin-top: 15px !important; }
 .a-round-overlay { background: #051b2ed9; backdrop-filter: none; }
 .a-overlay-panel { box-shadow: 0 15px 65px #06121980; }
+.a-round-overlay.a-paused { display: block; background: #051b2e22; }
+.a-paused .a-overlay-panel { position: absolute; top: 16px; right: 16px; max-height: calc(100% - 32px); overflow-y: auto; width: 258px; padding: 20px; gap: 10px; background: #102b38f5; border: 1px solid #79928c; }
+.a-paused .a-overlay-panel h2 { font-size: 25px; }
+.a-paused .a-overlay-panel p { font-size: 14px; }
+.a-paused .a-overlay-panel .a-btn { width: 100%; font-size: 16px; }
 
 @media (max-width: 760px) {
   .a-game-board { height: 360px; }
@@ -69,6 +74,9 @@
   .a-timing-board .a-timing-instruction { font-size: 16px; }
   .a-timing-board .a-cue-dots { gap: 5px; }
   .a-timing-board .a-cue-dots span { width: 9px; height: 9px; }
+  .a-paused .a-overlay-panel { width: 212px; top: 12px; right: 12px; padding: 16px; gap: 8px; }
+  .a-paused .a-overlay-panel h2 { font-size: 23px; }
+  .a-paused .a-overlay-panel .a-btn { font-size: 14px; padding: 9px 12px; min-height: 44px; }
 }
 @media (max-width: 370px) {
   .a-battle-ship .a-ship { width: 95px; }

@@ -1,9 +1,8 @@
 import { markerPosition, visibleCue, type Round } from "../lib/arcade";
-import "../arcade-scenes.css";
 
 // Interactive scenery is code-native: projectile positions and sight positions
 // use the exact simulation clock and targets used by collision/timing checks.
-export function Ship({ small = false, rowing = 0, damaged = false }: { small?: boolean; rowing?: number; damaged?: boolean }) {
+export function Ship({ small = false, rowing = 0, damaged = false, bound = false }: { small?: boolean; rowing?: number; damaged?: boolean; bound?: boolean }) {
   const oar = Math.sin(rowing * Math.PI) * 11;
   return <svg className={small ? "a-ship small" : "a-ship"} viewBox="0 0 220 160" aria-hidden="true" shapeRendering="crispEdges">
     <path fill="#092634" d="M15 129h184l-19 16H36Z"/>
@@ -12,6 +11,7 @@ export function Ship({ small = false, rowing = 0, damaged = false }: { small?: b
     <path fill="#c9b586" d="M50 73h50v11H39zm67-49 16 60h45Z"/>
     <path fill="#a85749" d="M117 24h12l22 60h-18Z"/>
     <path d="m110 18 70 90M102 26 29 109" stroke="#afad89" strokeWidth="2"/>
+    {bound && <g><path fill="#ddb582" d="M103 60h12v13h-12Z"/><path fill="#825548" d="M100 72h18v27h-18Z"/><path d="M98 78h23m-23 9h23" stroke="#dac79c" strokeWidth="3"/><path fill="#3e5860" d="M101 99h7v10h-7zm11 0h7v10h-7Z"/></g>}
     <path fill="#b85f3e" d="M19 105h174l20-14-8 26-35 27H47L19 105Z"/>
     <path fill={damaged ? "#653831" : "#85412e"} d="M28 121h165l-23 23H47Z"/>
     <path fill="#e1ae64" d="M21 105h167v7H25zm155 12 26-7-10 16h-23Z"/>
@@ -118,7 +118,7 @@ export function SirensScene({ round, still }: { round: Round; still: boolean }) 
       <path d="M299 363q201 42 402 0" stroke="#90d9d2" strokeWidth="5" fill="none" opacity={goodStroke ? .8 : .2}/>
       {goodStroke && [0, 1, 2, 3].map(i => <path key={i} d={`m${320 + i * 110} 356-18-17m18 17 12-23`} stroke="#d2f1dd" strokeWidth="4"/>)}
     </svg>
-    <div className="a-rowing-ship"><Ship rowing={pull}/><span className="a-mast-bound" aria-hidden="true">♟</span></div>
+    <div className="a-rowing-ship"><Ship rowing={pull} bound/></div>
     <span className="a-arena-caption">THEIR SONG CHANGES. KEEP YOUR RHYTHM.</span>
   </div>;
 }
@@ -130,6 +130,8 @@ export function BowScene({ round }: { round: Round }) {
   const aim = 180 + p * 640, opening = 180 + zone * 640;
   const judgment = round.judgments[index], age = round.elapsed - round.feedbackAt;
   const flight = judgment && judgment !== "miss" && age < 650 ? Math.min(1, age / 320) : null;
+  const shotAim = target ? 180 + markerPosition(round, target, round.feedbackAt) * 640 : aim;
+  const halfGap = target ? Math.abs(markerPosition(round, target, target.at + round.window) - markerPosition(round, target, target.at - round.window)) * 320 : 24;
   const aligned = target && !judgment && Math.abs(round.elapsed - target.at) <= round.window;
   return <div className="a-arena a-bow-arena">
     <svg className="a-world" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-hidden="true">
@@ -151,7 +153,7 @@ export function BowScene({ round }: { round: Round }) {
           <path d="M-64 66V-43h9V66M64 66V-43h-9V66" stroke="#455356" strokeWidth="5"/>
           <path d="M-70-45h42v32h-42ZM28-45h42v32H28Z" fill="#96a7a1" stroke="#e2d7b4" strokeWidth="2"/>
         </g>)}
-        <rect x="-24" y="-37" width="48" height="62" fill="#eaca7730" stroke="#f2cf82" strokeWidth="3"/>
+        <rect x={-halfGap} y="-37" width={halfGap * 2} height="62" fill="#eaca7730" stroke="#f2cf82" strokeWidth="3"/>
         {judgment === "good" && age < 600 && <path d="m-43-30-24-17m20 48-25 6m115-35 24-17m-20 48 25 6" stroke="#f8df9b" strokeWidth="4" opacity={1 - age / 600}/>}
       </g>
       {!judgment && <g transform={`translate(${aim} 235)`} stroke={aligned ? "#ffe0a0" : "#d0eee2"} fill="none" strokeWidth="3"><circle r="20"/><path d="M-32 0h18m28 0h18M0-32v18m0 28v18"/></g>}
@@ -162,7 +164,7 @@ export function BowScene({ round }: { round: Round }) {
         <path fill="#406e77" d="M-19 26h38v42h-38Z"/>
         {flight === null && <path d={`M0 0 0-80m0 0-7 14m7-14 7 14`} stroke="#f5e0b1" strokeWidth="3"/>}
       </g>
-      {flight !== null && <g transform={`translate(${500 + (aim - 500) * flight} ${432 - flight * 194}) scale(${1 - flight * .45})`}><path d="M0 32V-29m0 0-7 14m7-14 7 14m-2 33 10 17m-6-17-10 17" stroke="#f4e1b4" strokeWidth="4"/></g>}
+      {flight !== null && <g transform={`translate(${500 + (shotAim - 500) * flight} ${432 - flight * 194}) scale(${1 - flight * .45})`}><path d="M0 32V-29m0 0-7 14m7-14 7 14m-2 33 10 17m-6-17-10 17" stroke="#f4e1b4" strokeWidth="4"/></g>}
     </svg>
     <span className="a-arena-caption">TWELVE AXES. ONE CLEAN OPENING.</span>
   </div>;

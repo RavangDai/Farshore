@@ -26,23 +26,25 @@ export async function POST(request: Request) {
   const dominantLane = maxLane > 0 ? ["left", "center", "right"][laneTotals.indexOf(maxLane)] : "no previous lane preference";
   const early = data.recent.reduce((sum, a) => sum + a.early, 0), late = data.recent.reduce((sum, a) => sum + a.late, 0);
   const observations = { mostUsedLane: dominantLane, timingTendency: early > late ? "early" : late > early ? "late" : "balanced", repeatedLosses: data.recent.length === 2 && data.recent.every(a => !a.won) };
+  const expectedFocus = data.trialId === "cyclops" ? maxLane > 0 ? dominantLane : "center" : observations.timingTendency;
   // AI uses a different tactical catalog from the standard repeating pattern.
   const aiPlans = trial.plans.slice(1);
-  const schema = { type: "object", properties: { planId: { type: "string", enum: aiPlans }, focus: { type: "string", enum: trial.focuses } }, required: ["planId", "focus"], additionalProperties: false };
+  const schema = { type: "object", properties: { planId: { type: "string", enum: aiPlans }, focus: { type: "string", enum: [expectedFocus] } }, required: ["planId", "focus"], additionalProperties: false };
+  const policyGuide = data.trialId === "cyclops" ? "focused hunts the favored lane and reacts to current lane habits; sweep cycles crossfire. Prefer focused when a lane habit is present, otherwise sweep." : data.trialId === "sirens" ? "swell alternates fast and slow beats; echo alternates beat direction with uneven pairs. Choose one to challenge this player's timing habits." : "surge alternates sight direction; feint varies sight speed. Choose one to challenge this player's release habits.";
   try {
     const response = await fetch(url, {
       method: "POST", headers: { "Content-Type": "application/json", ...(process.env.FARSHORE_API_KEY ? { Authorization: "Bearer " + process.env.FARSHORE_API_KEY } : {}) },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(90_000)]),
       body: JSON.stringify({ model, stream: false, temperature: 0, max_tokens: 100,
         response_format: { type: "json_schema", json_schema: { name: "farshore_opponent", strict: true, schema } },
-        messages: [{ role: "system", content: `Choose an opponent policy for ${trial.title}. Return only JSON with planId and focus. Allowed planId: ${aiPlans.join(" or ")}. Allowed focus: ${trial.focuses.join(", ")}. Rules: Cyclops focused hunts the player's favored lane and locally reacts to lane habits; sweep uses cycling crossfire. Pick focused if a previous lane preference exists; otherwise sweep. Cyclops focus MUST equal observations.mostUsedLane if it is left, center, or right; otherwise center. Sirens swell alternates fast/slow beats; echo alternates direction with uneven beats. Bow surge alternates sight direction; feint changes sight speed. Timing focus MUST equal observations.timingTendency. Favor echo/feint after successful attempts, swell/surge after losses. Do not choose a standard plan. The local engine executes your policy and locks warnings before attacks. Difficulty controls speed and precision independently. You cannot change hit windows, scoring or progress. Use the explicit observations supplied, not guesses.` }, { role: "user", content: JSON.stringify({ encounter: data.trialId, difficulty: data.difficulty, observations, previousWins: data.recent.filter(a => a.won).length }) }],
+        messages: [{ role: "system", content: `Prepare ${trial.character}'s policy. Output a JSON object with exactly planId and focus. Choose planId from ${aiPlans.join(" or ")}. focus must be exactly "${expectedFocus}", the game-derived habit. ${policyGuide} These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only.` }, { role: "user", content: JSON.stringify({ encounter: data.trialId, difficulty: data.difficulty, observations, requiredFocus: expectedFocus, previousWins: data.recent.filter(a => a.won).length }) }],
       }),
     });
     if (!response.ok) return Response.json({ error: response.status === 429 ? "The model is busy. Retry shortly, or play a standard opponent." : "The model service could not prepare the opponent. Retry or play standard.", code: "provider_error" }, { status: 502 });
     const body = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1) }).parse(await response.json());
     const candidate = z.object({ planId: z.string(), focus: z.string() }).strict().parse(JSON.parse(body.choices[0].message.content.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "")));
     const plan = { ...candidate, source: "ai" };
-    if (!validPlan(data.trialId, plan) || !aiPlans.includes(plan.planId)) throw new Error("Invalid plan");
+    if (!validPlan(data.trialId, plan) || !aiPlans.includes(plan.planId) || plan.focus !== expectedFocus) throw new Error("Invalid plan");
     if (request.signal.aborted) return Response.json({ error: "Preparation cancelled." }, { status: 499 });
     return Response.json({ plan: plan as OpponentPlan, description: planDescription(data.trialId, plan), source: "ai" }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

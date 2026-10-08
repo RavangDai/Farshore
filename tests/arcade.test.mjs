@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activeCue, assistTrial, clearedCount, finishAttempt, moveLane, newArcade, newRound, pressTiming, readArcade, roundSummary, standardPlan, tickRound, trials, trialFor, unlocked, validPlan } from "../src/lib/arcade.ts";
+import { activeCue, assistTrial, challengeRules, clearedCount, finishAttempt, markerPosition, moveLane, newArcade, newRound, pressTiming, readArcade, roundSummary, standardPlan, tickRound, trialFor, unlocked, validPlan } from "../src/lib/arcade.ts";
 import { POST } from "../server/arcade.ts";
 
 function advance(round, to) { let r = round; while (!r.done && r.elapsed < to) r = tickRound(r, Math.min(50, to - r.elapsed)); return r; }
@@ -35,11 +35,13 @@ test("malformed, impossible, and out-of-order saves are rejected", () => {
   const s2 = started(); s2.records.sirens.attempts = 1; assert.equal(readArcade(JSON.stringify(s2)), null);
   const s3 = started(); s3.records.cyclops.recent = [{ ...win(), laneMs: [-1, 0, 0] }]; s3.records.cyclops.attempts = 1; assert.equal(readArcade(JSON.stringify(s3)), null);
 });
-test("all permitted Cyclops plans keep one readable attack at a time", () => {
-  for (const difficulty of ["easy", "normal"]) for (const planId of trialFor("cyclops").plans) for (const focus of trialFor("cyclops").focuses) {
+test("all Cyclops policies leave a reachable escape lane and separated warnings", () => {
+  for (const difficulty of ["easy", "normal", "hard"]) for (const planId of trialFor("cyclops").plans) for (const focus of trialFor("cyclops").focuses) {
     const r = newRound("cyclops", difficulty, { planId, focus, source: "ai" });
-    assert.ok(r.warning >= 1500);
+    assert.ok(r.warning >= 650);
     assert.ok(r.targets.every(t => t.lane >= 0 && t.lane <= 2));
+    assert.ok(r.targets.some(t => t.blocked.length === 2));
+    assert.ok(r.targets.every(t => t.blocked.length >= 1 && t.blocked.length <= 2 && new Set(t.blocked).size === t.blocked.length));
     assert.ok(r.targets.every((t, i) => !i || t.at - r.targets[i - 1].at > r.warning));
     assert.equal(r.duration, 45000);
   }
@@ -56,7 +58,8 @@ test("lane boundary input, collisions, escape, and completed round immutability"
   // Move to a different lane before every landing.
   for (const t of r.targets) {
     r = advance(r, t.at - 100);
-    while (r.lane === t.lane) r = moveLane(r, r.lane === 2 ? -1 : 1);
+    const safe = [0, 1, 2].find(l => !t.blocked.includes(l));
+    while (r.lane !== safe) r = moveLane(r, r.lane > safe ? -1 : 1);
     r = advance(r, t.at + 1);
   }
   r = advance(r, 45000); assert.equal(r.won, true); assert.equal(r.hits, 0);
@@ -74,12 +77,12 @@ test("timing success, missing cues, early input, and duplicate input follow fixe
   let r = newRound("sirens", "normal", standardPlan("sirens"));
   assert.equal(activeCue(r), 0); r = pressTiming(r); assert.equal(r.early, 1);
   assert.equal(pressTiming(r), r);
-  r = advance(r, 4000); r = advance(r, r.targets[1].at); r = pressTiming(r);
+  r = advance(r, r.targets[1].at); r = pressTiming(r);
   assert.equal(r.successes, 1); assert.equal(pressTiming(r), r);
 });
 test("exact timing-window edges are accepted and model focus cannot narrow a window", () => {
   for (const id of ["sirens", "bow"]) for (const planId of trialFor(id).plans) for (const focus of trialFor(id).focuses) {
-    const r = newRound(id, "normal", { planId, focus, source: "ai" }); assert.equal(r.window, 450);
+    const r = newRound(id, "normal", { planId, focus, source: "ai" }); assert.equal(r.window, id === "bow" ? 120 : 160);
     const atEdge = advance(r, r.targets[0].at - r.window); assert.equal(pressTiming(atEdge).successes, 1);
     const lateEdge = advance(r, r.targets[0].at + r.window); assert.equal(pressTiming(lateEdge).successes, 1);
   }
@@ -89,7 +92,7 @@ test("late input and an unplayed cue are distinct, with no duplicate judgment", 
   const late = pressTiming(advance(initial, initial.targets[0].at + 600));
   assert.equal(late.late, 1); assert.equal(late.misses, 0); assert.equal(late.successes, 0);
   assert.equal(pressTiming(late), late);
-  const missed = advance(initial, 4000);
+  const missed = advance(initial, initial.targets[0].end);
   assert.equal(missed.misses, 1); assert.equal(missed.late, 0);
 });
 test("practice never fails early and summaries account for lane time", () => {
@@ -104,8 +107,71 @@ test("cross-encounter and extra-field model plans are invalid", () => {
   assert.throws(() => newRound("bow", "normal", standardPlan("cyclops")));
 });
 
+test("camping any lane loses, including in the standard easy game", () => {
+  for (const difficulty of ["easy", "normal", "hard"]) for (const lane of [0, 1, 2]) {
+    let r = newRound("cyclops", difficulty, standardPlan("cyclops"));
+    while (r.lane !== lane) r = moveLane(r, r.lane > lane ? -1 : 1);
+    r = advance(r, r.duration);
+    assert.equal(r.won, false, `${difficulty}, lane ${lane}`); assert.equal(r.hits, 3);
+  }
+});
+test("a player responding to telegraphs can clear every Cyclops policy at every difficulty", () => {
+  for (const difficulty of ["easy", "normal", "hard"]) for (const planId of trialFor("cyclops").plans) {
+    let r = newRound("cyclops", difficulty, { planId, focus: "left", source: "ai" });
+    while (!r.done) {
+      const incoming = r.targets.find((t, i) => t.locked && !r.resolved.includes(i) && r.elapsed >= t.start && r.elapsed < t.at);
+      if (incoming) {
+        const safe = [0, 1, 2].find(l => !incoming.blocked.includes(l));
+        while (r.lane !== safe) r = moveLane(r, r.lane > safe ? -1 : 1);
+      }
+      r = tickRound(r, 50);
+    }
+    assert.equal(r.won, true); assert.equal(r.hits, 0);
+  }
+});
+test("lane hunter reacts locally, then never retargets a visible volley", () => {
+  const plan = { planId: "focused", focus: "center", source: "ai" };
+  const initial = newRound("cyclops", "hard", plan);
+  let left = advance(moveLane(initial, -1), initial.targets[0].start);
+  const right = advance(moveLane(initial, 1), initial.targets[0].start);
+  assert.equal(left.targets[0].lane, 0); assert.equal(right.targets[0].lane, 2);
+  const locked = structuredClone(left.targets[0]);
+  left = moveLane(moveLane(left, 1), 1); left = advance(left, locked.at - 50);
+  assert.deepEqual(left.targets[0], locked);
+  assert.equal(left.warning, right.warning);
+});
+test("hard tightens precision, adds required successes, and accelerates volleys", () => {
+  for (const id of ["sirens", "bow"]) {
+    const easy = challengeRules(id, "easy"), normal = challengeRules(id, "normal"), hard = challengeRules(id, "hard");
+    assert.ok(easy.window > normal.window && normal.window > hard.window);
+    assert.ok(easy.needed < normal.needed && normal.needed < hard.needed);
+    assert.ok(easy.cycle > normal.cycle && normal.cycle > hard.cycle);
+    for (const difficulty of ["normal", "hard"]) for (const planId of trialFor(id).plans) {
+      let r = newRound(id, difficulty, { planId, focus: "balanced", source: "ai" });
+      for (const t of r.targets) { if (r.done) break; r = pressTiming(advance(r, t.at)); }
+      assert.equal(r.won, true); assert.equal(r.successes, r.needed);
+    }
+  }
+  const normal = newRound("cyclops", "normal", standardPlan("cyclops"));
+  const hard = newRound("cyclops", "hard", standardPlan("cyclops"));
+  assert.ok(hard.targets.length > normal.targets.length); assert.ok(hard.warning < normal.warning);
+});
+test("AI timing policies change cadence, direction and sight velocity independently of precision", () => {
+  const standard = newRound("sirens", "normal", standardPlan("sirens"));
+  const echo = newRound("sirens", "normal", { planId: "echo", focus: "balanced", source: "ai" });
+  assert.notDeepEqual(echo.targets.map(t => t.end - t.start), standard.targets.map(t => t.end - t.start));
+  assert.equal(echo.targets[1].reverse, true); assert.equal(markerPosition(echo, echo.targets[1], echo.targets[1].start), 1);
+  assert.equal(echo.window, standard.window);
+  const feint = newRound("bow", "hard", { planId: "feint", focus: "balanced", source: "ai" });
+  const t = feint.targets[0], span = t.end - t.start;
+  assert.ok(markerPosition(feint, t, t.start + span / 4) > .3);
+  assert.ok(markerPosition(feint, t, t.start + span * .75) < .7);
+  const bad = pressTiming(advance(feint, t.at + feint.window + 1));
+  assert.equal(bad.late, 1); assert.equal(bad.successes, 0);
+});
+
 function request(body, signal) { return new Request("http://localhost:5173/api/arcade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal }); }
-const sample = { trialId: "cyclops", difficulty: "easy", recent: [] };
+const sample = { trialId: "cyclops", difficulty: "easy", recent: [{ won: false, source: "standard", hits: 3, successes: 2, early: 0, late: 0, misses: 0, laneMs: [20000, 4000, 1000] }] };
 async function mockedProvider(callback, mock) {
   const oldFetch = globalThis.fetch;
   const env = { url: process.env.FARSHORE_MODEL_URL, name: process.env.FARSHORE_MODEL_NAME, key: process.env.FARSHORE_API_KEY };
@@ -128,7 +194,7 @@ test("opponent API validates model IDs and preserves fixed game-owned descriptio
   });
 });
 test("invalid opponent results are uncertain, never silently replaced", async () => {
-  for (const reply of [{ planId: "steady", focus: "left" }, { planId: "focused", focus: "left", score: 999 }, { planId: "focused", focus: "early" }]) {
+  for (const reply of [{ planId: "focused", focus: "right" }, { planId: "alternating", focus: "left" }, { planId: "steady", focus: "left" }, { planId: "focused", focus: "left", score: 999 }, { planId: "focused", focus: "early" }]) {
     await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 422); const body = await r.json(); assert.equal(body.code, "invalid_plan"); assert.equal("plan" in body, false); }, async () => providerReply(reply));
   }
 });

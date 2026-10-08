@@ -1,0 +1,240 @@
+{
+  "checkedAt": "2026-10-08T20:16:20.404Z",
+  "model": "llama3.2:3b",
+  "scope": "Six real strategy-preparation calls and three triggered failures. Small feasibility experiment, not a general accuracy benchmark or participant study.",
+  "results": [
+    {
+      "label": "First-time easy Cyclops",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "easy",
+        "recent": []
+      },
+      "status": 200,
+      "seconds": 17.601,
+      "answer": {
+        "plan": {
+          "planId": "sweep",
+          "focus": "center",
+          "source": "ai"
+        },
+        "description": "Crossfire. Two-lane volleys change the escape route. Marked lanes lock before every throw.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Left-lane habit",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 3,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              20000,
+              4000,
+              1000
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 3.425,
+      "answer": {
+        "plan": {
+          "planId": "focused",
+          "focus": "left",
+          "source": "ai"
+        },
+        "description": "Lane hunter. Starts by hunting your left lane, then reads where you linger. Marked lanes lock before every throw.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Right-lane habit",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 3,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              1000,
+              4000,
+              20000
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 3.053,
+      "answer": {
+        "plan": {
+          "planId": "focused",
+          "focus": "right",
+          "source": "ai"
+        },
+        "description": "Lane hunter. Starts by hunting your right lane, then reads where you linger. Marked lanes lock before every throw.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Early rowing",
+      "input": {
+        "trialId": "sirens",
+        "difficulty": "easy",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 2,
+            "early": 5,
+            "late": 0,
+            "misses": 1,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 11.432,
+      "answer": {
+        "plan": {
+          "planId": "echo",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "Reverse echo. Beats alternate direction and arrive in uneven pairs. Watch the gold ring.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Late bow release",
+      "input": {
+        "trialId": "bow",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 1,
+            "early": 0,
+            "late": 4,
+            "misses": 0,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 10.907,
+      "answer": {
+        "plan": {
+          "planId": "feint",
+          "focus": "early",
+          "source": "ai"
+        },
+        "description": "False release. The sight changes speed before lining up. Release when the sight crosses the gold opening.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Repeated rowing losses",
+      "input": {
+        "trialId": "sirens",
+        "difficulty": "easy",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 1,
+            "early": 0,
+            "late": 0,
+            "misses": 7,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 6,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 10.999,
+      "answer": {
+        "plan": {
+          "planId": "echo",
+          "focus": "early",
+          "source": "ai"
+        },
+        "description": "Reverse echo. Beats alternate direction and arrive in uneven pairs. The ring shifts early in each beat.",
+        "source": "ai"
+      },
+      "legal": true
+    }
+  ],
+  "failures": [
+    {
+      "kind": "Invalid application input",
+      "status": 400,
+      "answer": {
+        "error": "Choose a supported encounter and difficulty. At most two attempt summaries are accepted."
+      }
+    },
+    {
+      "kind": "Missing model",
+      "status": 404,
+      "answer": "{\"error\":{\"message\":\"model 'farshore-deliberately-missing-model' not found\",\"type\":\"not_found_error\",\"param\":null,\"code\":null}}\n"
+    },
+    {
+      "kind": "Malformed provider JSON",
+      "status": 400,
+      "answer": "{\"error\":{\"message\":\"unexpected EOF\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+    }
+  ],
+  "latency": {
+    "min": 3.053,
+    "average": 9.57,
+    "max": 17.601
+  }
+}

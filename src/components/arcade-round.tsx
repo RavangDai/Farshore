@@ -36,7 +36,9 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     let previous = 0, handle = 0, pending = 0;
     function frame(now: number) {
       const gap = previous ? now - previous : 0; previous = now;
-      if (gap > 500) { pause(); return; }
+      // A visible tab can stall briefly while fonts or tooling load. The
+      // bounded delta preserves reaction time; only backgrounding pauses it.
+      if (gap > 500 && document.hidden) { pause(); return; }
       const delta = Math.min(100, gap);
       if (phase === "countdown") { countdown.current -= delta; setCount(Math.max(1, Math.ceil(countdown.current / 1000))); if (countdown.current <= 0) { setPhase("active"); return; } }
       else {

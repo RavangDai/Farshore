@@ -212,6 +212,23 @@ test("hard preparation accepts first-time and timing histories with a single gam
     return providerReply({ planId, focus: expected });
   });
 });
+test("new potion and strait rivals use their own constrained strategy catalogs", async () => {
+  for (const [trialId, planId, catalog] of [["circe", "hoard", ["chain", "hoard"]], ["scylla", "undertow", ["pincer", "undertow"]]]) {
+    await mockedProvider(async () => {
+      const response = await POST(request({ trialId, difficulty: "normal", recent: [] }));
+      assert.equal(response.status, 200); const body = await response.json(); assert.equal(body.plan.planId, planId); assert.equal(body.plan.source, "ai");
+    }, async (_url, options) => {
+      const body = JSON.parse(options.body); assert.deepEqual(body.response_format.json_schema.schema.properties.planId.enum, catalog);
+      return providerReply({ planId, focus: "balanced" });
+    });
+  }
+  await mockedProvider(async () => {
+    const r = await POST(request({ trialId: "sirens", difficulty: "normal", recent: [{ ...sample.recent[0], laneMisses: [0, 1, 5, 0] }] })); assert.equal(r.status, 200);
+  }, async (_url, options) => {
+    const observations = JSON.parse(JSON.parse(options.body).messages[1].content).observations; assert.equal(observations.weakestSongLane, "green");
+    return providerReply({ planId: "echo", focus: "balanced" });
+  });
+});
 test("invalid opponent results are uncertain, never silently replaced", async () => {
   for (const reply of [{ planId: "focused", focus: "right" }, { planId: "alternating", focus: "left" }, { planId: "steady", focus: "left" }, { planId: "focused", focus: "left", score: 999 }, { planId: "focused", focus: "early" }]) {
     await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 422); const body = await r.json(); assert.equal(body.code, "invalid_plan"); assert.equal("plan" in body, false); }, async () => providerReply(reply));

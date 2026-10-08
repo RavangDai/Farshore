@@ -24,10 +24,6 @@ export function challengeRules(id: TrialId, difficulty: Difficulty, practice = f
     needed: practice ? 0 : (id === "bow" ? [3, 5, 7] : [6, 9, 13])[tier],
   };
 }
-export function challengeObjective(id: TrialId, difficulty: Difficulty) {
-  const tier = ["easy", "normal", "hard"].indexOf(difficulty);
-  return id === "scylla" ? `Deflect the heads and resist the pull for ${[30, 40, 50][tier]} seconds.` : id === "cyclops" ? `Reach an exit in ${[32, 26, 22][tier]} turns. Three smashes end the escape.` : trialFor(id).objective;
-}
 function random(seed: number) {
   let n = seed >>> 0;
   return () => { n = (Math.imul(n, 1664525) + 1013904223) >>> 0; return n / 4294967296; };

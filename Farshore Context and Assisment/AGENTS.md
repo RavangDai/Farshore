@@ -11,10 +11,12 @@ Farshore is Bibek Pathak's CMPS 4200 HCI browser game based on Homer's Odyssey. 
 
 The original PDF and PPTX are in `docs/assignment/original/`. Complete text extractions are beside the summaries. The professor's PDF is the authority for assignment requirements. The slides document the student's proposal. These instructions and summaries are a development handoff, not new instructions issued by the professor. If a summary conflicts with the original, use the original and identify the difference.
 
-Only the Phase 1 brief has been supplied. Do not invent later-phase requirements, deadlines, instructor approvals, interview findings, model benchmarks, or grading results. Do not restart the already-submitted presentation unless the user requests it.
+Phase 1 and Phase 2 briefs have been supplied. The Phase 2 design package is in `docs/assignment/phase2/`; its README maps the artifacts to the supplied rubric. Do not invent requirements for later phases, deadlines, instructor approvals, interview findings, model benchmarks, or grading results. Do not restart the already-submitted Phase 1 presentation unless the user requests it.
 
 ## Product direction
 
+- The user's October 8 direction is simple arcade challenges on Odysseus' journey home. The default is `src/ArcadeApp.tsx`, with authoritative rules in `src/lib/arcade.ts`, the shared round UI in `src/components/arcade-round.tsx`, and bounded opponent planning in `server/arcade.ts`. Read `docs/arcade/README.md`, `docs/arcade/verification.md`, and `docs/arcade/technical-spike.md` before extending it. The mystery remains at `?mystery`; its earlier design records still apply to that mode.
+- The original voyage remains at `?voyage` with a separate save. Arcade saves use `farshore-arcade-v1`; there is no global time budget or trust score in arcade play. The time, trust, and advice rules below describe that mode. Adventure case stars instead track escape, evidence-supported deduction, and an optional motive objective. Reading, hints, mistakes, and AI waits cost no stars.
 - Build a playable retro browser game. Use the existing pixel art, animated intro, character portraits, navy/teal/gold palette, and prominent Begin Voyage action. Avoid turning the game into a SaaS dashboard or marketing landing page.
 - The player advises Odysseus in free language. Odysseus interprets that advice and chooses. His pride, curiosity, loyalty, and trust affect the reply and consequences.
 - Preserve the time challenge: begin at 120 months after ten years at Troy, complete the homecoming before 240 total months, and show time/trust changes and explanations. The revised full route has fifteen chapters, with earlier-homecoming branches at the wind bag and the cattle.
@@ -27,7 +29,7 @@ Only the Phase 1 brief has been supplied. Do not invent later-phase requirements
 - Phase 1 proposal: problem, primary and secondary users, 5-7 features, AI contribution to UX, and success metrics.
 - Research at least five pretrained models, documenting I/O, limitations/rate limits, expected response time, and cost. The professor asks for a justified final selection of one or two models and an integration plan.
 - User research: at least six interviews, synthesis, and three detailed personas, including attitudes toward AI and transparency needs.
-- The slides say six interviews were booked. No interview records or measured model benchmarks are in this package. Ask for actual evidence when reporting research completion; do not manufacture it.
+- The slides say six interviews were booked. No interview records are supplied. The Phase 2 package includes a six-input local model experiment with raw outputs and timings, not a general accuracy benchmark. Ask for actual evidence when reporting research completion; do not manufacture it.
 - The brief describes teams of 2-3, while the slides identify a solo project. No exception approval is documented here. Preserve the current solo project and flag this only when assessing formal compliance.
 
 ## Existing implementation
@@ -53,6 +55,9 @@ For changes to game logic or the API, run relevant tests and the build. For UI c
 
 ## AI integration
 
+- Arcade AI selects permitted strategy and focus IDs before a round, using at most two numeric attempt summaries. Server-derived observations make lane habits explicit. No model call occurs during gameplay. Validate IDs; never accept model scoring or warning changes. Six October 8 refined calls were legal, with 2.606-10.718 s latency, but timing adaptation was inconsistent. Preserve cancellation, review, regeneration, and explicit standard play.
+
+- Mystery AI selects a permitted authored answer ID for a custom question. Label the returned dialogue as authored, and preserve suggested questions without a model. Free-form character reactions, question history, and dedicated mystery dictation are not implemented. Keep evidence, items, puzzles, and stars in authored code.
 - Codex's coding model and the model inside the game are separate connections. Signing into Codex does not configure `/api/turn`.
 - Story mode is a scripted wording engine. It is not a pretrained model and does not demonstrate real AI integration by itself.
 - The existing adapter supports an OpenAI-compatible `/v1/chat/completions` endpoint. Start with the slide's Llama 3.2 3B through local Ollama, unless the user chooses another provider.
@@ -67,4 +72,4 @@ For changes to game logic or the API, run relevant tests and the build. For UI c
 
 ## Next useful development task
 
-Read the context, inspect the current local code, and connect the existing adapter to the user's selected model. Verify one real turn, error recovery, and the continued operation of Story mode. Report remaining differences from the slides with evidence. The supplied code was checked without a live model; the connection must still be tested on the user's laptop.
+Evaluate the arcade edition with actual newcomers and record comprehension, play completion, fairness, and whether players distinguish AI preparation from authored play. Complete keyboard-only and physical touch checks. Revise the Phase 2 presentation and wireframes around the implemented arcade loop, retaining proposed expansions as Proposed. The original assignment's interviews, persona synthesis, model comparison, and peer critique still require real evidence. Do not invent results.

@@ -1,6 +1,6 @@
 # Professor's supplied requirements
 
-Source: `original/CMPS_4200_HCI_Phase_1_Project_Requirements.pdf`, two pages. This is a verified development summary, not a replacement for the original. Only Phase 1 instructions were supplied.
+Source: `original/CMPS_4200_HCI_Phase_1_Project_Requirements.pdf`, two pages. This is a verified development summary of Phase 1, not a replacement for the original. The subsequently supplied Phase 2 brief is in `original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf`; see [the Phase 2 package](phase2/README.md) for its rubric mapping and deliverables.
 
 ## Course and phase
 
@@ -30,7 +30,7 @@ This section is development guidance, not additional professor requirements.
 - A scripted demo alone cannot demonstrate integration with a pretrained model. Connect and test the existing model adapter.
 - The slides propose five active models; the brief specifies a final selection of one or two. Keep that distinction visible when planning and documenting the implementation.
 - The brief's team size and the slide's solo status differ. No instructor exception is included in these files. This does not establish that no exception exists.
-- Interview evidence, detailed research tables, and model timing/memory measurements are absent from this package. Treat their status as unverified; do not infer they never happened.
-- No later-phase rubric or deadline is available here. Add those instructions when the user supplies them.
+- Interview evidence and detailed Phase 1 model research tables remain unverified. The Phase 2 package adds measured model timings and machine information from a six-input experiment. Do not infer that undocumented research never happened.
+- The supplied Phase 2 brief now provides its rubric and schedule. No requirements for phases after Phase 2 are supplied.
 
 Suggested measures for future testing include completing a turn without help, understanding a refusal, identifying scripted versus AI mode, recovering from a failed request, and measured response latency. These are proposed evaluation measures, not collected results.

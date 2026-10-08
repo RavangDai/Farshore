@@ -1,6 +1,28 @@
-# Farshore: laptop / VS Code edition
+# Farshore: Trials of the Voyage
 
-The retro browser game with twenty character portraits, six illustrated backdrops, a six-part story introduction, fifteen authored chapters, a character book, a Mediterranean voyage map, and saved progress.
+A browser arcade adventure that brings Odysseus home through three short encounters: dodge the Cyclops' rocks, row past the Sirens, and steady the bow on Ithaca.
+
+Run **`npm.cmd run dev`**, open **http://localhost:5173**, and choose **Begin voyage**. Every encounter teaches its controls and offers practice, retries, easy/normal pace, and an assisted passage. Keyboard, click, and touch buttons are supported. Sound is optional; required cues are visible.
+
+Choose **Standard** for immediate authored play, or **AI rival** to prepare a real model-selected strategy before the round. The model selects permitted tactics using recent attempt summaries. Game code keeps warnings, collisions, timing windows, and scoring fixed. Loading, cancellation, retry, and explicit standard recovery keep model waits out of the action.
+
+The game saves completed encounters and preferences in this browser. The homecoming report distinguishes clears from assistance. Replaying can upgrade an assisted encounter. An unfinished round restarts after reload, while earlier clears are retained.
+
+See the [arcade implementation and flows](<Farshore Context and Assisment/docs/arcade/README.md>), [model experiment](<Farshore Context and Assisment/docs/arcade/technical-spike.md>), and [verification record](<Farshore Context and Assisment/docs/arcade/verification.md>). The [concept options](<Farshore Context and Assisment/docs/FARSHORE-ARCADE-CONCEPT-OPTIONS.md>) remain the design proposal; Aeolus and Circe are later expansion, not implemented encounters.
+
+```powershell
+npm.cmd run dev
+npm.cmd test
+npm.cmd run build
+```
+
+Use the URL printed by Vite if you select another port. Keep the server running. Do not open index.html directly or use Live Server.
+
+Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:5173/?mystery) and the [original advice voyage](http://localhost:5173/?voyage), each with separate progress. The existing Phase 2 slides and PDFs describe the original advice voyage and await revision for arcade play.
+
+## Earlier modes and original voyage notes
+
+The sections below preserve setup, source, art, and AI notes for the earlier modes. The arcade rules are documented above.
 
 ## Story and map
 
@@ -33,7 +55,7 @@ npm install
 npm run dev
 ```
 
-4. Open **http://localhost:5173** in your browser. Press **Begin Voyage**.
+4. Open **http://localhost:5173** in your browser. Press **Begin voyage**. Earlier modes are available in Settings.
 5. Leave the terminal running while you play. Press **Ctrl+C** in the terminal to stop.
 
 Next time, only run `npm run dev`. Installation requires internet. All artwork and fonts are included locally. Story mode needs no API key or external model.
@@ -55,6 +77,10 @@ No PowerShell security policy change is needed. If npm is not recognized, instal
 
 | File | Purpose |
 | --- | --- |
+| `src/MysteryApp.tsx` | Mystery title, investigation UI, journal, inventory, and saves |
+| `src/lib/mystery.ts` | Case truth, clues, puzzle prerequisites, and objective stars |
+| `server/mystery.ts` | Validated AI question matching to authored character answers |
+| `src/mystery.css` | Mystery layout, scene hotspots, and responsive styles |
 | `src/App.tsx` | Title screen, intro, UI, sound, speech, saves |
 | `src/styles.css` | Retro theme, motion, responsive layouts |
 | `src/components/speech-bubble.tsx` | Character dialogue and text reveal |

@@ -1,6 +1,32 @@
+# Farshore: arcade edition
+
+October 8, 2026: the default is **Trials of the Voyage**, a complete three-encounter arcade route. `src/ArcadeApp.tsx` owns the journey, `src/lib/arcade.ts` owns deterministic rules and saves, and `server/arcade.ts` prepares bounded AI tactics. Lane dodging and a shared timing engine replace the default investigation loop.
+
+Practice, retry, assistance, local saves, optional music, reduced scenery motion, keyboard/touch controls, and a homecoming report are implemented. AI waits occur before rounds, with cancellation, strategy review/regeneration, and explicit authored recovery. The local model has a new six-input spike with two actual provider failures. Tactical reliability remains provisional.
+
+The [arcade record](<Farshore Context and Assisment/docs/arcade/README.md>) and [verification notes](<Farshore Context and Assisment/docs/arcade/verification.md>) describe current behavior. The older mystery remains at `?mystery`, and the advice voyage remains at `?voyage`, with separate existing saves. The Phase 2 package still describes the original advice voyage. No interviews, personas, peer critique, or instructor approval were invented.
+
+## Earlier implementation record
+
+The historical notes below describe the mystery and original voyage implementations.
+
 # Farshore
 
-A playable CMPS 4200 HCI prototype based on Bibek Pathak's Farshore Phase 1 presentation. Advise Odysseus in free text, watch him choose, and reach Ithaca before twenty total years pass.
+A playable CMPS 4200 HCI prototype based on Bibek Pathak's Farshore Phase 1 presentation, now redesigned around escape puzzles and mystery investigation.
+
+## Current game: Circe's Broken Seal
+
+The default entry point is `src/MysteryApp.tsx`. Players inspect three rooms, collect items and observations, question three witnesses, reconstruct a timeline, restore a seal, operate a gate, and support a deduction with evidence. Three objective stars track escape, proof, and an optional motive discovery. There is no time limit or penalty for hints or wrong attempts.
+
+The case is fully authored and playable without AI. `server/mystery.ts` optionally uses the configured model to choose an answer ID from the character's currently available statements. The app labels this as AI question matching with an authored answer. This implementation does not yet provide generated character reactions or conversation memory.
+
+Separate storage preserves the original voyage at `?voyage`. Mystery saves use `farshore-mystery-circe-v1`; drafts use `farshore-mystery-drafts-v1`. Failed or cancelled model requests retain the draft and cannot grant progress. AI requests show elapsed wait, cancellation, and retry. Suggested questions remain available during a model wait.
+
+The [case design record](<Farshore Context and Assisment/docs/MYSTERY-CASE.md>) documents the truth, dependency graph, star rules, checks, and remaining evaluation. Dedicated in-game dictation, additional cases, and Challenge mode remain proposed. The existing Phase 2 package still describes the original voyage; newcomer evaluation should precede its redesign.
+
+## Original voyage
+
+The sections below document the original advice game available at `?voyage`: advise Odysseus in free text, watch him choose, and reach Ithaca before twenty total years pass.
 
 See README.md for laptop setup. The project notes below describe the game design and its original hosted edition.
 

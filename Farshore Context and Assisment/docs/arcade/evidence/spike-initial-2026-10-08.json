@@ -1,0 +1,240 @@
+{
+  "checkedAt": "2026-10-08T17:48:39.681Z",
+  "model": "llama3.2:3b",
+  "scope": "Six real strategy-preparation calls and three triggered failures. Small feasibility experiment, not a general accuracy benchmark or participant study.",
+  "results": [
+    {
+      "label": "First-time easy Cyclops",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "easy",
+        "recent": []
+      },
+      "status": 200,
+      "seconds": 10.439,
+      "answer": {
+        "plan": {
+          "planId": "alternating",
+          "focus": "left",
+          "source": "ai"
+        },
+        "description": "Alternating throws. The Cyclops favors the left lane. Every rock is marked before it lands.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Left-lane habit",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 3,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              20000,
+              4000,
+              1000
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 3.244,
+      "answer": {
+        "plan": {
+          "planId": "alternating",
+          "focus": "left",
+          "source": "ai"
+        },
+        "description": "Alternating throws. The Cyclops favors the left lane. Every rock is marked before it lands.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Right-lane habit",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 3,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              1000,
+              4000,
+              20000
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 2.322,
+      "answer": {
+        "plan": {
+          "planId": "alternating",
+          "focus": "left",
+          "source": "ai"
+        },
+        "description": "Alternating throws. The Cyclops favors the left lane. Every rock is marked before it lands.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Early rowing",
+      "input": {
+        "trialId": "sirens",
+        "difficulty": "easy",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 2,
+            "early": 5,
+            "late": 0,
+            "misses": 1,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 9.386,
+      "answer": {
+        "plan": {
+          "planId": "swell",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "A changing cadence. The target stays near the middle. Watch the gold zone; your timing window stays the same.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Late bow release",
+      "input": {
+        "trialId": "bow",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 1,
+            "early": 0,
+            "late": 4,
+            "misses": 0,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 10.188,
+      "answer": {
+        "plan": {
+          "planId": "surge",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "A shifting aim. The target stays near the middle. Watch the gold zone; your timing window stays the same.",
+        "source": "ai"
+      },
+      "legal": true
+    },
+    {
+      "label": "Repeated rowing losses",
+      "input": {
+        "trialId": "sirens",
+        "difficulty": "easy",
+        "recent": [
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 1,
+            "early": 0,
+            "late": 0,
+            "misses": 7,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "won": false,
+            "source": "standard",
+            "hits": 0,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 6,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "seconds": 12.423,
+      "answer": {
+        "plan": {
+          "planId": "swell",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "A changing cadence. The target stays near the middle. Watch the gold zone; your timing window stays the same.",
+        "source": "ai"
+      },
+      "legal": true
+    }
+  ],
+  "failures": [
+    {
+      "kind": "Invalid application input",
+      "status": 400,
+      "answer": {
+        "error": "Choose a supported encounter and difficulty. At most two attempt summaries are accepted."
+      }
+    },
+    {
+      "kind": "Missing model",
+      "status": 404,
+      "answer": "{\"error\":{\"message\":\"model 'farshore-deliberately-missing-model' not found\",\"type\":\"not_found_error\",\"param\":null,\"code\":null}}\n"
+    },
+    {
+      "kind": "Malformed provider JSON",
+      "status": 400,
+      "answer": "{\"error\":{\"message\":\"unexpected EOF\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+    }
+  ],
+  "latency": {
+    "min": 2.322,
+    "average": 8,
+    "max": 12.423
+  }
+}

@@ -2,14 +2,21 @@ import { defineConfig, loadEnv, type Plugin, type Connect } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { GET, POST } from "./server/turn";
+import { GET as mysteryGET, POST as mysteryPOST } from "./server/mystery";
+import { GET as arcadeGET, POST as arcadePOST } from "./server/arcade";
 
 // Keep FARSHORE_ variables on the server. Never rename them to VITE_.
 function gameApi(): Plugin {
   const handler: Connect.NextHandleFunction = async (req, res, next) => {
-    if (req.url?.split("?")[0] !== "/api/turn") return next();
+    const path = req.url?.split("?")[0];
+    if (!["/api/turn", "/api/mystery", "/api/arcade"].includes(path || "")) return next();
+    const get = path === "/api/arcade" ? arcadeGET : path === "/api/mystery" ? mysteryGET : GET;
+    const post = path === "/api/arcade" ? arcadePOST : path === "/api/mystery" ? mysteryPOST : POST;
+    const controller = new AbortController();
+    res.on("close", () => { if (!res.writableEnded) controller.abort(); });
     try {
       let response: Response;
-      if (req.method === "GET") response = await GET();
+      if (req.method === "GET") response = await get();
       else if (req.method === "POST") {
         let size = 0;
         const chunks: Buffer[] = [];
@@ -19,7 +26,7 @@ function gameApi(): Plugin {
           if (size > 6000) {
             res.statusCode = 413;
             res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Advice is too long." }));
+            res.end(JSON.stringify({ error: "The game request is too large." }));
             return;
           }
           chunks.push(buffer);
@@ -28,13 +35,14 @@ function gameApi(): Plugin {
         for (const [name, value] of Object.entries(req.headers))
           if (value)
             headers.set(name, Array.isArray(value) ? value.join(", ") : value);
-        response = await POST(
+        response = await post(
           new Request(
-            `http://${req.headers.host || "localhost:5173"}/api/turn`,
+            `http://${req.headers.host || "localhost:5173"}${path}`,
             {
               method: "POST",
               headers,
               body: Buffer.concat(chunks).toString("utf8"),
+              signal: controller.signal,
             },
           ),
         );

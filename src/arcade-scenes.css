@@ -37,6 +37,9 @@
 .a-timing-board .a-timing-instruction { position: absolute; left: 0; right: 0; bottom: 103px; margin: 0; font-size: 19px; text-align: center; color: #ecddba; }
 .a-timing-board .a-timing-track { position: absolute; left: 5%; right: 5%; bottom: 43px; margin: 0; height: 48px; background: #0b2230; border: 1px solid #7a9793; box-shadow: inset 0 0 0 4px #163846; overflow: visible; }
 .a-timing-board .a-target-zone { top: 4px; bottom: 4px; height: auto; background: #ebc57944; border: 2px solid #f3d396; box-shadow: 0 0 18px #eac77535; }
+.a-sirens-board .a-target-zone { border-radius: 50%; }
+.a-bow-board { background: #263b43; }
+.a-bow-board > .a-stage-art { opacity: 0; }
 .a-target-zone span { display: none; }
 .a-timing-board .a-timing-marker { top: 8px; height: 30px; width: 5px; background: #e1f3e8; box-shadow: 0 0 10px #b1eddd75; }
 .a-timing-board .a-cue-dots { position: absolute; left: 0; right: 0; bottom: 11px; gap: 7px; margin: 0; }

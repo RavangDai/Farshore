@@ -2,7 +2,7 @@
 
 A browser arcade adventure that brings Odysseus home through three short encounters: dodge the Cyclops' rocks, row past the Sirens, and steady the bow on Ithaca.
 
-Run **`npm.cmd run dev`**, open **http://localhost:5173**, and choose **Begin voyage**. Every encounter teaches its controls and offers practice, retries, easy/normal pace, and an assisted passage. Keyboard, click, and touch buttons are supported. Sound is optional; required cues are visible.
+Run **`npm.cmd run dev`**, open **http://localhost:5173**, and choose **Begin voyage**. Every encounter teaches its controls and offers practice, retries, Easy/Normal/Hard difficulty, and an assisted passage. Normal is the recommended default. Keyboard, click, and touch buttons are supported. Sound is optional; required cues are visible.
 
 Choose **Standard** for immediate authored play, or **AI rival** to prepare a real model-selected strategy before the round. The model selects permitted tactics using recent attempt summaries. Game code keeps warnings, collisions, timing windows, and scoring fixed. Loading, cancellation, retry, and explicit standard recovery keep model waits out of the action.
 

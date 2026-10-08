@@ -119,7 +119,7 @@ export function SirensScene({ round, still }: { round: Round; still: boolean }) 
       {goodStroke && [0, 1, 2, 3].map(i => <path key={i} d={`m${320 + i * 110} 356-18-17m18 17 12-23`} stroke="#d2f1dd" strokeWidth="4"/>)}
     </svg>
     <div className="a-rowing-ship"><Ship rowing={pull} bound/></div>
-    <span className="a-arena-caption">THEIR SONG CHANGES. KEEP YOUR RHYTHM.</span>
+    <span className="a-arena-caption">{round.plan.source === "ai" ? "THEIR SONG CHANGES. KEEP YOUR RHYTHM." : "KEEP THE OARS TOGETHER. PASS THE SIRENS."}</span>
   </div>;
 }
 

@@ -3,7 +3,7 @@ import { trialFor, validPlan, planDescription, type TrialId, type OpponentPlan }
 import { GET as modelGET } from "./turn.ts";
 
 const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]) }).strict();
-const input = z.object({ trialId: z.enum(["cyclops", "sirens", "bow"]), difficulty: z.enum(["easy", "normal"]), recent: z.array(summary).max(2) }).strict();
+const input = z.object({ trialId: z.enum(["cyclops", "sirens", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
 export async function GET() {
   const response = await modelGET(), status = await response.json();
   if (!status.aiConfigured) status.message = "Play is ready. Connect a model to prepare AI opponents.";
@@ -26,21 +26,23 @@ export async function POST(request: Request) {
   const dominantLane = maxLane > 0 ? ["left", "center", "right"][laneTotals.indexOf(maxLane)] : "no previous lane preference";
   const early = data.recent.reduce((sum, a) => sum + a.early, 0), late = data.recent.reduce((sum, a) => sum + a.late, 0);
   const observations = { mostUsedLane: dominantLane, timingTendency: early > late ? "early" : late > early ? "late" : "balanced", repeatedLosses: data.recent.length === 2 && data.recent.every(a => !a.won) };
-  const schema = { type: "object", properties: { planId: { type: "string", enum: trial.plans }, focus: { type: "string", enum: trial.focuses } }, required: ["planId", "focus"], additionalProperties: false };
+  // AI uses a different tactical catalog from the standard repeating pattern.
+  const aiPlans = trial.plans.slice(1);
+  const schema = { type: "object", properties: { planId: { type: "string", enum: aiPlans }, focus: { type: "string", enum: trial.focuses } }, required: ["planId", "focus"], additionalProperties: false };
   try {
     const response = await fetch(url, {
       method: "POST", headers: { "Content-Type": "application/json", ...(process.env.FARSHORE_API_KEY ? { Authorization: "Bearer " + process.env.FARSHORE_API_KEY } : {}) },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(90_000)]),
       body: JSON.stringify({ model, stream: false, temperature: 0, max_tokens: 100,
         response_format: { type: "json_schema", json_schema: { name: "farshore_opponent", strict: true, schema } },
-        messages: [{ role: "system", content: `Prepare ${trial.character}'s arcade tactics for ${trial.title}. Return only planId and focus. Permitted plans: ${trial.plans.join(", ")}. Permitted focus: ${trial.focuses.join(", ")}. Polyphemus is stubborn: choose focus equal to mostUsedLane when it names left, center, or right. focused repeats that lane, alternating mixes it with other lanes, sweep cycles all lanes. For timing, choose focus equal to timingTendency. The Sirens favor swell or echo; Antinous favors surge or feint. IMPORTANT: if repeatedLosses is true, choose the first permitted plan (${trial.plans[0]}) to help the player recover. Otherwise choose any appropriate permitted plan. With no lane history choose center. Difficulty, warning times, windows, scores and rules are fixed by code. The server has computed observations from previous attempts; use those explicit observations instead of guessing from numbers. Never invent strategies or award progress.` }, { role: "user", content: JSON.stringify({ encounter: data.trialId, difficulty: data.difficulty, observations }) }],
+        messages: [{ role: "system", content: `Choose an opponent policy for ${trial.title}. Return only JSON with planId and focus. Allowed planId: ${aiPlans.join(" or ")}. Allowed focus: ${trial.focuses.join(", ")}. Rules: Cyclops focused hunts the player's favored lane and locally reacts to lane habits; sweep uses cycling crossfire. Pick focused if a previous lane preference exists; otherwise sweep. Cyclops focus MUST equal observations.mostUsedLane if it is left, center, or right; otherwise center. Sirens swell alternates fast/slow beats; echo alternates direction with uneven beats. Bow surge alternates sight direction; feint changes sight speed. Timing focus MUST equal observations.timingTendency. Favor echo/feint after successful attempts, swell/surge after losses. Do not choose a standard plan. The local engine executes your policy and locks warnings before attacks. Difficulty controls speed and precision independently. You cannot change hit windows, scoring or progress. Use the explicit observations supplied, not guesses.` }, { role: "user", content: JSON.stringify({ encounter: data.trialId, difficulty: data.difficulty, observations, previousWins: data.recent.filter(a => a.won).length }) }],
       }),
     });
     if (!response.ok) return Response.json({ error: response.status === 429 ? "The model is busy. Retry shortly, or play a standard opponent." : "The model service could not prepare the opponent. Retry or play standard.", code: "provider_error" }, { status: 502 });
     const body = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1) }).parse(await response.json());
     const candidate = z.object({ planId: z.string(), focus: z.string() }).strict().parse(JSON.parse(body.choices[0].message.content.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "")));
     const plan = { ...candidate, source: "ai" };
-    if (!validPlan(data.trialId, plan)) throw new Error("Invalid plan");
+    if (!validPlan(data.trialId, plan) || !aiPlans.includes(plan.planId)) throw new Error("Invalid plan");
     if (request.signal.aborted) return Response.json({ error: "Preparation cancelled." }, { status: 499 });
     return Response.json({ plan: plan as OpponentPlan, description: planDescription(data.trialId, plan), source: "ai" }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

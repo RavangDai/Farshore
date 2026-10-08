@@ -1,0 +1,76 @@
+.a-game-board {
+  height: 450px;
+  isolation: isolate;
+  background: #163c49;
+  border: 2px solid #688887;
+  box-shadow: inset 0 0 0 5px #0c2630, 0 16px 45px #03121d55;
+}
+.a-game-board .a-stage-art { opacity: .62; }
+.a-arena { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.a-world { width: 100%; height: 100%; display: block; }
+.a-timing-board .a-arena { bottom: 139px; }
+.a-arena-caption {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #d8e7d2;
+  font: 8px/1.8 Pixel, monospace;
+  letter-spacing: .08em;
+  text-shadow: 2px 2px #142e3c;
+}
+.a-battle-ship { position: absolute; bottom: 5%; transform: translateX(-50%); }
+.a-battle-ship .a-ship { width: 164px; height: 140px; filter: drop-shadow(0 7px 3px #02172380); }
+.a-rowing-ship { position: absolute; left: 50%; bottom: 21%; transform: translateX(-50%); }
+.a-rowing-ship .a-ship { width: 270px; height: 177px; filter: drop-shadow(0 9px 3px #061d3650); }
+.a-mast-bound { position: absolute; top: 39%; left: 47%; color: #e6c58e; font-size: 24px; }
+.a-water-labels { position: absolute; bottom: 9px; left: 0; right: 0; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+.a-water-labels span { color: #abcac7; font: 8px/1.8 Pixel, monospace; text-shadow: 2px 2px #092b3a; }
+.a-water-labels .danger { color: #ffcdac; }
+.a-water-labels .safe { color: #c0efd1; }
+.a-hull-hit::after { content: ""; position: absolute; inset: 0; border: 6px solid #ed977b; background: #ffac5a15; pointer-events: none; }
+.a-game-hud { padding: 13px 17px; border: 1px solid #395c68; background: #102b37; font-variant-numeric: tabular-nums; }
+.a-game-hud .a-hud-goal { color: #f1d295; }
+.a-tactic-strip { display: flex; justify-content: space-between; gap: 15px; padding: 10px 2px; color: #9dbab9; font-size: 13px; }
+.a-tactic-strip strong { font-weight: normal; color: #d9cea9; }
+.a-timing-board .a-timing-instruction { position: absolute; left: 0; right: 0; bottom: 103px; margin: 0; font-size: 19px; text-align: center; color: #ecddba; }
+.a-timing-board .a-timing-track { position: absolute; left: 5%; right: 5%; bottom: 43px; margin: 0; height: 48px; background: #0b2230; border: 1px solid #7a9793; box-shadow: inset 0 0 0 4px #163846; overflow: visible; }
+.a-timing-board .a-target-zone { top: 4px; bottom: 4px; height: auto; background: #ebc57944; border: 2px solid #f3d396; box-shadow: 0 0 18px #eac77535; }
+.a-target-zone span { display: none; }
+.a-timing-board .a-timing-marker { top: 8px; height: 30px; width: 5px; background: #e1f3e8; box-shadow: 0 0 10px #b1eddd75; }
+.a-timing-board .a-cue-dots { position: absolute; left: 0; right: 0; bottom: 11px; gap: 7px; margin: 0; }
+.a-timing-board .a-cue-dots span { width: 10px; height: 10px; min-width: 0; padding: 0; border-radius: 1px; background: #294957; border: 1px solid #7b9997; color: transparent; }
+.a-timing-board .a-cue-dots span.good { background: #afdbbc; border-color: #d7f1b8; }
+.a-timing-board .a-cue-dots span.early,
+.a-timing-board .a-cue-dots span.late,
+.a-timing-board .a-cue-dots span.miss { background: #ab6457; border-color: #e7a078; }
+.a-round .a-action { min-width: 240px; }
+.a-shot-active .a-timing-marker { opacity: .4; }
+.a-game-feedback { min-height: 42px; margin: 13px 0 7px; }
+.a-feedback-good { color: #bde3c0; }
+.a-feedback-bad { color: #f1b294; }
+.a-rival-explanation { margin-top: 12px !important; font-size: 14px; color: #b0c5c2; }
+.a-difficulty-note { color: #cfb487; font-size: 13px; margin-top: 8px !important; }
+.a-result-combo { color: #abcfbf; font-size: 15px; margin-top: 15px !important; }
+.a-round-overlay { background: #051b2ed9; backdrop-filter: none; }
+.a-overlay-panel { box-shadow: 0 15px 65px #06121980; }
+
+@media (max-width: 760px) {
+  .a-game-board { height: 360px; }
+  .a-timing-board .a-arena { bottom: 135px; }
+  .a-battle-ship .a-ship { width: 108px; height: 110px; }
+  .a-rowing-ship .a-ship { width: 195px; height: 135px; }
+  .a-rowing-ship { bottom: 17%; }
+  .a-water-labels span { font-size: 6px; }
+  .a-arena-caption { font-size: 6px; letter-spacing: 0; }
+  .a-tactic-strip { font-size: 11px; gap: 10px; }
+  .a-game-hud { font-size: 13px; padding: 12px 9px; }
+  .a-timing-board .a-timing-instruction { font-size: 16px; }
+  .a-timing-board .a-cue-dots { gap: 5px; }
+  .a-timing-board .a-cue-dots span { width: 9px; height: 9px; }
+}
+@media (max-width: 370px) {
+  .a-battle-ship .a-ship { width: 95px; }
+  .a-game-hud { font-size: 12px; }
+}

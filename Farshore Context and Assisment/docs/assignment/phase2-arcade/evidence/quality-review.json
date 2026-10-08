@@ -1,0 +1,29 @@
+{
+  "method": "Analytic review of six exact responses against the prompt, not participant feedback or an accuracy benchmark.",
+  "samples": [
+    {
+      "id": "S1",
+      "note": "Legal focused/center. The prompt prefers sweep for a newcomer, but that preference is advisory. Selection is not proof of best tactics."
+    },
+    {
+      "id": "S2",
+      "note": "Legal chain/balanced. Matches the prompt preference for two previous losses. Rival still plays through local chain logic."
+    },
+    {
+      "id": "S3",
+      "note": "Legal echo/balanced. Red miss counts reach the prompt. Local melody logic targets the weakest lane; this output does not name red."
+    },
+    {
+      "id": "S4",
+      "note": "Legal pincer/balanced. Prompt favors undertow except for repeated losses, so this valid choice differs from its advisory preference."
+    },
+    {
+      "id": "S5",
+      "note": "Legal feint/balanced. Produces the block-shot policy. Whether the player finds it fair needs a playtest."
+    },
+    {
+      "id": "S6",
+      "note": "Legal focused/left. Required habit focus is preserved. This small result does not establish general adaptation quality."
+    }
+  ]
+}

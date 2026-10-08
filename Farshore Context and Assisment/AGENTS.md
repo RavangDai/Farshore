@@ -11,7 +11,7 @@ Farshore is Bibek Pathak's CMPS 4200 HCI browser game based on Homer's Odyssey. 
 
 The original PDF and PPTX are in `docs/assignment/original/`. Complete text extractions are beside the summaries. The professor's PDF is the authority for assignment requirements. The slides document the student's proposal. These instructions and summaries are a development handoff, not new instructions issued by the professor. If a summary conflicts with the original, use the original and identify the difference.
 
-Phase 1 and Phase 2 briefs have been supplied. The Phase 2 design package is in `docs/assignment/phase2/`; its README maps the artifacts to the supplied rubric. Do not invent requirements for later phases, deadlines, instructor approvals, interview findings, model benchmarks, or grading results. Do not restart the already-submitted Phase 1 presentation unless the user requests it.
+Phase 1 and Phase 2 briefs have been supplied. The current October 8 arcade Phase 2 package is in `docs/assignment/phase2-arcade/`; its README maps the artifacts to the supplied rubric. The earlier `docs/assignment/phase2/` package documents the original advice voyage and remains historical. Do not invent requirements for later phases, deadlines, instructor approvals, interview findings, model benchmarks, or grading results. Do not restart the already-submitted Phase 1 presentation unless the user requests it.
 
 ## Product direction
 
@@ -72,4 +72,4 @@ For changes to game logic or the API, run relevant tests and the build. For UI c
 
 ## Next useful development task
 
-Evaluate the arcade edition with actual newcomers and record comprehension, play completion, fairness, and whether players distinguish AI preparation from authored play. Complete keyboard-only and physical touch checks. Revise the Phase 2 presentation and wireframes around the implemented arcade loop, retaining proposed expansions as Proposed. The original assignment's interviews, persona synthesis, model comparison, and peer critique still require real evidence. Do not invent results.
+Evaluate the arcade edition with actual newcomers and record comprehension, play completion, fairness, and whether players distinguish AI preparation from authored play. Complete keyboard-only and physical touch checks. The revised Phase 2 presentation and 28 wireframes are in `docs/assignment/phase2-arcade/`, with proposed changes labeled and a fresh six-call model spike. Review the contribution statement before submission. The original assignment's interviews, persona synthesis, model comparison, and peer critique still require real evidence. Do not invent results.

@@ -1,0 +1,1838 @@
+{
+  "edges": [
+    [
+      "EC1",
+      "Unavailable / timeout / 429",
+      "F4, A1 error",
+      "Keep progress. Retry, Cancel, Solo or a labeled local AI duel. Preparation never consumes game time.",
+      "E1 observes real provider 404. 90s timeout and 429 mapping exist; those cases were not induced live."
+    ],
+    [
+      "EC2",
+      "Poor, wrong or empty output",
+      "F2/F4, A1 uncertain",
+      "Reject invalid JSON or unsupported plan/focus. Regenerate or change inputs. Legal but unwanted tactics remain rejectable.",
+      "Strict schema and server validation; fresh spike measures legal outputs, not tactical enjoyment."
+    ],
+    [
+      "EC3",
+      "Invalid / unsupported input",
+      "F4, S04 validation",
+      "Give inline supported-choice guidance. Preserve valid settings. No model call for invalid input.",
+      "E3 records actual application 400 for impossible difficulty."
+    ],
+    [
+      "EC4",
+      "Cancel or late reply",
+      "F2, A1 loading",
+      "Abort and increase request generation ID. Ignore old replies after cancel, input edit, navigation or regeneration.",
+      "Implemented request token and AbortController. No clear or score can arrive from a model reply."
+    ],
+    [
+      "EC5",
+      "Inappropriate / biased output",
+      "F2/F4, A1 uncertain",
+      "Only allow finite strategy IDs and authored descriptions. Do not display generated prose. Reject all extra fields.",
+      "This limits the output surface; fair tactical behavior still needs player evaluation."
+    ],
+    [
+      "EC6",
+      "Hidden tab / lost held input",
+      "F3, S13 pause",
+      "Pause simulation and release rowing/paddle controls. Resume explicitly. Explain that reload restarts the round.",
+      "Implemented focus/visibility handling. Completed progress stays local."
+    ],
+    [
+      "EC7",
+      "Local storage unavailable",
+      "F1/F5, S01/S03",
+      "Proposed persistent Saving unavailable message. Keep a memory-only voyage and explain that reload may lose it.",
+      "Current storage exceptions are caught. The persistent warning is Proposed."
+    ],
+    [
+      "EC8",
+      "Migrated old save / abandoned round",
+      "F1/F5, S03/S10",
+      "Retain old clears, insert Circe/strait pending. Clear earlier shores before replaying later ones. No clear for an unfinished round.",
+      "Save schema 2 migration. Assisted and practice labels remain explicit."
+    ]
+  ],
+  "encounters": [
+    [
+      "Cyclops' Coast",
+      "Polyphemus",
+      "8 x 8 grid stealth",
+      "Sneak, dash, hide and evade a warned smash",
+      "Noise clues guide a blind 2 x 2 attack",
+      "Reach an exit before 3 hits or the turn limit"
+    ],
+    [
+      "Aeaea",
+      "Circe",
+      "Falling-potion match-3 duel",
+      "Choose a column, rotate and drop a triplet",
+      "Own board, chains and curse attacks",
+      "Her board fills first, or beat her score at 2 minutes"
+    ],
+    [
+      "Sirens' Passage",
+      "The Sirens",
+      "Four-lane melody memory",
+      "Listen, then echo A/S/D/F or numbered pads",
+      "New melodies target missed lanes",
+      "Echo 5 melodies before Temptation reaches 100%"
+    ],
+    [
+      "Scylla & Charybdis",
+      "Six heads and a vortex",
+      "Paddle deflector",
+      "Move shield and hold Space / Row",
+      "Telegraphed strikes and coordinated pull",
+      "Survive 30/40/50 seconds by difficulty"
+    ],
+    [
+      "Ithaca's Hall",
+      "Antinous",
+      "Turn-based archery",
+      "Aim, elevation, tension and release",
+      "Own scored shots or a temporary ring block",
+      "More rings over 5 shots, defender wins ties"
+    ]
+  ],
+  "flows": [
+    {
+      "id": "F1",
+      "title": "Start or resume and learn a trial",
+      "persona": "P2 Daniel",
+      "states": "S01, S02, S03, S04, S05-S09, S10",
+      "status": "Implemented",
+      "steps": [
+        "Open title and choose Begin / Continue",
+        "New: read introduction or Skip",
+        "Choose the first ready shore on the map",
+        "Read one objective, controls and story context",
+        "Choose short practice or a full round",
+        "See practice result or scored result"
+      ],
+      "branches": [
+        {
+          "at": 0,
+          "label": "Existing progress",
+          "text": "Continue retains clears and preferences. Restart requires S14 confirmation."
+        },
+        {
+          "at": 4,
+          "label": "Controls are unfamiliar",
+          "text": "Practice leaves campaign progress unchanged. Return to the same briefing."
+        }
+      ],
+      "notes": [
+        "The first usable trial needs no model configuration.",
+        "Locked stops explain that earlier trials must be passed. Accessibility cues remain visible without sound."
+      ]
+    },
+    {
+      "id": "F2",
+      "title": "Prepare, review and accept a model strategy",
+      "persona": "P1 Maya and P3 Rosa",
+      "states": "S04 / A1 initial, loading, success, uncertain, error",
+      "status": "Implemented, with proposed Discard and privacy detail",
+      "steps": [
+        "Choose a shore, difficulty and AI Rival Battle",
+        "Press Prepare with connected model",
+        "Show elapsed preparation and Cancel",
+        "Server validates allowed plan and focus",
+        "Read strategy and fixed-rules explanation",
+        "Start a labeled model-planned duel"
+      ],
+      "branches": [
+        {
+          "at": 2,
+          "label": "Cancel, navigation or edited input",
+          "text": "Abort the request and ignore stale replies. Return to initial state. No score or progress changes."
+        },
+        {
+          "at": 4,
+          "label": "Reject or refine",
+          "text": "Prepare another, change difficulty/mode or choose Solo. Proposed Discard removes the ready plan while keeping AI mode."
+        }
+      ],
+      "notes": [
+        "The model chooses a strategy before play. Local heuristic logic performs the rival actions during play.",
+        "No confidence percentage. Show the strategy, its limits and user controls before committing to the round."
+      ]
+    },
+    {
+      "id": "F3",
+      "title": "Play against an active mythic rival",
+      "persona": "P1 Maya and P2 Daniel",
+      "states": "S05-S09, S13, S10",
+      "status": "Implemented",
+      "steps": [
+        "Start Solo, local AI or model-planned duel",
+        "Read countdown and game-mode label",
+        "Make the encounter-specific move",
+        "Observe a rival turn or visible attack warning",
+        "Continue until the clear or loss rule",
+        "Review both performance and next action"
+      ],
+      "branches": [
+        {
+          "at": 2,
+          "label": "Pause / hidden tab / leave",
+          "text": "Pause clocks and release held keys. Resume the same round, or confirm leaving with no awarded clear."
+        },
+        {
+          "at": 5,
+          "label": "Loss",
+          "text": "Try again, practice, inspect the briefing or request an assisted passage. Earlier clears remain."
+        }
+      ],
+      "notes": [
+        "Cyclops, Circe, Sirens, strait and bow use distinct controls. See W11-W17 for their playable states.",
+        "Scores and collision rules come from authored code. The model cannot shorten warnings or declare a win."
+      ]
+    },
+    {
+      "id": "F4",
+      "title": "Recover from a failed or unsuitable AI plan",
+      "persona": "P3 Rosa and P1 Maya",
+      "states": "S04 / A1 uncertain, error, invalid input; S12",
+      "status": "Implemented",
+      "steps": [
+        "Observe service error or rejected strategy",
+        "Read a specific explanation with progress kept",
+        "Review selected shore, difficulty and connection",
+        "Choose retry, changed input, Solo or local AI",
+        "Review a fresh valid plan or local label",
+        "Start only after an explicit user choice"
+      ],
+      "branches": [
+        {
+          "at": 0,
+          "label": "Poor / empty / unsupported output",
+          "text": "Invalid JSON, extra fields, illegal plan or wrong focus is rejected. No match starts. For a legal but unwanted tactic, regenerate or reject."
+        },
+        {
+          "at": 3,
+          "label": "Offline / timeout / rate limit",
+          "text": "Retry when ready, cancel a long wait, or choose Solo/local AI. Provider 429 maps to a busy-service message."
+        }
+      ],
+      "notes": [
+        "The live spike triggers real missing-model and malformed-request failures. 429 behavior is designed and unit-tested, not live-induced.",
+        "Unsupported difficulty and oversized/invalid requests stop before model contact. Do not silently replace a failed model response."
+      ]
+    },
+    {
+      "id": "F5",
+      "title": "Continue, request assistance and finish",
+      "persona": "P2 Daniel, P1 Maya and P3 Rosa",
+      "states": "S10, S15, S03, S11, S14",
+      "status": "Implemented",
+      "steps": [
+        "Read round result and visible score",
+        "Choose next shore after a clear or retry a loss",
+        "Optional: confirm an assisted passage",
+        "Map records Cleared or Assisted honestly",
+        "Pass all five shores and reach Homecoming",
+        "Replay a trial or confirm a new voyage"
+      ],
+      "branches": [
+        {
+          "at": 2,
+          "label": "Reconsider help",
+          "text": "Keep trying closes S15 without changing progress. A later successful replay upgrades Assisted to Cleared."
+        },
+        {
+          "at": 5,
+          "label": "New voyage",
+          "text": "S14 explains that restarting replaces progress. Keep voyage returns unchanged."
+        }
+      ],
+      "notes": [
+        "Assistance improves access to the narrative without claiming a skill-based clear.",
+        "Practice and abandoned rounds award no campaign progress. Replays preserve earlier success even when the player loses."
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "id": "A1",
+      "name": "Optional mythic rival strategy planning",
+      "model": "Llama 3.2 3B through local Ollama",
+      "input": "Encounter ID, Easy/Normal/Hard and at most two numeric attempt summaries. Server derives lane, timing and loss observations. No name, voice or chat text.",
+      "output": "JSON with planId and focus. Each encounter permits two adaptive strategies. Server validates both and supplies the visible description.",
+      "timing": "Use the October 8 six-call experiment. Preparation stops every game clock. Server timeout 90 seconds, browser limit 95 seconds.",
+      "privacy": "Measured setup uses loopback Ollama. No third-party AI provider receives these requests. A hosted endpoint would receive the same numeric summary and needs a changed disclosure.",
+      "control": "Edit difficulty/mode before play, cancel a pending call, regenerate a ready strategy, switch to Solo to reject it, or start a clearly labeled local AI duel after an error."
+    }
+  ],
+  "meta": {
+    "title": "Farshore",
+    "subtitle": "The Odyssey: Arcade Trials",
+    "author": "Bibek Pathak",
+    "course": "CMPS 4200 HCI",
+    "date": "October 8, 2026",
+    "scope": "A five-stop arcade voyage where each mythic rival uses a different game mechanic. Optional Llama planning chooses a legal rival strategy before a match.",
+    "disclosure": "Phase 2 designs document the current arcade prototype and explicitly labeled proposed controls. Maya, Daniel and Rosa are provisional Phase 1 persona sketches. Interview evidence and class peer critique have not been supplied."
+  },
+  "personas": [
+    {
+      "id": "P1",
+      "name": "Maya, 21",
+      "background": "Phase 1 gamer sketch",
+      "goal": "Win through skill and understand why the rival behaves differently.",
+      "need": "Visible attack warnings, fixed scoring rules and a clear distinction between difficulty and rival strategy.",
+      "flows": "F2, F3, F4, F5",
+      "evidence": "The Phase 1 slide identifies a gamer concerned with fairness. These arcade design needs are hypotheses for evaluation, not interview findings."
+    },
+    {
+      "id": "P2",
+      "name": "Daniel, 19",
+      "background": "Phase 1 reader sketch",
+      "goal": "Experience the Odyssey without a confusing first encounter.",
+      "need": "One clear objective per shore, short practice, keyboard or touch controls and literary context.",
+      "flows": "F1, F3, F5",
+      "evidence": "The Phase 1 slide identifies a reader with limited technical comfort. The arcade teaching flow is a proposed response to that sketch."
+    },
+    {
+      "id": "P3",
+      "name": "Rosa, 34",
+      "background": "Phase 1 skeptical AI sketch",
+      "goal": "Know what the model changes and keep control over its result.",
+      "need": "Model and local labels, visible strategy review, privacy disclosure, cancellation and a usable fallback.",
+      "flows": "F2, F4, F5",
+      "evidence": "AI skepticism and the need for explanations come from the Phase 1 slide. No completed interview or AI trust score is asserted."
+    }
+  ],
+  "screens": [
+    [
+      "S01",
+      "Title",
+      "Begin/resume, five-trial premise, progress count and Settings.",
+      "All players",
+      "No model call. Read browser-local save."
+    ],
+    [
+      "S02",
+      "Introduction",
+      "Odysseus and the voyage, next/back/skip.",
+      "Daniel",
+      "Authored story. Skip preserves the new voyage."
+    ],
+    [
+      "S03",
+      "Voyage map",
+      "Five shores, cleared/assisted/pending states, locked stops, continue.",
+      "Daniel, Maya",
+      "No model call. Every earlier shore must be passed."
+    ],
+    [
+      "S04",
+      "Encounter briefing [A1]",
+      "Rival, myth context, objective, controls, difficulty, mode, practice and preparation.",
+      "All players",
+      "Only pretrained-model integration point: A1 optional rival planning."
+    ],
+    [
+      "S05",
+      "Cyclops round",
+      "Grid, sheep, rocks, exits, noise and fixed smash warning, move controls.",
+      "Maya, Daniel",
+      "Local opponent engine. One evade per warning."
+    ],
+    [
+      "S06",
+      "Circe round",
+      "Two puzzle boards, both next pieces, curses and scores, rotate/drop.",
+      "Maya",
+      "Circe plays independently. No model request during a round."
+    ],
+    [
+      "S07",
+      "Sirens round",
+      "Four numbered/color lanes, Listen/Reply, sequence, Temptation.",
+      "Daniel, Maya",
+      "Local melody logic targets missed lanes. Optional distinct sound."
+    ],
+    [
+      "S08",
+      "Strait round",
+      "Shield, six heads, warning paths, rowing control, vortex, hull and time.",
+      "Maya",
+      "Local coordinated attacks. Hold/release input is explicit."
+    ],
+    [
+      "S09",
+      "Archery round",
+      "12 rings, wind, path preview, three controls, turn and both scores.",
+      "Maya",
+      "Player and rival use the same shot physics. Rival turn disables shooting."
+    ],
+    [
+      "S10",
+      "Round result",
+      "Clear/loss/practice, score, opponent score where relevant, retry and next.",
+      "All players",
+      "Only full rounds update progress. Failed replay retains past clears."
+    ],
+    [
+      "S11",
+      "Homecoming",
+      "Family, report of each clear or assisted passage, replay and restart.",
+      "Daniel, Rosa",
+      "No generated ending. Honest saved progress report."
+    ],
+    [
+      "S12",
+      "Settings overlay",
+      "Sound, still scenery, model connection check, earlier modes.",
+      "Rosa, Daniel",
+      "GET checks availability, not a generated rival strategy."
+    ],
+    [
+      "S13",
+      "Pause / leave overlay",
+      "Resume, leave warning and return to briefing.",
+      "All players",
+      "Pause simulation and release held controls. Abandoned round gives no clear."
+    ],
+    [
+      "S14",
+      "New voyage confirmation",
+      "Explain replacement of current progress, keep or restart.",
+      "All players",
+      "Replace save only after explicit confirmation."
+    ],
+    [
+      "S15",
+      "Assisted passage confirmation",
+      "Explain Assisted report label, keep trying or continue with help.",
+      "Daniel",
+      "Authored progression choice. Replay can later earn a clear."
+    ]
+  ],
+  "sourceList": [
+    [
+      "Professor's Phase 2 brief",
+      "original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf",
+      "Architecture 20%, flows 30%, wireframes 30%, spike 10%, presentation 10%. 10-minute talk plus 3-5-minute Q&A."
+    ],
+    [
+      "Phase 1 proposal",
+      "original/Farshore_Phase12nd.pptx",
+      "Slide 4 sketches Maya, Daniel and Rosa. It says six interviews were booked, not completed."
+    ],
+    [
+      "Current prototype",
+      "src/ArcadeApp.tsx; src/lib/arcade.ts; src/lib/mythic.ts; server/arcade.ts",
+      "Current screens, five engines, numeric summaries, validation and fixed authored rules."
+    ],
+    [
+      "October 8 spike",
+      "evidence/phase2-arcade-spike-2026-10-08.json",
+      "Six actual calls, exact provider outputs and real failure bodies."
+    ],
+    [
+      "Ollama structured outputs",
+      "https://docs.ollama.com/capabilities/structured-outputs",
+      "Local schema-constrained output. Accessed October 8, 2026."
+    ],
+    [
+      "Ollama compatibility",
+      "https://docs.ollama.com/api/openai-compatibility",
+      "Local chat completions integration. Accessed October 8, 2026."
+    ],
+    [
+      "Literary source",
+      "public/story-sources.md",
+      "Homer, Odyssey Books IX, X, XII and XXI. Mythic play adapts the episodes and invents rivalry rules."
+    ]
+  ],
+  "wireframes": [
+    {
+      "id": "W01",
+      "screen": "S01",
+      "title": "Title - new player",
+      "state": "empty",
+      "flow": "F1",
+      "regions": [
+        [
+          "image",
+          "Voyage artwork placeholder"
+        ],
+        [
+          "text",
+          "Farshore / The Odyssey: Arcade Trials"
+        ],
+        [
+          "text",
+          "Five distinct trials. Keyboard or touch."
+        ],
+        [
+          "buttons",
+          "Begin voyage / Settings"
+        ]
+      ],
+      "annotation": "A single primary action starts the game without AI setup.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W02",
+      "screen": "S01",
+      "title": "Title - returning player",
+      "state": "saved progress",
+      "flow": "F1/F5",
+      "regions": [
+        [
+          "image",
+          "Voyage artwork placeholder"
+        ],
+        [
+          "text",
+          "Continue voyage / 2 of 5 cleared"
+        ],
+        [
+          "buttons",
+          "Continue voyage"
+        ],
+        [
+          "buttons",
+          "New voyage / Settings"
+        ]
+      ],
+      "annotation": "Continue reads browser-local progress. New voyage opens S14.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W03",
+      "screen": "S02",
+      "title": "Introduction",
+      "state": "story",
+      "flow": "F1",
+      "regions": [
+        [
+          "image",
+          "Odysseus portrait placeholder"
+        ],
+        [
+          "text",
+          "Short authored Odyssey context"
+        ],
+        [
+          "text",
+          "Introduction progress"
+        ],
+        [
+          "buttons",
+          "Back / Next / Skip"
+        ]
+      ],
+      "annotation": "Skip moves to the map. This story text is authored, with no generation.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W04",
+      "screen": "S03",
+      "title": "Five-stop voyage map",
+      "state": "progress",
+      "flow": "F1/F5",
+      "regions": [
+        [
+          "text",
+          "Your way home / 2 of 5 passed"
+        ],
+        [
+          "grid",
+          "1 Cyclops, 2 Circe, 3 Sirens, 4 Strait, 5 Bow"
+        ],
+        [
+          "text",
+          "Each stop: Cleared / Assisted / Ready / Locked"
+        ],
+        [
+          "buttons",
+          "Continue voyage / choose an unlocked stop"
+        ]
+      ],
+      "annotation": "Locked later trials explain the preceding requirement. Migration adds two new pending shores.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W05",
+      "screen": "S04",
+      "title": "Model planning - initial",
+      "state": "A1 initial",
+      "flow": "F2",
+      "regions": [
+        [
+          "text",
+          "Rival, objective, controls, myth context"
+        ],
+        [
+          "input",
+          "Difficulty: Easy / Normal / Hard"
+        ],
+        [
+          "buttons",
+          "Arcade Solo / AI Rival Battle"
+        ],
+        [
+          "text",
+          "Local adaptive AI is ready now"
+        ],
+        [
+          "buttons",
+          "Prepare with connected model"
+        ],
+        [
+          "buttons",
+          "Start local AI duel / Practice"
+        ]
+      ],
+      "annotation": "A1 begins only on Prepare. Numeric attempt summaries provide context. Proposed detail: visible loopback-provider disclosure.",
+      "status": "Implemented; privacy detail Proposed"
+    },
+    {
+      "id": "W06",
+      "screen": "S04",
+      "title": "Model planning - loading",
+      "state": "A1 loading",
+      "flow": "F2/F4",
+      "regions": [
+        [
+          "text",
+          "Preparing Circe's strategy..."
+        ],
+        [
+          "text",
+          "12 seconds elapsed. No round clock is running."
+        ],
+        [
+          "text",
+          "Input settings remain selected"
+        ],
+        [
+          "buttons",
+          "Cancel preparation"
+        ],
+        [
+          "buttons",
+          "Practice (cancels preparation before play)"
+        ]
+      ],
+      "annotation": "Clear feedback appears immediately. Cancel ignores stale replies. Start is disabled while loading.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W07",
+      "screen": "S04",
+      "title": "Model planning - ready",
+      "state": "A1 success",
+      "flow": "F2",
+      "regions": [
+        [
+          "text",
+          "Model strategy ready: Chain Alchemist"
+        ],
+        [
+          "text",
+          "Circe previews a piece to build chains."
+        ],
+        [
+          "text",
+          "Normal rules stay fixed. Rival acts locally."
+        ],
+        [
+          "buttons",
+          "Start model-planned duel"
+        ],
+        [
+          "buttons",
+          "Prepare another / edit difficulty / Solo"
+        ]
+      ],
+      "annotation": "Review precedes play. Changing mode or difficulty discards the ready plan. No scoring changes during preparation.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W08",
+      "screen": "S04",
+      "title": "Model planning - unsupported",
+      "state": "A1 uncertain",
+      "flow": "F2/F4",
+      "regions": [
+        [
+          "text",
+          "The model returned an unsupported strategy."
+        ],
+        [
+          "text",
+          "Nothing changed. No game has started."
+        ],
+        [
+          "text",
+          "No confidence percentage"
+        ],
+        [
+          "buttons",
+          "Retry model preparation"
+        ],
+        [
+          "buttons",
+          "Start local AI duel / Solo / Practice"
+        ]
+      ],
+      "annotation": "Invalid or extra fields cannot become a rival plan. Uncertain describes suitability, not a measured probability.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W09",
+      "screen": "S04",
+      "title": "Model planning - service failure",
+      "state": "A1 error",
+      "flow": "F4",
+      "regions": [
+        [
+          "text",
+          "The model is unreachable or took too long."
+        ],
+        [
+          "text",
+          "Your voyage is kept."
+        ],
+        [
+          "buttons",
+          "Retry model preparation / check Settings"
+        ],
+        [
+          "buttons",
+          "Start local AI duel / switch to Solo"
+        ],
+        [
+          "buttons",
+          "Practice / return to map"
+        ]
+      ],
+      "annotation": "A failed request never silently becomes model-planned play. Every fallback has its own label.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W10",
+      "screen": "S04",
+      "title": "Unsupported input",
+      "state": "validation error",
+      "flow": "F4",
+      "regions": [
+        [
+          "text",
+          "Choose a supported encounter and difficulty."
+        ],
+        [
+          "input",
+          "Restore a supported choice: Easy / Normal / Hard"
+        ],
+        [
+          "text",
+          "At most two numeric summaries are accepted."
+        ],
+        [
+          "buttons",
+          "Try again / return to map"
+        ]
+      ],
+      "annotation": "The visible selectors constrain ordinary input. The server rejects malformed or tampered requests before inference.",
+      "status": "Server validation implemented; inline state Proposed"
+    },
+    {
+      "id": "W11",
+      "screen": "S05",
+      "title": "Polyphemus grid",
+      "state": "player / smash warning",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Grid stealth / turn / hits / current rival mode"
+        ],
+        [
+          "grid",
+          "8 x 8: Odysseus, sheep, rocks and 2 gold exits"
+        ],
+        [
+          "text",
+          "Marked 2 x 2 smash area. One evade left."
+        ],
+        [
+          "buttons",
+          "Up / Left / Right / Down / Sneak-Dash / Hide"
+        ],
+        [
+          "buttons",
+          "Pause"
+        ]
+      ],
+      "annotation": "Blind rival uses noise clues. The visible target locks before the single evade. Exits and sheep have symbols.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W12",
+      "screen": "S06",
+      "title": "Circe puzzle duel",
+      "state": "simultaneous play",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Your score / Circe score / time / rival mode"
+        ],
+        [
+          "grid",
+          "YOUR 6 x 10 BOARD       CIRCE 6 x 10 BOARD"
+        ],
+        [
+          "text",
+          "Your next triplet / Circe next triplet / curse bank"
+        ],
+        [
+          "buttons",
+          "Choose column / Rotate / Drop"
+        ],
+        [
+          "buttons",
+          "Pause"
+        ]
+      ],
+      "annotation": "Two boards make the opponent's moves visible. Moly matches purify swine and send curses.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W13",
+      "screen": "S07",
+      "title": "Sirens melody",
+      "state": "Listen",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Listen / melody 2 of 5 / Temptation 20%"
+        ],
+        [
+          "grid",
+          "Four pads: 1 red, 2 blue, 3 green, 4 gold"
+        ],
+        [
+          "text",
+          "Highlight and optional tone play the sequence"
+        ],
+        [
+          "text",
+          "Wait for Reply before entering notes"
+        ],
+        [
+          "buttons",
+          "Pause"
+        ]
+      ],
+      "annotation": "Numbered pads and phase text work without audio. Trick rests appear visibly.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W14",
+      "screen": "S07",
+      "title": "Sirens counter melody",
+      "state": "Reply",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Reply / entered notes / remaining time"
+        ],
+        [
+          "grid",
+          "A or 1 / S or 2 / D or 3 / F or 4"
+        ],
+        [
+          "text",
+          "Temptation increases on wrong or missing notes"
+        ],
+        [
+          "buttons",
+          "Press pads or use keys / Pause"
+        ]
+      ],
+      "annotation": "The Sirens target missed lanes in later melodies. Pads use labels as well as color.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W15",
+      "screen": "S08",
+      "title": "Twin-paddle escape",
+      "state": "active strikes",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Hull 5 / survival time / rival mode"
+        ],
+        [
+          "grid",
+          "Vortex left / ship and shield / six heads right"
+        ],
+        [
+          "text",
+          "Telegraphed strike paths and visible pull"
+        ],
+        [
+          "buttons",
+          "Shield Up/Down or drag / hold Row or Space"
+        ],
+        [
+          "buttons",
+          "Pause"
+        ]
+      ],
+      "annotation": "Release Row to stop rowing. Pause or focus loss releases every held input.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W16",
+      "screen": "S09",
+      "title": "Archery - player turn",
+      "state": "aim and release",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Your turn / shot 1 of 5 / both ring totals"
+        ],
+        [
+          "grid",
+          "12-ring perspective gallery and end-on target"
+        ],
+        [
+          "text",
+          "Wind direction/speed and predicted arrow path"
+        ],
+        [
+          "input",
+          "Aim / elevation / tension sliders"
+        ],
+        [
+          "buttons",
+          "Release arrow / Pause"
+        ]
+      ],
+      "annotation": "Prediction uses the same physics as the shot. Inputs identify their values and can use keyboard controls.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W17",
+      "screen": "S09",
+      "title": "Archery - rival turn",
+      "state": "opponent shot",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Antinous' turn / shooting controls disabled"
+        ],
+        [
+          "grid",
+          "His arrow path and ring score"
+        ],
+        [
+          "text",
+          "Wind Reader or temporary Block-shot action"
+        ],
+        [
+          "text",
+          "Next wind appears when player turn resumes"
+        ],
+        [
+          "buttons",
+          "Pause"
+        ]
+      ],
+      "annotation": "The rival takes an independent scored turn. A temporary block is visible and expires after one player shot.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W18",
+      "screen": "S10",
+      "title": "Round cleared",
+      "state": "success",
+      "flow": "F3/F5",
+      "regions": [
+        [
+          "text",
+          "Encounter cleared / score / difficulty / mode"
+        ],
+        [
+          "text",
+          "Both scores for Circe and Antinous"
+        ],
+        [
+          "text",
+          "What the player achieved"
+        ],
+        [
+          "buttons",
+          "Sail to next trial / Practice again / Map"
+        ]
+      ],
+      "annotation": "Update progress once after a full completed round. The final bow clear goes to Homecoming.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W19",
+      "screen": "S10",
+      "title": "Round lost",
+      "state": "retry",
+      "flow": "F3/F5",
+      "regions": [
+        [
+          "text",
+          "Another chance / score and failure explanation"
+        ],
+        [
+          "text",
+          "Your earlier clears are kept"
+        ],
+        [
+          "buttons",
+          "Try again / Practice / Map"
+        ],
+        [
+          "buttons",
+          "Use an assisted passage"
+        ]
+      ],
+      "annotation": "Loss keeps a usable path forward. Assisted passage requires S15 confirmation.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W20",
+      "screen": "S10",
+      "title": "Practice result",
+      "state": "practice complete",
+      "flow": "F1/F3",
+      "regions": [
+        [
+          "text",
+          "Practice complete / Ready for the full duel?"
+        ],
+        [
+          "text",
+          "Practice changes no voyage progress"
+        ],
+        [
+          "buttons",
+          "Back to challenge / Practice again / Map"
+        ]
+      ],
+      "annotation": "Practice is a tutorial path and cannot be mistaken for a scored clear.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W21",
+      "screen": "S11",
+      "title": "Homecoming report",
+      "state": "campaign complete",
+      "flow": "F5",
+      "regions": [
+        [
+          "image",
+          "Odysseus, Penelope and Telemachus placeholders"
+        ],
+        [
+          "text",
+          "Home is more than a shore"
+        ],
+        [
+          "grid",
+          "Five-trial report: Cleared or Assisted"
+        ],
+        [
+          "buttons",
+          "Replay a trial / New voyage"
+        ]
+      ],
+      "annotation": "Authored ending avoids a generated story claim. All assistance stays visible in the report.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W22",
+      "screen": "S12",
+      "title": "Voyage settings",
+      "state": "overlay",
+      "flow": "F1/F4",
+      "regions": [
+        [
+          "text",
+          "Music & sounds / Still scenery"
+        ],
+        [
+          "text",
+          "AI connection: available / unavailable / checking"
+        ],
+        [
+          "buttons",
+          "Check connection again / Close"
+        ],
+        [
+          "text",
+          "Both modes work without model preparation"
+        ],
+        [
+          "buttons",
+          "Earlier mystery or advice mode links"
+        ]
+      ],
+      "annotation": "A catalog check is separate from generating a strategy. Closing returns to the invoking control.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W23",
+      "screen": "S13",
+      "title": "Paused round",
+      "state": "pause",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Paused. Every game clock has stopped."
+        ],
+        [
+          "text",
+          "Current round remains in memory"
+        ],
+        [
+          "buttons",
+          "Resume / leave round"
+        ],
+        [
+          "text",
+          "Hidden tab or lost focus also pauses"
+        ]
+      ],
+      "annotation": "Resuming does not replay held inputs. The round is not saved across browser reloads.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W24",
+      "screen": "S13",
+      "title": "Leave round confirmation",
+      "state": "leave",
+      "flow": "F3",
+      "regions": [
+        [
+          "text",
+          "Leave this round?"
+        ],
+        [
+          "text",
+          "You will return to the briefing. No clear is awarded."
+        ],
+        [
+          "buttons",
+          "Keep playing / Leave round"
+        ]
+      ],
+      "annotation": "Protect against accidental loss of an in-progress attempt. Completed voyage progress remains.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W25",
+      "screen": "S14",
+      "title": "New voyage confirmation",
+      "state": "restart",
+      "flow": "F1/F5",
+      "regions": [
+        [
+          "text",
+          "Start a new voyage?"
+        ],
+        [
+          "text",
+          "This replaces the current voyage progress."
+        ],
+        [
+          "buttons",
+          "Keep voyage / Start again"
+        ]
+      ],
+      "annotation": "Only Start again replaces the save. Keep voyage returns unchanged.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W26",
+      "screen": "S15",
+      "title": "Assisted passage",
+      "state": "help decision",
+      "flow": "F5",
+      "regions": [
+        [
+          "text",
+          "A little help from Athena"
+        ],
+        [
+          "text",
+          "Continue the story. This shore will say Assisted."
+        ],
+        [
+          "text",
+          "Replay later to earn a clear"
+        ],
+        [
+          "buttons",
+          "Keep trying / Continue with help"
+        ]
+      ],
+      "annotation": "Assistance describes exactly how the homecoming report changes.",
+      "status": "Implemented"
+    },
+    {
+      "id": "W27",
+      "screen": "S04",
+      "title": "Discard a prepared plan",
+      "state": "A1 success / undo preparation",
+      "flow": "F2",
+      "regions": [
+        [
+          "text",
+          "Prepared strategy and explanation"
+        ],
+        [
+          "buttons",
+          "Start / Prepare another / Discard strategy"
+        ],
+        [
+          "text",
+          "Discard returns to local AI without a match"
+        ],
+        [
+          "buttons",
+          "Edit difficulty or mode"
+        ]
+      ],
+      "annotation": "Proposed Discard is an explicit undo of preparation. It clears the unplayed plan. Current edit/mode controls already clear it.",
+      "status": "Proposed"
+    },
+    {
+      "id": "W28",
+      "screen": "S03",
+      "title": "Saving unavailable",
+      "state": "storage error",
+      "flow": "F1/F5",
+      "regions": [
+        [
+          "text",
+          "Saving is unavailable on this browser."
+        ],
+        [
+          "text",
+          "You can continue, but reload may lose progress."
+        ],
+        [
+          "grid",
+          "Current in-memory voyage map"
+        ],
+        [
+          "buttons",
+          "Keep playing / Settings"
+        ]
+      ],
+      "annotation": "A persistent warning makes local storage failure visible while keeping play available.",
+      "status": "Proposed"
+    }
+  ],
+  "spike": {
+    "checkedAt": "2026-10-08T22:26:10.235Z",
+    "model": "llama3.2:3b",
+    "endpoint": "loopback Ollama OpenAI-compatible endpoint",
+    "method": "Six sequential realistic samples using production POST adapter from a standalone script. No UI or game save. Raw provider outputs captured. Temperature 0, strict schema, 100 output-token cap, no streaming.",
+    "scope": "Feasibility and latency sample, not user research, enjoyment evidence, or a model accuracy benchmark.",
+    "samples": [
+      {
+        "id": "S1",
+        "label": "First-time Cyclops",
+        "input": {
+          "trialId": "cyclops",
+          "difficulty": "easy",
+          "recent": []
+        },
+        "seconds": 11.613,
+        "status": 200,
+        "answer": {
+          "plan": {
+            "planId": "focused",
+            "focus": "center",
+            "source": "ai"
+          },
+          "description": "Noise heatmap. Polyphemus builds a noise heatmap and predicts the direction of your escape. A warning marks every smash before it lands.",
+          "source": "ai"
+        },
+        "legal": true,
+        "providerExchanges": [
+          {
+            "status": 200,
+            "request": {
+              "model": "llama3.2:3b",
+              "stream": false,
+              "temperature": 0,
+              "max_tokens": 100,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "farshore_opponent",
+                  "strict": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "planId": {
+                        "type": "string",
+                        "enum": [
+                          "focused",
+                          "sweep"
+                        ]
+                      },
+                      "focus": {
+                        "type": "string",
+                        "enum": [
+                          "center"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "planId",
+                      "focus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Prepare Polyphemus's policy. Output a JSON object with exactly planId and focus. Choose planId from focused or sweep. focus must be exactly \"center\", the game-derived habit. focused follows a heatmap of audible footsteps; sweep predicts the next grid position from the last two noise clues. The blind giant cannot see the player. Prefer focused for repeated losses, otherwise sweep. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+                },
+                {
+                  "role": "user",
+                  "content": "{\"encounter\":\"cyclops\",\"difficulty\":\"easy\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"center\",\"previousWins\":0}"
+                }
+              ]
+            },
+            "rawBody": "{\"id\":\"chatcmpl-323\",\"object\":\"chat.completion\",\"created\":1791498332,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"focused\\\",\\n  \\\"focus\\\": \\\"center\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":180,\"completion_tokens\":18,\"total_tokens\":198}}\n"
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "label": "Circe after two losses",
+        "input": {
+          "trialId": "circe",
+          "difficulty": "normal",
+          "recent": [
+            {
+              "won": false,
+              "source": "ai",
+              "hits": 2,
+              "successes": 2,
+              "early": 0,
+              "late": 0,
+              "misses": 0,
+              "laneMs": [
+                0,
+                0,
+                0
+              ]
+            },
+            {
+              "won": false,
+              "source": "ai",
+              "hits": 3,
+              "successes": 2,
+              "early": 0,
+              "late": 0,
+              "misses": 0,
+              "laneMs": [
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "seconds": 7.597,
+        "status": 200,
+        "answer": {
+          "plan": {
+            "planId": "chain",
+            "focus": "balanced",
+            "source": "ai"
+          },
+          "description": "Chain alchemist. Circe previews chain reactions or banks curses for a burst when your board is crowded.",
+          "source": "ai"
+        },
+        "legal": true,
+        "providerExchanges": [
+          {
+            "status": 200,
+            "request": {
+              "model": "llama3.2:3b",
+              "stream": false,
+              "temperature": 0,
+              "max_tokens": 100,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "farshore_opponent",
+                  "strict": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "planId": {
+                        "type": "string",
+                        "enum": [
+                          "chain",
+                          "hoard"
+                        ]
+                      },
+                      "focus": {
+                        "type": "string",
+                        "enum": [
+                          "balanced"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "planId",
+                      "focus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Prepare Circe's policy. Output a JSON object with exactly planId and focus. Choose planId from chain or hoard. focus must be exactly \"balanced\", the game-derived habit. chain previews the next potion for multi-chain matches; hoard uses the same planning but banks curses until the other board is crowded. Prefer chain for repeated losses, otherwise hoard. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+                },
+                {
+                  "role": "user",
+                  "content": "{\"encounter\":\"circe\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":true},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+                }
+              ]
+            },
+            "rawBody": "{\"id\":\"chatcmpl-348\",\"object\":\"chat.completion\",\"created\":1791498339,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"chain\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":177,\"completion_tokens\":18,\"total_tokens\":195}}\n"
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "label": "Sirens with red-lane misses",
+        "input": {
+          "trialId": "sirens",
+          "difficulty": "normal",
+          "recent": [
+            {
+              "won": false,
+              "source": "ai",
+              "hits": 2,
+              "successes": 2,
+              "early": 0,
+              "late": 0,
+              "misses": 6,
+              "laneMs": [
+                0,
+                0,
+                0
+              ],
+              "laneMisses": [
+                5,
+                0,
+                1,
+                0
+              ]
+            }
+          ]
+        },
+        "seconds": 7.317,
+        "status": 200,
+        "answer": {
+          "plan": {
+            "planId": "echo",
+            "focus": "balanced",
+            "source": "ai"
+          },
+          "description": "Trick-note echo. The Sirens remember your missed lanes and weave those notes into the next melody. Trick rests and tempo changes are shown as they happen.",
+          "source": "ai"
+        },
+        "legal": true,
+        "providerExchanges": [
+          {
+            "status": 200,
+            "request": {
+              "model": "llama3.2:3b",
+              "stream": false,
+              "temperature": 0,
+              "max_tokens": 100,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "farshore_opponent",
+                  "strict": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "planId": {
+                        "type": "string",
+                        "enum": [
+                          "swell",
+                          "echo"
+                        ]
+                      },
+                      "focus": {
+                        "type": "string",
+                        "enum": [
+                          "balanced"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "planId",
+                      "focus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Prepare The Sirens's policy. Output a JSON object with exactly planId and focus. Choose planId from swell or echo. focus must be exactly \"balanced\", the game-derived habit. swell repeats the weakest missed sound lane in new melodies; echo also adds visible rests and changes tempo between melodies. Choose a melody strategy using the missed-lane history. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+                },
+                {
+                  "role": "user",
+                  "content": "{\"encounter\":\"sirens\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"red\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+                }
+              ]
+            },
+            "rawBody": "{\"id\":\"chatcmpl-458\",\"object\":\"chat.completion\",\"created\":1791498347,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"echo\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":173,\"completion_tokens\":18,\"total_tokens\":191}}\n"
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "label": "Strait after one hull loss",
+        "input": {
+          "trialId": "scylla",
+          "difficulty": "normal",
+          "recent": [
+            {
+              "won": false,
+              "source": "ai",
+              "hits": 5,
+              "successes": 2,
+              "early": 0,
+              "late": 0,
+              "misses": 0,
+              "laneMs": [
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "seconds": 7.889,
+        "status": 200,
+        "answer": {
+          "plan": {
+            "planId": "pincer",
+            "focus": "balanced",
+            "source": "ai"
+          },
+          "description": "Shield pincer. Scylla aims successive heads around your shield; Charybdis synchronizes the pull with incoming strikes.",
+          "source": "ai"
+        },
+        "legal": true,
+        "providerExchanges": [
+          {
+            "status": 200,
+            "request": {
+              "model": "llama3.2:3b",
+              "stream": false,
+              "temperature": 0,
+              "max_tokens": 100,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "farshore_opponent",
+                  "strict": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "planId": {
+                        "type": "string",
+                        "enum": [
+                          "pincer",
+                          "undertow"
+                        ]
+                      },
+                      "focus": {
+                        "type": "string",
+                        "enum": [
+                          "balanced"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "planId",
+                      "focus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Prepare Scylla & Charybdis's policy. Output a JSON object with exactly planId and focus. Choose planId from pincer or undertow. focus must be exactly \"balanced\", the game-derived habit. pincer sends heads around the shield and synchronizes moderate whirlpool pull; undertow adds stronger synchronized pull during approaching attacks. Prefer pincer for repeated losses, otherwise undertow. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+                },
+                {
+                  "role": "user",
+                  "content": "{\"encounter\":\"scylla\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+                }
+              ]
+            },
+            "rawBody": "{\"id\":\"chatcmpl-168\",\"object\":\"chat.completion\",\"created\":1791498354,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"pincer\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":185,\"completion_tokens\":19,\"total_tokens\":204}}\n"
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "label": "Archery after low ring score",
+        "input": {
+          "trialId": "bow",
+          "difficulty": "normal",
+          "recent": [
+            {
+              "won": false,
+              "source": "ai",
+              "hits": 0,
+              "successes": 1,
+              "early": 0,
+              "late": 0,
+              "misses": 0,
+              "laneMs": [
+                0,
+                0,
+                0
+              ]
+            }
+          ]
+        },
+        "seconds": 7.614,
+        "status": 200,
+        "answer": {
+          "plan": {
+            "planId": "feint",
+            "focus": "balanced",
+            "source": "ai"
+          },
+          "description": "Block-shot gambit. Antinous calculates wind compensation and can choose a lower-scoring block shot to narrow your next opening.",
+          "source": "ai"
+        },
+        "legal": true,
+        "providerExchanges": [
+          {
+            "status": 200,
+            "request": {
+              "model": "llama3.2:3b",
+              "stream": false,
+              "temperature": 0,
+              "max_tokens": 100,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "farshore_opponent",
+                  "strict": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "planId": {
+                        "type": "string",
+                        "enum": [
+                          "surge",
+                          "feint"
+                        ]
+                      },
+                      "focus": {
+                        "type": "string",
+                        "enum": [
+                          "balanced"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "planId",
+                      "focus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Prepare Antinous's policy. Output a JSON object with exactly planId and focus. Choose planId from surge or feint. focus must be exactly \"balanced\", the game-derived habit. surge calculates wind compensation for scored shots; feint can sacrifice rings to block and narrow the player's next ring opening. Prefer surge for repeated losses, otherwise feint. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+                },
+                {
+                  "role": "user",
+                  "content": "{\"encounter\":\"bow\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+                }
+              ]
+            },
+            "rawBody": "{\"id\":\"chatcmpl-198\",\"object\":\"chat.completion\",\"created\":1791498362,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"feint\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":174,\"completion_tokens\":19,\"total_tokens\":193}}\n"
+          }
+        ]
+      },
+      {
+        "id": "S6",
+        "label": "Cyclops with left-side habit",
+        "input": {
+          "trialId": "cyclops",
+          "difficulty": "hard",
+          "recent": [
+            {
+              "won": false,
+              "source": "ai",
+              "hits": 2,
+              "successes": 2,
+              "early": 0,
+              "late": 0,
+              "misses": 0,
+              "laneMs": [
+                21000,
+                3000,
+                1000
+              ]
+            }
+          ]
+        },
+        "seconds": 7.641,
+        "status": 200,
+        "answer": {
+          "plan": {
+            "planId": "focused",
+            "focus": "left",
+            "source": "ai"
+          },
+          "description": "Noise heatmap. Polyphemus builds a noise heatmap and predicts the direction of your escape. A warning marks every smash before it lands.",
+          "source": "ai"
+        },
+        "legal": true,
+        "providerExchanges": [
+          {
+            "status": 200,
+            "request": {
+              "model": "llama3.2:3b",
+              "stream": false,
+              "temperature": 0,
+              "max_tokens": 100,
+              "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                  "name": "farshore_opponent",
+                  "strict": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "planId": {
+                        "type": "string",
+                        "enum": [
+                          "focused",
+                          "sweep"
+                        ]
+                      },
+                      "focus": {
+                        "type": "string",
+                        "enum": [
+                          "left"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "planId",
+                      "focus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "Prepare Polyphemus's policy. Output a JSON object with exactly planId and focus. Choose planId from focused or sweep. focus must be exactly \"left\", the game-derived habit. focused follows a heatmap of audible footsteps; sweep predicts the next grid position from the last two noise clues. The blind giant cannot see the player. Prefer focused for repeated losses, otherwise sweep. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+                },
+                {
+                  "role": "user",
+                  "content": "{\"encounter\":\"cyclops\",\"difficulty\":\"hard\",\"observations\":{\"mostUsedLane\":\"left\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"left\",\"previousWins\":0}"
+                }
+              ]
+            },
+            "rawBody": "{\"id\":\"chatcmpl-233\",\"object\":\"chat.completion\",\"created\":1791498370,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"focused\\\",\\n  \\\"focus\\\": \\\"left\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":177,\"completion_tokens\":18,\"total_tokens\":195}}\n"
+          }
+        ]
+      }
+    ],
+    "failures": [
+      {
+        "id": "E1",
+        "label": "Nonexistent provider model",
+        "body": "{\"model\":\"farshore-phase2-deliberately-missing\",\"messages\":[{\"role\":\"user\",\"content\":\"Prepare Circe\"}],\"stream\":false}",
+        "boundary": "real provider",
+        "status": 404,
+        "seconds": 0.007,
+        "rawBody": "{\"error\":{\"message\":\"model 'farshore-phase2-deliberately-missing' not found\",\"type\":\"not_found_error\",\"param\":null,\"code\":null}}\n"
+      },
+      {
+        "id": "E2",
+        "label": "Malformed provider JSON",
+        "body": "{",
+        "boundary": "real provider",
+        "status": 400,
+        "seconds": 0.001,
+        "rawBody": "{\"error\":{\"message\":\"unexpected EOF\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+      },
+      {
+        "id": "E3",
+        "label": "Unsupported difficulty",
+        "boundary": "application before provider contact",
+        "input": {
+          "trialId": "scylla",
+          "difficulty": "impossible",
+          "recent": []
+        },
+        "status": 400,
+        "rawBody": "{\"error\":\"Choose a supported encounter and difficulty. At most two attempt summaries are accepted.\"}"
+      }
+    ],
+    "latency": {
+      "min": 7.317,
+      "average": 8.278,
+      "max": 11.613
+    }
+  },
+  "quality": [
+    "Legal focused/center. The prompt prefers sweep for a newcomer, but that preference is advisory. Selection is not proof of best tactics.",
+    "Legal chain/balanced. Matches the prompt preference for two previous losses. Rival still plays through local chain logic.",
+    "Legal echo/balanced. Red miss counts reach the prompt. Local melody logic targets the weakest lane; this output does not name red.",
+    "Legal pincer/balanced. Prompt favors undertow except for repeated losses, so this valid choice differs from its advisory preference.",
+    "Legal feint/balanced. Produces the block-shot policy. Whether the player finds it fair needs a playtest.",
+    "Legal focused/left. Required habit focus is preserved. This small result does not establish general adaptation quality."
+  ]
+}

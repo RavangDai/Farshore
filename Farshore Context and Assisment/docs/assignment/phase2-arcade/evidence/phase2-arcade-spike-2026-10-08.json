@@ -1,0 +1,579 @@
+{
+  "checkedAt": "2026-10-08T22:26:10.235Z",
+  "model": "llama3.2:3b",
+  "endpoint": "loopback Ollama OpenAI-compatible endpoint",
+  "method": "Six sequential realistic samples using production POST adapter from a standalone script. No UI or game save. Raw provider outputs captured. Temperature 0, strict schema, 100 output-token cap, no streaming.",
+  "scope": "Feasibility and latency sample, not user research, enjoyment evidence, or a model accuracy benchmark.",
+  "samples": [
+    {
+      "id": "S1",
+      "label": "First-time Cyclops",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "easy",
+        "recent": []
+      },
+      "seconds": 11.613,
+      "status": 200,
+      "answer": {
+        "plan": {
+          "planId": "focused",
+          "focus": "center",
+          "source": "ai"
+        },
+        "description": "Noise heatmap. Polyphemus builds a noise heatmap and predicts the direction of your escape. A warning marks every smash before it lands.",
+        "source": "ai"
+      },
+      "legal": true,
+      "providerExchanges": [
+        {
+          "status": 200,
+          "request": {
+            "model": "llama3.2:3b",
+            "stream": false,
+            "temperature": 0,
+            "max_tokens": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "farshore_opponent",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "planId": {
+                      "type": "string",
+                      "enum": [
+                        "focused",
+                        "sweep"
+                      ]
+                    },
+                    "focus": {
+                      "type": "string",
+                      "enum": [
+                        "center"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "planId",
+                    "focus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Prepare Polyphemus's policy. Output a JSON object with exactly planId and focus. Choose planId from focused or sweep. focus must be exactly \"center\", the game-derived habit. focused follows a heatmap of audible footsteps; sweep predicts the next grid position from the last two noise clues. The blind giant cannot see the player. Prefer focused for repeated losses, otherwise sweep. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+              },
+              {
+                "role": "user",
+                "content": "{\"encounter\":\"cyclops\",\"difficulty\":\"easy\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"center\",\"previousWins\":0}"
+              }
+            ]
+          },
+          "rawBody": "{\"id\":\"chatcmpl-323\",\"object\":\"chat.completion\",\"created\":1791498332,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"focused\\\",\\n  \\\"focus\\\": \\\"center\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":180,\"completion_tokens\":18,\"total_tokens\":198}}\n"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "label": "Circe after two losses",
+      "input": {
+        "trialId": "circe",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "ai",
+            "hits": 2,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "won": false,
+            "source": "ai",
+            "hits": 3,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "seconds": 7.597,
+      "status": 200,
+      "answer": {
+        "plan": {
+          "planId": "chain",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "Chain alchemist. Circe previews chain reactions or banks curses for a burst when your board is crowded.",
+        "source": "ai"
+      },
+      "legal": true,
+      "providerExchanges": [
+        {
+          "status": 200,
+          "request": {
+            "model": "llama3.2:3b",
+            "stream": false,
+            "temperature": 0,
+            "max_tokens": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "farshore_opponent",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "planId": {
+                      "type": "string",
+                      "enum": [
+                        "chain",
+                        "hoard"
+                      ]
+                    },
+                    "focus": {
+                      "type": "string",
+                      "enum": [
+                        "balanced"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "planId",
+                    "focus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Prepare Circe's policy. Output a JSON object with exactly planId and focus. Choose planId from chain or hoard. focus must be exactly \"balanced\", the game-derived habit. chain previews the next potion for multi-chain matches; hoard uses the same planning but banks curses until the other board is crowded. Prefer chain for repeated losses, otherwise hoard. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+              },
+              {
+                "role": "user",
+                "content": "{\"encounter\":\"circe\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":true},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+              }
+            ]
+          },
+          "rawBody": "{\"id\":\"chatcmpl-348\",\"object\":\"chat.completion\",\"created\":1791498339,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"chain\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":177,\"completion_tokens\":18,\"total_tokens\":195}}\n"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "label": "Sirens with red-lane misses",
+      "input": {
+        "trialId": "sirens",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "ai",
+            "hits": 2,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 6,
+            "laneMs": [
+              0,
+              0,
+              0
+            ],
+            "laneMisses": [
+              5,
+              0,
+              1,
+              0
+            ]
+          }
+        ]
+      },
+      "seconds": 7.317,
+      "status": 200,
+      "answer": {
+        "plan": {
+          "planId": "echo",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "Trick-note echo. The Sirens remember your missed lanes and weave those notes into the next melody. Trick rests and tempo changes are shown as they happen.",
+        "source": "ai"
+      },
+      "legal": true,
+      "providerExchanges": [
+        {
+          "status": 200,
+          "request": {
+            "model": "llama3.2:3b",
+            "stream": false,
+            "temperature": 0,
+            "max_tokens": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "farshore_opponent",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "planId": {
+                      "type": "string",
+                      "enum": [
+                        "swell",
+                        "echo"
+                      ]
+                    },
+                    "focus": {
+                      "type": "string",
+                      "enum": [
+                        "balanced"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "planId",
+                    "focus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Prepare The Sirens's policy. Output a JSON object with exactly planId and focus. Choose planId from swell or echo. focus must be exactly \"balanced\", the game-derived habit. swell repeats the weakest missed sound lane in new melodies; echo also adds visible rests and changes tempo between melodies. Choose a melody strategy using the missed-lane history. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+              },
+              {
+                "role": "user",
+                "content": "{\"encounter\":\"sirens\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"red\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+              }
+            ]
+          },
+          "rawBody": "{\"id\":\"chatcmpl-458\",\"object\":\"chat.completion\",\"created\":1791498347,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"echo\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":173,\"completion_tokens\":18,\"total_tokens\":191}}\n"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "label": "Strait after one hull loss",
+      "input": {
+        "trialId": "scylla",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "ai",
+            "hits": 5,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "seconds": 7.889,
+      "status": 200,
+      "answer": {
+        "plan": {
+          "planId": "pincer",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "Shield pincer. Scylla aims successive heads around your shield; Charybdis synchronizes the pull with incoming strikes.",
+        "source": "ai"
+      },
+      "legal": true,
+      "providerExchanges": [
+        {
+          "status": 200,
+          "request": {
+            "model": "llama3.2:3b",
+            "stream": false,
+            "temperature": 0,
+            "max_tokens": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "farshore_opponent",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "planId": {
+                      "type": "string",
+                      "enum": [
+                        "pincer",
+                        "undertow"
+                      ]
+                    },
+                    "focus": {
+                      "type": "string",
+                      "enum": [
+                        "balanced"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "planId",
+                    "focus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Prepare Scylla & Charybdis's policy. Output a JSON object with exactly planId and focus. Choose planId from pincer or undertow. focus must be exactly \"balanced\", the game-derived habit. pincer sends heads around the shield and synchronizes moderate whirlpool pull; undertow adds stronger synchronized pull during approaching attacks. Prefer pincer for repeated losses, otherwise undertow. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+              },
+              {
+                "role": "user",
+                "content": "{\"encounter\":\"scylla\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+              }
+            ]
+          },
+          "rawBody": "{\"id\":\"chatcmpl-168\",\"object\":\"chat.completion\",\"created\":1791498354,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"pincer\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":185,\"completion_tokens\":19,\"total_tokens\":204}}\n"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "label": "Archery after low ring score",
+      "input": {
+        "trialId": "bow",
+        "difficulty": "normal",
+        "recent": [
+          {
+            "won": false,
+            "source": "ai",
+            "hits": 0,
+            "successes": 1,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "seconds": 7.614,
+      "status": 200,
+      "answer": {
+        "plan": {
+          "planId": "feint",
+          "focus": "balanced",
+          "source": "ai"
+        },
+        "description": "Block-shot gambit. Antinous calculates wind compensation and can choose a lower-scoring block shot to narrow your next opening.",
+        "source": "ai"
+      },
+      "legal": true,
+      "providerExchanges": [
+        {
+          "status": 200,
+          "request": {
+            "model": "llama3.2:3b",
+            "stream": false,
+            "temperature": 0,
+            "max_tokens": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "farshore_opponent",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "planId": {
+                      "type": "string",
+                      "enum": [
+                        "surge",
+                        "feint"
+                      ]
+                    },
+                    "focus": {
+                      "type": "string",
+                      "enum": [
+                        "balanced"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "planId",
+                    "focus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Prepare Antinous's policy. Output a JSON object with exactly planId and focus. Choose planId from surge or feint. focus must be exactly \"balanced\", the game-derived habit. surge calculates wind compensation for scored shots; feint can sacrifice rings to block and narrow the player's next ring opening. Prefer surge for repeated losses, otherwise feint. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+              },
+              {
+                "role": "user",
+                "content": "{\"encounter\":\"bow\",\"difficulty\":\"normal\",\"observations\":{\"mostUsedLane\":\"no previous lane preference\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"balanced\",\"previousWins\":0}"
+              }
+            ]
+          },
+          "rawBody": "{\"id\":\"chatcmpl-198\",\"object\":\"chat.completion\",\"created\":1791498362,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"feint\\\",\\n  \\\"focus\\\": \\\"balanced\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":174,\"completion_tokens\":19,\"total_tokens\":193}}\n"
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "label": "Cyclops with left-side habit",
+      "input": {
+        "trialId": "cyclops",
+        "difficulty": "hard",
+        "recent": [
+          {
+            "won": false,
+            "source": "ai",
+            "hits": 2,
+            "successes": 2,
+            "early": 0,
+            "late": 0,
+            "misses": 0,
+            "laneMs": [
+              21000,
+              3000,
+              1000
+            ]
+          }
+        ]
+      },
+      "seconds": 7.641,
+      "status": 200,
+      "answer": {
+        "plan": {
+          "planId": "focused",
+          "focus": "left",
+          "source": "ai"
+        },
+        "description": "Noise heatmap. Polyphemus builds a noise heatmap and predicts the direction of your escape. A warning marks every smash before it lands.",
+        "source": "ai"
+      },
+      "legal": true,
+      "providerExchanges": [
+        {
+          "status": 200,
+          "request": {
+            "model": "llama3.2:3b",
+            "stream": false,
+            "temperature": 0,
+            "max_tokens": 100,
+            "response_format": {
+              "type": "json_schema",
+              "json_schema": {
+                "name": "farshore_opponent",
+                "strict": true,
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "planId": {
+                      "type": "string",
+                      "enum": [
+                        "focused",
+                        "sweep"
+                      ]
+                    },
+                    "focus": {
+                      "type": "string",
+                      "enum": [
+                        "left"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "planId",
+                    "focus"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "Prepare Polyphemus's policy. Output a JSON object with exactly planId and focus. Choose planId from focused or sweep. focus must be exactly \"left\", the game-derived habit. focused follows a heatmap of audible footsteps; sweep predicts the next grid position from the last two noise clues. The blind giant cannot see the player. Prefer focused for repeated losses, otherwise sweep. These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. Return JSON only."
+              },
+              {
+                "role": "user",
+                "content": "{\"encounter\":\"cyclops\",\"difficulty\":\"hard\",\"observations\":{\"mostUsedLane\":\"left\",\"weakestSongLane\":\"no missed lane yet\",\"timingTendency\":\"balanced\",\"repeatedLosses\":false},\"requiredFocus\":\"left\",\"previousWins\":0}"
+              }
+            ]
+          },
+          "rawBody": "{\"id\":\"chatcmpl-233\",\"object\":\"chat.completion\",\"created\":1791498370,\"model\":\"llama3.2:3b\",\"system_fingerprint\":\"fp_ollama\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"planId\\\": \\\"focused\\\",\\n  \\\"focus\\\": \\\"left\\\"\\n}\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":177,\"completion_tokens\":18,\"total_tokens\":195}}\n"
+        }
+      ]
+    }
+  ],
+  "failures": [
+    {
+      "id": "E1",
+      "label": "Nonexistent provider model",
+      "body": "{\"model\":\"farshore-phase2-deliberately-missing\",\"messages\":[{\"role\":\"user\",\"content\":\"Prepare Circe\"}],\"stream\":false}",
+      "boundary": "real provider",
+      "status": 404,
+      "seconds": 0.007,
+      "rawBody": "{\"error\":{\"message\":\"model 'farshore-phase2-deliberately-missing' not found\",\"type\":\"not_found_error\",\"param\":null,\"code\":null}}\n"
+    },
+    {
+      "id": "E2",
+      "label": "Malformed provider JSON",
+      "body": "{",
+      "boundary": "real provider",
+      "status": 400,
+      "seconds": 0.001,
+      "rawBody": "{\"error\":{\"message\":\"unexpected EOF\",\"type\":\"invalid_request_error\",\"param\":null,\"code\":null}}"
+    },
+    {
+      "id": "E3",
+      "label": "Unsupported difficulty",
+      "boundary": "application before provider contact",
+      "input": {
+        "trialId": "scylla",
+        "difficulty": "impossible",
+        "recent": []
+      },
+      "status": 400,
+      "rawBody": "{\"error\":\"Choose a supported encounter and difficulty. At most two attempt summaries are accepted.\"}"
+    }
+  ],
+  "latency": {
+    "min": 7.317,
+    "average": 8.278,
+    "max": 11.613
+  }
+}

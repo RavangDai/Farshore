@@ -1,5 +1,7 @@
 # Farshore Phase 2
 
+Current submission: use [the October 8 Arcade Trials package](../phase2-arcade/README.md), revised for all five games. It includes new slides, 28 wireframes, five flows and a fresh six-input model experiment. This older package is retained as the advice-voyage design record.
+
 October 8 update: **Trials of the Voyage** is now the default arcade game. This package remains an archival design for the original advice voyage. See [the arcade implementation and flows](../../arcade/README.md) and [the new strategy spike](../../arcade/technical-spike.md). A revised full wireframe set and presentation have not been authored.
 
 Status, October 5: this package documents the original advice voyage. The default game has since become Circe's Broken Seal, an escape and mystery case. See the [current case record](../../MYSTERY-CASE.md). These PDFs, slides, flows, and wireframes await revision after newcomer evaluation.

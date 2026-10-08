@@ -1,10 +1,10 @@
-# Farshore: arcade edition
+# Farshore: The Odyssey: Arcade Trials
 
-October 8, 2026: the default is **Trials of the Voyage**, a complete three-encounter arcade route. `src/ArcadeApp.tsx` owns the journey, `src/lib/arcade.ts` owns deterministic rules and saves, and `server/arcade.ts` prepares bounded AI tactics. Lane dodging and a shared timing engine replace the default investigation loop.
+October 8, 2026: the default game now follows the five-stop mythic arcade concept. Each shore has its own rules and interaction: grid stealth, potion match-3, melody memory, paddle defense, and turn-based archery. `src/lib/mythic.ts` owns the new deterministic engines; `src/lib/arcade.ts` owns content, strategies, and save migration. The previous timing/three-lane rules remain in `src/lib/legacy-arcade.ts` for historical checks.
 
-Practice, retry, assistance, local saves, optional music, reduced scenery motion, keyboard/touch controls, and a homecoming report are implemented. AI waits occur before rounds, with cancellation, strategy review/regeneration, and explicit authored recovery. The local model has a new six-input spike with two actual provider failures. Tactical reliability remains provisional.
+Solo and local adaptive AI start immediately. Optional model planning supports all five opponents, with explicit loading, cancellation, reviewed strategies, failures, and a local-start action. Circe's own board and Antinous' own shots are visible; the other rivals make observable searches, melodies, and attacks. Browser saves migrate to schema 2 while retaining old clears and adding the two new pending shores.
 
-The [arcade record](<Farshore Context and Assisment/docs/arcade/README.md>) and [verification notes](<Farshore Context and Assisment/docs/arcade/verification.md>) describe current behavior. The older mystery remains at `?mystery`, and the advice voyage remains at `?voyage`, with separate existing saves. The Phase 2 package still describes the original advice voyage. No interviews, personas, peer critique, or instructor approval were invented.
+The [current design record](<Farshore Context and Assisment/docs/arcade/README.md>) includes a class demonstration flow. [Current verification](<Farshore Context and Assisment/docs/arcade/trials-verification.md>) records gameplay, model integration, and browser checks. The earlier [three-trial record](<Farshore Context and Assisment/docs/arcade/three-trial-record.md>) and [original verification](<Farshore Context and Assisment/docs/arcade/verification.md>) are historical. The Phase 2 package still describes the original advice voyage. No research evidence or instructor approval is inferred from this implementation.
 
 ## Earlier implementation record
 

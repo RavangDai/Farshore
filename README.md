@@ -1,14 +1,14 @@
-# Farshore: Trials of the Voyage
+# Farshore: The Odyssey: Arcade Trials
 
-A browser arcade adventure that brings Odysseus home through three short encounters: dodge the Cyclops' rocks, row past the Sirens, and steady the bow on Ithaca.
+A head-to-head retro arcade voyage through five distinct games: Polyphemus grid stealth, Circe falling-potion match-3, Sirens four-lane melody memory, Scylla and Charybdis paddle defense, and Antinous turn-based twelve-ring archery.
 
-Run **`npm.cmd run dev`**, open **http://localhost:5173**, and choose **Begin voyage**. Every encounter teaches its controls and offers practice, retries, Easy/Normal/Hard difficulty, and an assisted passage. Normal is the recommended default. Keyboard, click, and touch buttons are supported. Sound is optional; required cues are visible.
+Run **`npm.cmd run dev`**, open the printed localhost URL (normally **http://localhost:5173**), and choose **Begin voyage**. Each encounter teaches its own controls and offers practice, retries, Easy/Normal/Hard difficulty, pause, and an assisted passage. Keyboard, pointer, and touch controls work without sound. Optional music includes four distinct notes for the Sirens.
 
-Choose **Standard** for immediate authored play, or **AI rival** to prepare a real model-selected strategy before the round. The model selects permitted tactics using recent attempt summaries. Game code keeps warnings, collisions, timing windows, and scoring fixed. Loading, cancellation, retry, and explicit standard recovery keep model waits out of the action.
+Choose **Arcade Solo** for learnable opponents or **AI Rival Battle** for immediate adaptive opponents. Rivals take visible actions during play. **Prepare with connected model** optionally uses your configured pretrained model to select the strategy before a match. Local adaptive AI and model-selected strategies are labeled separately. Game code owns scores, warnings, collision rules, and progress.
 
-The game saves completed encounters and preferences in this browser. The homecoming report distinguishes clears from assistance. Replaying can upgrade an assisted encounter. An unfinished round restarts after reload, while earlier clears are retained.
+The browser saves completed encounters and preferences. Existing three-trial saves migrate without losing clears; Circe and the strait are added as pending stops. Practice does not advance progress. Assisted passages are marked in the homecoming report and can be upgraded by replaying. Unfinished rounds restart after reload.
 
-See the [arcade implementation and flows](<Farshore Context and Assisment/docs/arcade/README.md>), [model experiment](<Farshore Context and Assisment/docs/arcade/technical-spike.md>), and [verification record](<Farshore Context and Assisment/docs/arcade/verification.md>). The [concept options](<Farshore Context and Assisment/docs/FARSHORE-ARCADE-CONCEPT-OPTIONS.md>) remain the design proposal; Aeolus and Circe are later expansion, not implemented encounters.
+See the [five-trial rules and class demonstration](<Farshore Context and Assisment/docs/arcade/README.md>) and [verification record](<Farshore Context and Assisment/docs/arcade/trials-verification.md>). Real model checks for Circe and Scylla are recorded; the [earlier model experiment](<Farshore Context and Assisment/docs/arcade/technical-spike.md>) describes the previous mechanics.
 
 ```powershell
 npm.cmd run dev
@@ -16,9 +16,7 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Use the URL printed by Vite if you select another port. Keep the server running. Do not open index.html directly or use Live Server.
-
-Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:5173/?mystery) and the [original advice voyage](http://localhost:5173/?voyage), each with separate progress. The existing Phase 2 slides and PDFs describe the original advice voyage and await revision for arcade play.
+Keep Vite running. Do not open index.html directly or use Live Server. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:5173/?mystery) and the [original advice voyage](http://localhost:5173/?voyage), each with separate progress. The existing Phase 2 slides and PDFs describe the original advice voyage and await revision for the arcade concept.
 
 ## Earlier modes and original voyage notes
 

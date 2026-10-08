@@ -1,0 +1,30 @@
+[
+  {
+    "trial": "circe",
+    "status": 200,
+    "seconds": 2.347,
+    "body": {
+      "plan": {
+        "planId": "chain",
+        "focus": "balanced",
+        "source": "ai"
+      },
+      "description": "Chain alchemist. Circe previews chain reactions or banks curses for a burst when your board is crowded.",
+      "source": "ai"
+    }
+  },
+  {
+    "trial": "scylla",
+    "status": 200,
+    "seconds": 8.838,
+    "body": {
+      "plan": {
+        "planId": "pincer",
+        "focus": "balanced",
+        "source": "ai"
+      },
+      "description": "Shield pincer. Scylla aims successive heads around your shield; Charybdis synchronizes the pull with incoming strikes.",
+      "source": "ai"
+    }
+  }
+]

@@ -1,93 +1,69 @@
-# Farshore: Trials of the Voyage
+# The Odyssey: Arcade Trials
 
-The October 8 arcade edition is the default game. Run `npm.cmd run dev`, open http://localhost:5173, and choose **Begin voyage**. The earlier mystery is at `?mystery` and the original advice voyage is at `?voyage`. All three modes use separate saves.
+Farshore is a head-to-head retro arcade voyage from Troy to Ithaca. Each of five shores teaches a different game. Mythic opponents act on the board, sing the next melody, launch coordinated attacks, or take their own scored shots. This replaces the earlier three-lane dodge and shared timing-slider design.
 
-## Playable scope
+Run `npm.cmd run dev`, open the printed localhost URL, and choose **Begin voyage**. **Arcade Solo** uses learnable opponent policies. **AI Rival Battle** uses adaptive heuristic opponents immediately. Both offer Easy, Normal, and Hard, practice, retries, pause, and an assisted passage. Normal is the default. Optional sound includes four distinct Siren notes; numbered/color lanes remain usable when muted.
 
-| Encounter | Controls | Completion |
+| Shore | Recognizable game | Player action | Visible rival action | Clear |
+| --- | --- | --- | --- | --- |
+| Cyclops' Coast | 8×8 grid stealth | Sneak, dash, hide beneath sheep, evade once per warning | Blind Polyphemus marks and smashes a 2×2 area from noise clues | Reach either gold exit before three hits or the turn limit |
+| Aeaea | Falling-potion match-3 duel | Choose a column, rotate three potions, drop | Circe drops her own pieces, clears chains, and sends curse blocks | Her board fills first; a two-minute cap compares brew scores |
+| Sirens' Passage | Four-lane melody memory | Watch/listen, then echo with A/S/D/F or pads | Sirens compose and play a melody, then target missed lanes | Echo five melodies before Temptation reaches 100% |
+| Scylla & Charybdis | Paddle deflector | Move shield with Up/Down; hold Space to row | Six heads telegraph strikes while Charybdis pulses her pull | Keep the ship afloat for 30/40/50 seconds |
+| Ithaca's Hall | Turn-based target archery | Adjust wind aim, elevation, tension, then release | Antinous visibly takes his own wind-adjusted shot | Score more rings across five shots |
+
+Circe's tiles are Wine, Moly, Swine, Rune, and Curse. Horizontal and vertical matches clear three or more. Gravity can create chains. Matching Moly removes swine/curse tiles and sends curses; chains send additional curses. Curse tiles do not form ordinary matches. Reaching the board ceiling loses. At the visible time cap, a tie favors Circe. The next triplet and both falling pieces are visible.
+
+In the cave, sheep conceal a quiet move. Dashes travel up to two cells and generate louder noise. Polyphemus never reads the player's current coordinates to choose a smash: he uses audible clues or a blind search. The entire warning locks before the player gets one evade step. Easy/Normal/Hard provide 32/26/22 turns and 1500/1150/900 ms warning time.
+
+The Sirens have separate Listen and Reply phases. Pressing during Listen does not count. The reply is a memory challenge with a generous deadline, rather than a single-bar timing test. Adaptive Trick-note Echo adds visible rests and changes tempo between melodies; rests are omitted from the reply. Mismatched or absent notes increase Temptation and the relevant lane's miss count. A correct melody reduces Temptation.
+
+The strait has independent controls for shield and rowing, pointer dragging on the sea, and a hold-to-row button for touch. Reflected attacks visibly return toward Scylla. Five hull strikes or reaching the vortex loses. Arrow/W/S keys support continuous shield movement. Releasing Space, pointer capture, or focus releases the oars; backgrounding pauses the round.
+
+The archery gallery renders twelve rings in perspective, an end-on inspection target, and a live trajectory preview. Wind, elevation, and tension affect the same path formula for both contestants. After the player's shot, Antinous shoots, the results remain visible, and new wind is set for the next turn. Adaptive Wind Reader calculates aim; Block-shot Gambit can sacrifice points to partially obstruct one ring for the next shot only. Antinous risks a showy third shot so optimal play can beat him. Tied scores favor the defending suitor.
+
+## What the AI contributes
+
+| Opponent | Solo policy | Adaptive policies |
 | --- | --- | --- |
-| Cyclops' Coast | Left/Right or A/D; click or tap the movement buttons | Survive 45 seconds with fewer than three hits |
-| Sirens' Passage | Space or Row during the visible gold window | Easy 6/8; Normal 9/12; Hard 13/16 |
-| Ithaca's Bow | Space or Release when the sight's center crosses the gold opening | Easy 3/5; Normal 5/7; Hard 7/9 |
+| Polyphemus | Search around the last noise | Noise Heatmap follows decaying clues; Exit Ambush projects the next position from two noises |
+| Circe | Prioritize immediate matches | Chain Alchemist previews the next piece; Banked Curses waits for a crowded player board or a large bank |
+| Sirens | Repeating four-lane melody | Weak-lane Refrain repeats the least reliable lane; Trick-note Echo adds rests and tempo changes |
+| Scylla & Charybdis | Repeating heads and regular pull | Shield Pincer aims around the shield; Synchronized Undertow coordinates stronger pull with attacks |
+| Antinous | Imprecise scored shots | Wind Reader searches legal trajectories; Block-shot Gambit narrows the player's next opening |
 
-Each challenge has a briefing, short practice, Easy/Normal/Hard difficulty, countdown, pause, retry, streak feedback, and an assisted passage. Normal is the recommended default. The revision upgrades old difficulty preferences to Normal once while retaining sound, scenery, rival preferences, and campaign progress. Later difficulty selections persist. Practice does not change campaign records. Assistance is clearly recorded and can later be upgraded by clearing that encounter. Previous clears survive failed replays. The reunion epilogue completes the short voyage; other episodes are explicitly condensed.
+Adaptive heuristics are game AI, not a pretrained model. **Prepare with connected model** optionally calls the configured Llama/OpenAI-compatible service to choose one of the encounter's two adaptive strategies. The screen distinguishes a **local AI duel** from a **model-planned duel**. The model chooses the policy before play; authored local logic executes opponent actions during the match. No inference blocks real-time input. Model output cannot change collisions, scoring, warnings, or campaign progress.
 
-Cyclops volleys block one or two lanes, always leaving open water. Their intervals shorten over the round; warnings are 1600/950/650 ms for Easy/Normal/Hard. Camping any lane loses. Sirens timing is ±350/160/100 ms and bow timing is ±300/120/75 ms. Higher difficulties also shorten each timing cycle and require more successes. These are authored values, not model decisions. Human difficulty calibration remains to be evaluated.
+The preparation request contains the encounter, difficulty, and at most two numeric attempt summaries. Siren summaries include four lane miss counts. The server constrains legal strategies and habit focus, rejects invalid or extra fields, and generates its own strategy description. Keys stay on the server. Loading, elapsed time, cancel, regeneration, failure, and an explicitly labeled local start are supported. No failed request silently starts a match or grants a clear.
 
-Cyclops uses a lane engine. The Sirens and bow share time-based hit checks but have distinct scenery and policies. Sirens beats can change cadence and reverse direction; the bow sight can reverse or change velocity. A throwing Cyclops, projectile arcs, locked red lanes, sea spray, a detailed rowing galley, Sirens and song waves, and a palace with twelve axes and flying arrows are rendered in code-native SVG. Essential positions use the same clock as the rules. Good and failed attempts get separate colored result marks and streak feedback. All essential cues are visible with sound off. Decorative water/oar movement respects Still scenery, while functional projectiles and sights remain visible. Keyboard movement remains usable after clicking a movement control. A pause freezes the simulation; a resume uses a new countdown. Hidden tabs, lost window focus, or frame gaps above 500 ms pause rather than skip warnings or stretch game time.
+Two real requests for the new rivals returned HTTP 200 on October 8: Circe selected `chain` in 2.347 s; Scylla selected `pincer` in 8.838 s. Exact replies are in [the new evidence record](evidence/mythic-model-check-2026-10-08.json). These two examples verify integration, not comparative model quality. The [earlier technical spike](technical-spike.md) and [three-trial design record](three-trial-record.md) describe the superseded mechanics.
 
-## AI integration
+## Progress and class demonstration
 
-Both modes support all three difficulties. Difficulty determines reaction time and precision. The rival determines tactics:
+Saves retain the `farshore-arcade-v1` storage key and migrate to schema 2. Existing clears and attempts are retained. Circe and the strait are inserted as pending encounters. Every earlier shore must be cleared or assisted before later trials become playable. A failed replay never removes a clear; a successful replay upgrades assistance. Practice does not change progress. In-progress rounds restart after reload. Preferences and completed progress remain browser-local.
 
-| Trial | Standard pattern | AI policy catalog |
-| --- | --- | --- |
-| Cyclops | Repeating three-lane patrol | Lane hunter reads current lane habits; Crossfire changes the safe-route sequence |
-| Sirens | Regular forward beat | Changing tide alternates fast/slow beats; Reverse echo changes direction and cadence |
-| Bow | Constant-speed forward sight | Surging aim reverses direction; False release changes sight velocity |
+For a concise class demonstration:
 
-Choose **AI rival**, then **Prepare AI rival**, to call the configured pretrained model. It selects one of that encounter's two AI policies using recent attempt summaries. Review the returned strategy and start it, regenerate it, change difficulty, or choose standard. The committed policy stays fixed. Local authored logic executes it during play; the lane hunter can read current lane occupancy, but each volley locks at its warning and never retargets afterward. This local adaptation is separate from pretrained model inference.
+1. Show the five-shore map and explain that each stop uses a different interaction.
+2. Sneak onto a sheep, then show Polyphemus locking a smash and your evade move.
+3. In Circe's duel, drop the first all-Moly piece. Show purification and the curse arriving on her separate board.
+4. Echo a Siren melody; deliberately miss a lane in an AI round, then show it appearing in the next refrain.
+5. Hold Row while moving the shield in the strait. Point out the heads' warnings and pulsing vortex.
+6. Move the archery aim to change the trajectory preview, release, then watch Antinous take his scored turn.
+7. Show **Prepare with connected model**, its reviewed strategy, and the labeled model-planned match. Assistance can advance the demonstration; the homecoming report identifies it honestly.
 
-The browser sends the trial, difficulty, and at most two numeric summaries: hits, successful actions, early/late input, unplayed cues, and time spent in each lane. The server derives the lane or timing focus from those summaries and constrains the model to that single focus. The model chooses an AI policy and returns it with the required focus. The server rejects standard policies, wrong focus, extra fields, and unsupported IDs, then provides an authored description. It does not repair invalid output, generate story facts, or award progress.
+The briefing's **In Homer / in this game** notes distinguish the literary episode from invented arcade rules. Scylla's arcade clear does not claim that Homer describes a lossless escape. Antinous' competitive shots are explicitly invented; in Homer he cannot string Odysseus' bow. The original Phase 2 slides/PDFs still describe the advice voyage. This implementation does not establish new interviews, personas, user-study results, or instructor approval.
 
-No model calls occur during action. The server uses the existing `FARSHORE_MODEL_URL`, `FARSHORE_MODEL_NAME`, and optional server-only key. Local Ollama keeps inference on this laptop; a hosted configuration sends the disclosed summaries to that provider. No microphone, raw keystroke record, account, or cloud save is required.
+## Implementation
 
-Loading shows elapsed time and cancellation. Cancellation, navigation, practice, rival changes, pace changes, and restart invalidate pending preparation. A late reply cannot change a subsequent game. Errors and unsupported strategies offer retry or explicit standard play. There is no automatic AI-to-standard substitution and no invented confidence percentage.
+- `src/ArcadeApp.tsx`: five-stop hub, preparation, preferences, progression, and homecoming.
+- `src/lib/arcade.ts`: encounter content, strategies, save migration, and campaign validation.
+- `src/lib/mythic.ts`: five deterministic gameplay engines and adaptive decisions.
+- `src/components/arcade-round.tsx`: shared countdown, input, pause, scoreboards, and rival dialogue.
+- `src/components/mythic-games.tsx`: modular boards; canvas strait and perspective archery; accessible grid, puzzle, and melody controls.
+- `src/mythic.css`: responsive mythic arcade layout with the existing local pixel art and fonts.
+- `server/arcade.ts`: bounded optional model planning for all five encounters.
+- `tests/mythic.test.mjs`: new mechanics, AI reactions, win/loss paths, and migration.
+- `src/lib/legacy-arcade.ts`: historical rules retained for older regression checks; not used by the current game.
 
-See the [measured technical spike](technical-spike.md) and [current raw evidence](evidence/spike-challenge-focus-2026-10-08.json). The final six calls returned legal AI policies with the required focus, at 5.732-7.863 s end-to-end latency. This small local experiment establishes feasibility, not player enjoyment or general model quality.
-
-## Information architecture
-
-```mermaid
-flowchart TD
-  Title --> Intro
-  Title --> Map[Saved voyage map]
-  Intro --> Brief[Encounter briefing]
-  Map --> Brief
-  Brief --> Practice
-  Brief --> Prep[AI preparation: initial / loading / ready / uncertain / error]
-  Prep --> Round[Committed arcade round]
-  Brief --> Round
-  Round --> Pause
-  Pause --> Round
-  Pause --> Brief
-  Practice --> Result
-  Round --> Result
-  Result --> Brief
-  Result --> Map
-  Result --> Next[Next encounter]
-  Next --> Brief
-  Result --> Home[Homecoming and replay]
-  Brief --> Assist[Confirmed assisted passage]
-  Assist --> Next
-  Assist --> Home
-  Title --> Settings
-  Settings --> Legacy[Earlier mystery / advice voyage]
-```
-
-Content is deliberately separated by action: the map shows completion; the briefing shows story, objective, controls, pace, rival choice, and optional Homer notes; the game shows only active cues and status; the result shows what happened and the next action. Settings contains optional music, scenery, AI availability, and legacy links.
-
-## Five task flows for a revised Phase 2 package
-
-Persona references below use the existing Phase 1 sketches. They are provisional, not interview-backed personas.
-
-1. **Start and learn (Daniel):** title -> two skippable cards -> Cyclops briefing -> practice -> practice result -> challenge. Practice does not spend progress or require AI.
-2. **Prepare and control AI (Maya/Rosa):** select AI -> loading and elapsed time -> prepared strategy -> accept/start or regenerate. Cancellation returns to initial. Changing pace invalidates the candidate.
-3. **Recover from a difficult round (Maya/Daniel):** result explains the miss -> retry, practice, slower pace, or confirmed assistance -> next encounter. No earlier clear is removed.
-4. **Recover from AI failure (Rosa):** provider error, timeout, or invalid strategy -> visible reason -> retry or explicitly select standard -> playable round. No progress is awarded by a network reply.
-5. **Resume and replay (Daniel/Maya):** reload -> continue -> saved map -> next unlocked encounter, or completed encounter replay -> authored result -> saved report.
-
-The original Phase 2 PDFs and presentation still describe the advice voyage. This implementation record and the new spike support a revised packet, but they do not constitute a new complete wireframe set, revised presentation, peer critique, six interviews, or three research-backed personas.
-
-## Files and checks
-
-- `src/ArcadeApp.tsx`: screen flow, settings, save ownership, preparation, recovery, and homecoming.
-- `src/components/arcade-round.tsx`: live input, rendering, pause, countdown, and practice.
-- `src/components/arcade-scenes.tsx` and `src/arcade-scenes.css`: interactive SVG scenery and responsive game graphics.
-- `src/lib/arcade.ts`: authored encounters, legal plans, pure rules, summaries, campaign progression, and save validation.
-- `server/arcade.ts`: input/provider validation, bounded pretrained planning, and cancellation.
-- `src/arcade.css`: scoped retro layout and responsive controls.
-- `tests/arcade.test.mjs`: gameplay, progression, legal patterns, timing edges, saves, AI validation, and failures.
-- `scripts/arcade-spike.mjs`: recorded real model calls and deliberately triggered failures.
-
-Run `npm.cmd test` and `npm.cmd run build`. The spike refuses to overwrite its chosen evidence file. [Browser verification](verification.md) records the scope actually checked and the remaining human evaluation.
+Run `npm.cmd test` and `npm.cmd run build`. The mystery remains at `?mystery` and the advice voyage at `?voyage`, with their separate saves. See [current verification](trials-verification.md) for checks and practical limits.

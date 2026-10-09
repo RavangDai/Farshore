@@ -10,12 +10,18 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('phase2_backend', ROOT/'scripts/render-phase2.py')
 backend = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backend)
-Page, bullets, draw_pdf, pptx = backend.Page, backend.bullets, backend.draw_pdf, backend.pptx
+Page, draw_pdf, pptx = backend.Page, backend.draw_pdf, backend.pptx
 OUT = ROOT/'Farshore Context and Assisment/docs/assignment/phase2-arcade'
 BUILD = ROOT/'.tmp/phase2-arcade-build'
 BUILD.mkdir(parents=True, exist_ok=True)
 D = json.loads((OUT/'editable/content.json').read_text(encoding='utf-8'))
 NAVY, TEAL, GRAY, GOLD = backend.NAVY, backend.TEAL, backend.GRAY, backend.GOLD
+
+def bullets(p,items,x,y,w,size=20,gap=14):
+    for item in items:
+        p.text('\u2022',x,y,18,size,color=TEAL)
+        y=p.text(item,x+24,y,w-24,size)+gap
+    return y
 
 def site(p,x,y,w,h):
     sx=w/1150;sy=h/460
@@ -32,7 +38,7 @@ def site(p,x,y,w,h):
     box('S10 Round result',285,310,310)
     box('S11 Homecoming',770,310,350)
     p.arrow(x+595*sx,y+338*sy,x+770*sx,y+338*sy)
-    p.text('Clear or assist returns to Map for the next shore. The fifth passage opens Homecoming.',x,y+389*sy,w,20*sx,color=GRAY)
+    p.text('Next trial opens its briefing after a clear or assist. The fifth passage opens Homecoming.',x,y+389*sy,w,20*sx,color=GRAY)
     p.text('Shared overlays: S12 Settings, S13 Pause/leave, S14 Restart, S15 Assisted passage',x,y+428*sy,w,20*sx,color=GRAY)
 
 def dataflow(p,x,y,w,h):
@@ -45,8 +51,8 @@ def dataflow(p,x,y,w,h):
     p.box(x,y+345*sy,570*sx,80*sy)
     p.text('Browser localStorage: campaign records, recent summaries and preferences',x+12*sx,y+359*sy,540*sx,22*sx)
     p.arrow(x+163*sx,y+275*sy,x+163*sx,y+345*sy)
-    p.text('After completed play only',x+192*sx,y+298*sy,330*sx,18*sx,color=GRAY)
-    p.text('Measured boundary: loopback inference. No third-party AI provider. A future hosted endpoint would receive these summaries.',x+650*sx,y+345*sy,490*sx,21*sx,color=TEAL)
+    p.text('Round results and settings',x+192*sx,y+298*sy,330*sx,18*sx,color=GRAY)
+    p.text('Measured boundary: loopback inference. No third-party AI provider. A future hosted endpoint would receive derived habits and selected game settings.',x+650*sx,y+345*sy,490*sx,21*sx,color=TEAL)
 
 def flow(p,f,x,y,w,h,detail=False):
     step=h/6
@@ -72,9 +78,9 @@ def wire_game_view(p,wf,x,y,w,h):
                 xx=x+10+col*cell;yy=y+8+row*cell
                 warn=(col in [2,3] and row in [3,4])
                 p.box(xx,yy,cell,cell,'#bbbbbb' if warn else '#ffffff','#999999')
-                label='E' if row==0 and col in [0,7] else 'O' if (row,col)==(6,3) else 'S' if (row,col) in [(5,3),(2,5),(4,1)] else ''
+                label='E' if col==7 and row in [0,7] else 'O' if (row,col)==(7,0) else 'S' if (row,col) in [(7,1),(5,3),(3,5),(7,6),(0,4)] else 'R' if (row,col) in [(6,2),(5,2),(4,4),(3,4),(2,1),(1,5)] else ''
                 if label:p.text(label,xx+3,yy+1,cell-3,10,bold=True,color='#222222')
-        p.text('O = Odysseus\nS = sheep\nE = exit\nGray = warned smash',x+cell*8+28,y+17,w-cell*8-40,16,color='#222222')
+        p.text('O = Odysseus\nS = sheep / R = rock\nE = exit\nGray = warned smash',x+cell*8+28,y+17,w-cell*8-40,16,color='#222222')
     elif ident=='W12':
         cell=(h-34)/10
         for side in range(2):
@@ -133,7 +139,7 @@ def packet_pages():
     p=new('Farshore: Arcade Trials','Phase 2 design packet / Bibek Pathak / October 8, 2026')
     p.text(D['meta']['scope'],64,175,1140,32,bold=True)
     p.text(D['meta']['disclosure'],64,340,1140,23,color=GRAY)
-    p.table(['Rubric','Included evidence'],[['Architecture 20%','15-screen hierarchy, content strategy, A1 integration, storage and data flow'],['Flows 30%','Five persona-labeled tasks with control/recovery branches and eight edge cases'],['Wireframes 30%','28 annotated grayscale screens and major states, all five A1 model states'],['Spike 10%','Six real current-use-case calls, exact outputs and three failure records'],['Presentation 10%','12 editable slides, 600-second notes and contribution review draft']],64,485,[300,840],21)
+    p.table(['Rubric','Included evidence'],[['Architecture 20%','15-screen hierarchy, content strategy, A1 integration, storage and data flow'],['Flows 30%','Five persona-labeled tasks with control/recovery branches and eight edge cases'],['Wireframes 30%','28 annotated grayscale screens and major states, all five A1 model states'],['Spike 10%','Six real current-use-case calls, exact outputs and three failure records'],['Presentation 10%','12 timed slides with a full review appendix, 600-second notes and a separate contribution file']],64,485,[300,840],21)
     p=new('Phase 1 persona references','Provisional sketches guide tasks; arcade needs remain hypotheses')
     yy=168
     for a in D['personas']:
@@ -156,12 +162,12 @@ def packet_pages():
         yy=p.text(value,64,yy,1140,21)+12
     p=new('Storage, fixed rules and player control','Preparation changes neither score nor campaign progress')
     bullets(p,[
-        'Current: browser-local save stores cleared/assisted records, best performance and at most two recent numeric attempts per shore. Preferences have a separate local key. No account or cloud save.',
-        'Current: a ready model plan stays in memory. Navigating, editing difficulty/mode or cancelling discards it. Regeneration replaces it only after validation.',
+        'Current: browser-local save stores cleared/assisted records, attempt counts and at most two recent numeric attempts per shore. Preferences have a separate local key. No account or cloud save.',
+        'Current: a ready model plan stays in memory. Navigating, editing difficulty/mode or cancelling discards it. Starting preparation clears the old candidate. Only a validated result becomes ready.',
         'Current: collision rules, warnings, difficulty and scoring remain authored. Local opponents act during play. No inference runs inside a real-time match.',
         'Current: the full-round result commits progress. Practice and an abandoned round award no clear. A failed replay preserves an earlier clear.',
         'Current: a pending request has elapsed time and Cancel. Generation IDs ignore late replies. Invalid plans expose uncertainty and local fallback choices.',
-        'Proposed: a dedicated Discard strategy action explicitly undoes preparation. A visible privacy detail names loopback inference, and a persistent saving warning explains memory-only play.',
+        'Proposed: a dedicated Discard strategy action explicitly undoes preparation. A visible privacy detail names loopback inference. The persistent saving warning is already implemented.',
         'No confidence percentage. A strategy description explains permitted behavior, but does not prove tactical quality. Human evaluation is still required.'
     ],64,170,1140,23,18)
     for f in D['flows']:
@@ -175,14 +181,14 @@ def packet_pages():
     p.table(['A1 state','Wireframe','Flow','Expected action'],[['Initial','W05','F2','Prepare model or start local play'],['Loading','W06','F2/F4','Elapsed time / Cancel / Practice'],['Success','W07','F2','Review / Start / regenerate / edit'],['Uncertain','W08','F2/F4','Reject unsupported plan / retry / local'],['Error','W09','F4','Retry / check connection / local']],64,170,[250,160,180,550],23)
     p.text('Screen coverage',64,545,1140,28,bold=True)
     p.text('S01 W01-W02; S02 W03; S03 W04/W28; S04 W05-W10/W27; S05 W11; S06 W12; S07 W13-W14; S08 W15; S09 W16-W17; S10 W18-W20; S11 W21; S12 W22; S13 W23-W24; S14 W25; S15 W26.',64,602,1140,24)
-    p.text('W10 inline validation, W27 explicit Discard and W28 saving warning are proposed UI changes. The current server already rejects invalid requests.',64,750,1140,22,color=GRAY)
+    p.text('W10 inline validation and W27 explicit Discard are proposed. W28 saving warning is implemented. The current server already rejects invalid requests.',64,750,1140,22,color=GRAY)
     for i in range(0,len(D['wireframes']),2):
         pair=D['wireframes'][i:i+2];p=new('Low-fidelity wireframes',pair[0]['id']+' and '+pair[1]['id'])
         for j,w in enumerate(pair):wire(p,w,64+j*594,155,550,510,True)
     p=new('AI spike for the arcade trials','Six sequential actual Llama calls on October 8, 2026')
     st=D['spike']['latency']
     p.text(f"Minimum {st['min']:.3f}s     Mean {st['average']:.3f}s     Maximum {st['max']:.3f}s",64,175,1140,31,bold=True,color=TEAL)
-    review=['Legal focused/center. Differs from advisory sweep preference. No optimality claim.','Legal chain/balanced. Matches repeated-loss preference.','Legal echo/balanced. Red miss counts reach the prompt. Local logic targets lanes.','Legal pincer/balanced. Differs from advisory undertow preference.','Legal feint/balanced. Fairness needs a player study.','Legal focused/left. Required habit focus is preserved.']
+    review=['Legal focused/center. Differs from advisory sweep preference. No optimality claim.','Legal chain/balanced. Matches repeated-loss preference.','Legal echo/balanced. Prior red misses reach the prompt. Local targeting starts fresh each round.','Legal pincer/balanced. Differs from advisory undertow preference.','Legal feint/balanced. Fairness needs a player study.','Legal focused/left. Required habit focus is preserved.']
     p.table(['Sample','Seconds','Result','Analytic review'],[[s['id']+' '+s['label'],f"{s['seconds']:.3f}",s['answer']['plan']['planId']+'/'+s['answer']['plan']['focus'],review[i]] for i,s in enumerate(D['spike']['samples'])],64,245,[285,135,230,490],18)
     p.text('All six outputs were legal. S1 and S4 differ from advisory prompt preferences. This finite catalog limits output risk, but legal results do not establish fair or enjoyable play.',64,750,1140,22,color=GRAY)
     p=new('Failure evidence and loading decisions','Separate actual provider responses from app validation and unmeasured cases')
@@ -208,11 +214,11 @@ def summary_page():
     yy=165
     sections=[
         ('Model and method','Llama 3.2 3B through local Ollama. Six sequential current-use-case samples using the production adapter from a standalone script. Strict JSON schema, temperature 0, 100 output-token cap, no streaming. Timings include inference, parsing and validation.'),
-        ('Measured latency','Minimum 7.317 s, average 8.278 s, maximum 11.613 s. Individual calls: S1 Cyclops 11.613 s, S2 Circe 7.597 s, S3 Sirens 7.317 s, S4 Strait 7.889 s, S5 Bow 7.614 s, S6 left-side Cyclops 7.641 s. One sequential run, no repeated warm/cold or concurrency benchmark.'),
-        ('Output quality','Six legal planId/focus outputs. Circe after two losses selects chain. Left-side Cyclops retains left focus. First-time Cyclops and one-loss Strait differ from advisory preferences. Legality does not prove adaptation, fairness or enjoyment. Siren lane targeting executes locally.'),
+        ('Measured latency','Minimum 7.317 s, average 8.279 s, maximum 11.613 s. Individual calls: S1 Cyclops 11.613 s, S2 Circe 7.597 s, S3 Sirens 7.317 s, S4 Strait 7.889 s, S5 Bow 7.614 s, S6 left-side Cyclops 7.641 s. One sequential run, no repeated warm/cold or concurrency benchmark.'),
+        ('Output quality','Six legal planId/focus outputs. Circe after two losses selects chain. Synthetic S6 retains the server-constrained left focus. Current games save zero lane durations. First-time Cyclops and one-loss Strait differ from advisory preferences. Legality does not prove adaptation, fairness or enjoyment. Siren targeting uses current-round misses, starting fresh each round.'),
         ('Actual failures','E1: nonexistent provider model returns HTTP 404 and model-not-found JSON. E2: malformed provider JSON returns HTTP 400 with unexpected EOF. E3: unsupported difficulty returns application HTTP 400 before provider contact. Exact bodies are archived with sample inputs and raw outputs.'),
         ('Rate limits and cost','No provider 429 or sustained quota/concurrency threshold was measured. The app maps a provider 429 to a visible busy-service error. These local requests used no billed inference API. Hardware, electricity and future hosting costs remain unmeasured.'),
-        ('Design response and model decision','Show elapsed preparation and Cancel. Keep game clocks stopped. Review before play and offer regeneration, edit/rejection and explicit local fallback. Reject illegal plans before scores change. Retain Llama provisionally for this bounded task, pending player evaluation. No confidence percentages.'),
+        ('Design response and model decision','Show elapsed preparation and Cancel. Run no gameplay clock during preparation. Review before play and offer regeneration, edit/rejection and explicit local fallback. Reject illegal plans before scores change. Retain Llama provisionally for this bounded task, pending player evaluation. No confidence percentages.'),
         ('Evidence','Exact inputs, outputs and failures: evidence/phase2-arcade-spike-2026-10-08.json. Analytic review: quality-review.json. Code: scripts/phase2-arcade-spike.mjs and server/arcade.ts. Format reference: Ollama structured outputs documentation, accessed October 8.'),
     ]
     for title,text in sections:
@@ -222,15 +228,8 @@ def summary_page():
     return p
 
 def contribution_page():
-    p=Page('Contribution statement','Farshore: Arcade Trials / CMPS 4200 HCI / October 8, 2026',w=794,h=1123)
+    p=Page('',w=794,h=1123)
     p.text('Bibek Pathak',52,180,690,27,bold=True)
-    p.text('Project owner and intended presenter. Supplied the Farshore concept, the Odyssey arcade direction and encounter requirements, and reviewed the project direction. Responsible for checking and adopting this statement before submission.',52,245,690,21)
-    p.text('AI assistance disclosure',52,435,690,27,bold=True)
-    p.text('Codex assisted with drafting architecture, flows, wireframes, experiment code, analytic review, slides and supporting documents. The experiment made actual calls to local Llama 3.2 3B. AI assistance is not a human team member or interview participant.',52,495,690,21)
-    p.text('Student review',52,700,690,27,bold=True)
-    p.text('This is a review draft. The supplied Phase 1 slides identify a solo project. No additional teammate contribution or instructor approval is documented in the supplied files. Correct any inaccurate details and obtain agreement from every actual team member before submitting.',52,760,690,21)
-    p.text('The editable contribution-statement.md is included for corrections. This document does not assert a signature or an agreement that has not been provided.',52,975,690,18,color=GRAY)
-    p.footer(1)
     return p
 
 def slide_pages():
@@ -250,7 +249,7 @@ def slide_pages():
     p.notes='Farshore turns Odysseus\' journey into five distinct arcade trials. Phase 2 focuses on how a player learns a trial, reviews an optional model strategy and recovers from failure. The new direction keeps the Odyssey setting and makes each shore a recognizable game. Source: user arcade design, current src/ArcadeApp.tsx. Original project artwork: public/art/title.png.'
     p=new('The five arcade trials','Each shore uses different controls and shows an active rival')
     p.table(['Shore','Player interaction','Visible rival action'],[['Cyclops','Grid stealth','Blind smash from noise clues'],['Circe','Falling-potion match-3','Own board, chains and curses'],['Sirens','Four-lane melody memory','Composes and targets missed lanes'],['Scylla & Charybdis','Shield paddle and rowing','Six heads with pulsing vortex'],['Ithaca','Turn-based archery','Own scored shot or ring block']],64,180,[300,365,485],25)
-    p.notes='Explain the variety briefly. The player moves on a grid, solves a puzzle duel, echoes a melody, controls a shield while rowing, then aims through twelve axe rings. Rivals take turns or visibly react. The myth provides context, while the arcade rules are adaptations. Antinous\' competitive shots are invented because in Homer he cannot string the bow. Source: src/lib/arcade.ts and src/lib/mythic.ts; Odyssey Books IX, X, XII, XXI.'
+    p.notes='Explain the variety briefly. The player moves on a grid, solves a puzzle duel, echoes a melody, controls a shield while rowing, then aims through twelve axe rings. Rivals take turns or visibly react. The myth provides context, while the arcade rules are adaptations. Antinous\' competitive shots are an arcade invention. In Book XXI he postpones the contest before taking his turn. Source: src/lib/arcade.ts and src/lib/mythic.ts; Odyssey Books IX, X, XII, XXI. https://www.gutenberg.org/files/1727/1727-h/1727-h.htm#chap21, accessed October 8, 2026.'
     p=new('Players and design needs','Phase 1 persona sketches guide the flows')
     for i,a in enumerate(D['personas']):
         x=64+i*400
@@ -260,12 +259,12 @@ def slide_pages():
         p.text(short,x,425,350,26,color=TEAL)
     p.text('Provisional design references. Interview evidence has not been supplied.',64,617,1140,23,color=GRAY)
     p.notes='Maya is the gamer concerned about fairness, Daniel is the reader with limited technical comfort, and Rosa is skeptical of AI. Their ages and sketches come from my Phase 1 slide. The arcade needs are design hypotheses, not new interview findings. Each of the five full task flows names the persona it serves. Source: original/Farshore_Phase12nd.pptx, slide 4; design packet persona page.'
-    p=new('Screen hierarchy','A1 in the briefing is the only pretrained-model feature')
+    p=new('Screen hierarchy','A1 in the briefing is the only model feature in arcade mode')
     site(p,64,175,1140,445)
     p.notes='The first path is Title, Introduction, Map and Briefing. A briefing opens one of five games, then a result either retries or unlocks the next shore. The fifth passage reaches Homecoming. Settings, Pause/leave, Restart and Assistance are shared overlays. The full packet inventories all fifteen screens and their content. F1 handles starting and learning. F5 handles progress, assistance and finishing. Source: src/ArcadeApp.tsx, round component and design packet S01-S15.'
     p=new('Model data flow and privacy','Numeric summaries prepare a strategy before the round')
     dataflow(p,64,175,1140,450)
-    p.notes='The browser sends a shore ID, difficulty and at most two numeric attempts. The server derives the player observations and gives Llama a finite strategy catalog. It validates planId and focus and supplies an authored description. The player reviews it, then local game logic runs the match. Completed records and preferences stay in browser localStorage. Our measured endpoint is loopback Ollama. No third-party model provider receives these calls. A hosted endpoint would require a changed disclosure. Sources: server/arcade.ts, src/lib/arcade.ts, https://docs.ollama.com/api/openai-compatibility and https://docs.ollama.com/capabilities/structured-outputs, accessed October 8, 2026.'
+    p.notes='The browser sends a shore ID, difficulty and at most two numeric attempts. The server derives the player observations and gives Llama a finite strategy catalog. It validates planId and focus and supplies an authored description. The player reviews it, then local game logic runs the match. Completed records and preferences stay in browser localStorage. The server sends derived habits and win count, rather than raw attempt objects, to the model. The game fixes focus while Llama chooses one of two strategies. Our measured endpoint is loopback Ollama. No third-party model provider receives these calls. A hosted endpoint would require a changed disclosure. Sources: server/arcade.ts, src/lib/arcade.ts, https://docs.ollama.com/api/openai-compatibility and https://docs.ollama.com/capabilities/structured-outputs, accessed October 8, 2026.'
     p=new('F2: Strategy preparation and review','Maya and Rosa / player control before a match')
     flow(p,D['flows'][1],64,175,645,445)
     bullets(p,['Cancel preserves progress.','Prepare another replaces the candidate.','Edit difficulty or choose Solo to discard.','Proposed: a dedicated Discard action.'],800,190,405,26,26)
@@ -290,27 +289,85 @@ def slide_pages():
         for text in rows:
             p.box(x+18,yy,499,67,'#f4f4f4','#999999');p.text(text,x+32,yy+16,472,25,color='#222222');yy+=82
     p.text('W08-W09 / F4. Invalid input is rejected before model contact.',64,611,1140,24,color=GRAY)
-    p.notes='An unsupported or empty model result cannot start a game. Finite allowed IDs and authored descriptions keep arbitrary prose out of the interface. A legal but unwanted strategy can still be regenerated or rejected. Connection failure, timeout and a busy provider preserve progress and provide explicit local play. Unsupported input returns guidance before inference. We show no confidence percentage because this generative model does not supply a calibrated probability. Source: F4, EC1-EC5, W08-W10, server/arcade.ts; professor confidence note on page 2.'
-    p=new('AI technical spike','Six real calls to local Llama 3.2 3B')
+    p.notes='A rejected model result cannot become a model-planned duel. Explicit local play remains available. Finite allowed IDs and authored descriptions keep arbitrary prose out of the interface. A legal but unwanted strategy can still be regenerated or rejected. Connection failure, timeout and a busy provider preserve progress and provide explicit local play. Unsupported input returns guidance before inference. We show no confidence percentage because this generative model does not supply a calibrated probability. Source: F4, EC1-EC5, W08-W10, server/arcade.ts; professor confidence note on page 2.'
+    p=new('AI technical spike','Six synthetic use-case inputs, real local Llama 3.2 3B calls')
     st=D['spike']['latency'];p.text(f"Min {st['min']:.3f}s     Mean {st['average']:.3f}s     Max {st['max']:.3f}s",64,172,1140,34,bold=True,color=TEAL)
-    p.table(['Sample','Seconds','Selected plan','Review'],[[s['id']+' '+s['label'],f"{s['seconds']:.3f}",s['answer']['plan']['planId']+'/'+s['answer']['plan']['focus'],['Legal, advisory mismatch','Matches loss preference','Legal, local lane targeting','Legal, advisory mismatch','Legal block-shot policy','Required left focus kept'][i]] for i,s in enumerate(D['spike']['samples'])],64,248,[330,145,260,405],21,51)
-    p.text('Six legal outputs. One sequential sample; tactical quality still needs evaluation.',64,625,1140,22,color=GRAY)
-    p.notes='A standalone script calls the production adapter with six realistic current-use-case inputs and captures raw provider outputs. Temperature is zero, structured schema is strict, output cap is one hundred tokens and streaming is off. Report each latency, then minimum, arithmetic mean and maximum. All outputs are legal. First-time Cyclops and one-loss Strait differ from advisory prompt preferences. That demonstrates why validity is not the same as choosing the best tactics. Siren missed-lane targeting executes locally. This is not an accuracy or enjoyment benchmark. Sources: evidence/phase2-arcade-spike-2026-10-08.json, quality-review.json, scripts/phase2-arcade-spike.mjs.'
-    p=new('Failure evidence and design decisions','Real provider failures, with app validation kept separate')
-    p.table(['Triggered condition','Observed response','UI response'],[['Nonexistent provider model','HTTP 404, model not found','Check / retry / local play'],['Malformed provider JSON','HTTP 400, unexpected EOF','Explain failure / retain selections'],['Unsupported difficulty','App HTTP 400 before inference','Supported-choice guidance']],64,180,[365,380,405],25)
-    p.text('Wait design: elapsed time and Cancel, with every round clock stopped.',64,465,1140,27,bold=True,color=TEAL)
+    p.table(['Sample','Seconds','Selected plan','Review'],[[s['id']+' '+s['label'],f"{s['seconds']:.3f}",s['answer']['plan']['planId']+'/'+s['answer']['plan']['focus'],['Legal, advisory mismatch','Matches loss preference','Legal, lane targeting is local','Legal, advisory mismatch','Legal block-shot policy','Schema fixes left focus'][i]] for i,s in enumerate(D['spike']['samples'])],64,248,[330,145,260,405],21,51)
+    p.text('Six legal outputs from one sequential run. Tactical quality still needs evaluation.',64,625,1140,22,color=GRAY)
+    p.notes='A standalone script calls the production adapter with six synthetic, realistic use-case inputs and captures real provider outputs. Temperature is zero, structured schema is strict, output cap is one hundred tokens and streaming is off. The six archived durations sum to 49.671 seconds. The exact arithmetic mean is 8.2785 seconds, rounded half up to 8.279. The raw JSON retains its original floating-point display of 8.278. All outputs are legal. First-time Cyclops and one-loss Strait differ from advisory preferences. S6 injects left-side lane durations that current new-game summaries do not collect. Its focus is constrained by the schema, rather than discovered by the model. Siren targeting uses current-round misses and begins fresh each round. This is feasibility evidence, not a tactical accuracy or enjoyment benchmark. Sources: evidence/phase2-arcade-spike-2026-10-08.json, quality-review.json, scripts/phase2-arcade-spike.mjs and src/lib/mythic.ts mythicSummary.'
+    p=new('Failure evidence and design decisions','Observed HTTP responses and designed UI recovery')
+    p.table(['Triggered condition','Observed response','Designed recovery'],[['Nonexistent provider model','HTTP 404, model not found','Check / retry / local play'],['Malformed provider JSON','HTTP 400, unexpected EOF','Explain failure / retain selections'],['Unsupported difficulty','App HTTP 400 before inference','Supported-choice guidance']],64,180,[365,380,405],25)
+    p.text('Wait design: elapsed time and Cancel. No round runs during preparation.',64,465,1140,27,bold=True,color=TEAL)
     p.text('No live 429 or capacity benchmark. Local API calls had no billed fee.\nHardware, electricity and future hosting costs are unmeasured.',64,550,1140,24,color=GRAY)
     p.notes='Two probes actually reach the model service: a nonexistent model returns 404 and malformed provider JSON returns 400 with unexpected EOF. Unsupported difficulty stops at the app boundary and returns 400. Exact error bodies are archived. No live rate-limit threshold or sustained load is measured. The adapter has a busy-service path for 429. Local inference produces no billed API fee in this run, but hardware and electricity cost are unmeasured. These results support visible preparation, elapsed time and Cancel, validated plans and retained progress with explicit fallback. Source: raw spike failure records and one-page summary.'
     p=new('Phase 2 design and next evaluation','Implemented behavior and proposed improvements')
     p.text('Implemented',64,185,525,31,bold=True)
-    bullets(p,['Five distinct playable trials','Model review, cancellation and regeneration','Local saves, practice and assisted passage'],64,252,525,27,26)
+    bullets(p,['Five distinct playable trials','Model review, cancellation and regeneration','Local saves and warning, practice and assistance'],64,252,525,27,26)
     p.text('Proposed or awaiting evidence',700,185,510,31,bold=True)
-    bullets(p,['Explicit Discard and saving warning','Interview-backed persona validation','Actual peer critique and fairness playtests'],700,252,510,27,26)
-    p.text('Supporting packet: 15 screens, 5 flows, 28 wireframes and exact AI evidence.',64,602,1140,24,color=TEAL)
-    p.notes='The prototype implements the core arcade loop and the model controls discussed today. Discard, explicit privacy detail and a persistent storage warning remain design proposals. Actual interviews and class critique require real people and are not invented in this package. The model remains provisional until player evaluation shows whether its strategy choices help. The supporting packet has every screen, five persona-labeled tasks, twenty-eight wireframes and exact technical evidence. Finish at ten minutes and invite the separate three-to-five-minute Q&A. Sources: design packet and peer-critique record.'
+    bullets(p,['Explicit Discard and provider privacy detail','Interview-backed persona validation','Actual peer critique and fairness playtests'],700,252,510,27,26)
+    p.text('Review appendix: all 15 screens, 5 flows, 28 wireframes and exact failure bodies.',64,602,1140,24,color=TEAL)
+    p.notes='The prototype implements the core arcade loop and the model controls discussed today. Discard and explicit provider privacy detail remain proposals. Storage failure already triggers a persistent warning. Actual interviews and class critique require real people and are not invented in this package. The model remains provisional until player evaluation shows whether its strategy choices help. The supporting packet has every screen, five persona-labeled tasks, twenty-eight wireframes and exact technical evidence. Finish at ten minutes and invite the separate three-to-five-minute Q&A. Sources: design packet and peer-critique record.'
     assert len(slides)==12 and sum(timings)==600
     for i,p in enumerate(slides):
         p.footer(i+1);p.notes=f'Timing: {timings[i]} seconds.\n\n'+p.notes
+    slides.extend(appendix_slides())
+    assert len(slides)==51
+    return slides
+
+def appendix_slides():
+    slides=[]
+    def new(title,subtitle):
+        p=Page(title,subtitle,w=1280,h=720)
+        slides.append(p)
+        return p
+    for start in [0,5,10]:
+        p=new('Content strategy',f'Review appendix / screens S{start+1:02d}-S{start+5:02d}')
+        p.table(['Screen','Displayed information','Model and storage'],[[s[0]+' '+s[1],s[2],s[4]] for s in D['screens'][start:start+5]],64,165,[265,440,435],21)
+        p.notes='Screen inventory and content strategy. Source: src/ArcadeApp.tsx, src/components/arcade-round.tsx and editable/content.json screens. Screen IDs describe design surfaces, including overlays and the five play views.'
+    p=new('A1 model contract','Review appendix / optional planning before a match')
+    sections=[
+        ('Input','The browser sends a shore, difficulty and up to two numeric attempts. The server sends derived habits, required focus and win count to Llama.'),
+        ('Output','Llama chooses one of two strategy IDs. The game fixes the required focus. Strict validation produces an authored description for review.'),
+        ('Timing and provider','Six-call range: 7.317-11.613 s, mean 8.279 s. Local loopback Ollama. Server timeout 90 s, browser limit 95 s. No gameplay clock runs.'),
+        ('Current data limit','New games save zero for legacy early/late and lane durations. S6 injects left-lane history. Siren targeting uses current-round misses.'),
+    ]
+    yy=170
+    for title,text in sections:
+        yy=p.text(title,64,yy,230,25,bold=True)+4
+        yy=p.text(text,330,yy-35,870,24)+22
+    p.notes='Sources: server/arcade.ts request schema, observations, expectedFocus, JSON schema, provider body and timeout; src/lib/mythic.ts mythicSummary and compose; src/ArcadeApp.tsx prepare. No names, voice or free text enter this feature. Model output cannot change scoring or warning durations. The model is retained provisionally for bounded selection, pending player evaluation. Documentation: https://docs.ollama.com/api/openai-compatibility and https://docs.ollama.com/capabilities/structured-outputs, accessed October 8, 2026.'
+    for index in [0,3,4]:
+        f=D['flows'][index]
+        title={'F1':'F1: Start, resume and practice','F4':'F4: Failed-plan recovery','F5':'F5: Progress and homecoming'}[f['id']]
+        p=new(title,f['persona']+' / review appendix')
+        flow(p,f,64,165,650,435)
+        yy=177
+        for branch in f['branches']:
+            yy=p.text(branch['label'],795,yy,405,25,bold=True,color=TEAL)+7
+            yy=p.text(branch['text'],795,yy,405,22)+28
+        p.text('Screens: '+f['states'],64,617,1140,20,color=GRAY)
+        p.notes='\n'.join(f['notes'])+' Sources: editable/content.json '+f['id']+'; src/ArcadeApp.tsx; server/arcade.ts; src/lib/arcade.ts. The accompanying wireframes show each linked screen and state. F2 and F3 appear in timed slides 6 and 7.'
+    for start in [0,3,6]:
+        p=new('Edge cases and recovery',f'Review appendix / EC{start+1}-EC{min(start+3,len(D["edges"]))}')
+        p.table(['Scenario and states','Recovery','Evidence or design status'],[[e[0]+' '+e[1]+'\n'+e[2],e[3],e[4]] for e in D['edges'][start:start+3]],64,165,[300,420,420],21)
+        p.notes='Sources: editable/content.json edges; server/arcade.ts; src/ArcadeApp.tsx; src/components/arcade-round.tsx; src/lib/arcade.ts; raw spike failure records. Live spike probes measure missing model, malformed provider request and unsupported difficulty. Timeout and provider 429 paths are implemented but were not induced live in this spike.'
+    for wf in D['wireframes']:
+        p=new(wf['id']+': '+wf['title'],'Review appendix / low-fidelity screen and state')
+        wire(p,wf,64,150,610,505)
+        p.text('\n'.join(backend.wrap(wf['status'],475,27,True)),730,172,505,27,bold=True,color=GOLD if 'Proposed' in wf['status'] else TEAL)
+        p.text('\n'.join(backend.wrap(wf['annotation'],475,26)),730,280,505,26)
+        p.text('Screen '+wf['screen']+'\nFlow '+wf['flow']+'\nState '+wf['state'],730,505,480,23,color=GRAY)
+        p.notes='Source: editable/content.json '+wf['id']+'. This is a grayscale design wireframe. Placeholder values illustrate a state and are not measured results. Implemented annotations refer to src/ArcadeApp.tsx, src/components/arcade-round.tsx, src/components/mythic-games.tsx, src/lib/mythic.ts and server/arcade.ts. Proposed controls are labeled on the slide.'
+    p=new('Exact failure responses','Review appendix / two actual provider failures and one app validation failure')
+    yy=168
+    for failure in D['spike']['failures']:
+        yy=p.text(failure['id']+' '+failure['label']+' / HTTP '+str(failure['status']),64,yy,1140,26,bold=True)+7
+        yy=p.text(failure['rawBody'].strip(),64,yy,1140,20)+18
+    p.text('E1 and E2 contact Ollama directly. E3 stops before model inference.',64,615,1140,23,color=TEAL)
+    p.notes='Exact raw bodies copied without rewriting from evidence/phase2-arcade-spike-2026-10-08.json failures. E1 posts a nonexistent model. E2 posts a single opening brace as malformed JSON. The spike bypasses the app for these two probes, so their recorded statuses are provider statuses. The current app maps a provider non-OK response to HTTP 502 with a generic recovery message. E3 calls the production app adapter with difficulty impossible and returns HTTP 400. The one-page technical-spike-summary.pdf contains rate-limit, cost and output-quality conclusions.'
+    for i,p in enumerate(slides,13):
+        p.footer(i)
+        p.notes='Timing: 0 seconds. Review appendix, outside the ten-minute talk.\n\n'+p.notes
     return slides
 
 def editable_svg(page):
@@ -336,7 +393,7 @@ if __name__=='__main__':
     pptx(slides,OUT/'Farshore-Phase-2-Arcade-Presentation.pptx')
     draw_pdf(slides,BUILD/'slides-preview.pdf',(960,540))
     (BUILD/'layout.json').write_text(json.dumps([{'title':p.title,'items':p.items} for p in slides],indent=2),encoding='utf-8')
-    (OUT/'speaker-notes.md').write_text('# Ten-minute presentation notes\n\nThe twelve slide timings total 600 seconds. Allow 3-5 minutes of Q&A afterward.\n\n'+'\n\n'.join(f'## {i+1}. {p.title or "Farshore"}\n\n{p.notes}' for i,p in enumerate(slides)),encoding='utf-8')
+    (OUT/'speaker-notes.md').write_text('# Ten-minute presentation notes\n\nPresent slides 1-12 in 600 seconds. Slides 13 onward are a review appendix, outside the timed talk. Allow 3-5 minutes of Q&A afterward.\n\n'+'\n\n'.join(f'## {i+1}. {p.title or "Farshore"}\n\n{p.notes}' for i,p in enumerate(slides)),encoding='utf-8')
     for wf in D['wireframes']:
         p=Page('',w=620,h=800)
         wire(p,wf,30,30,560,510,True)

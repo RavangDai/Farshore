@@ -11,13 +11,13 @@ The professor explicitly asks for presentation slides and a team contribution st
 
 ## Ten-minute rehearsal
 
-Use speaker-notes.md. All 12 slide timings total 600 seconds. The 3-5 minutes of Q&A come afterward. Do not play through all five encounters during the timed presentation. A game demo is optional and is not mandated by this brief.
+Use speaker-notes.md. Slides 1-12 total 600 seconds. Later slides form an untimed review appendix. The 3-5 minutes of Q&A come afterward. Do not play through all five encounters during the timed presentation. A game demo is optional and is not mandated by this brief.
 
 Your opening: "Farshore turns Odysseus' journey into five distinct arcade trials. Phase 2 shows how a player learns each trial, reviews an optional AI strategy, and recovers when the model fails."
 
 Your AI explanation: "Llama chooses one allowed rival strategy before the match. Local game logic makes the rival's moves. The model cannot change scoring, warnings or campaign progress."
 
-Your evidence: "I ran six current-use-case model calls. They took 7.317 to 11.613 seconds, averaging 8.278 seconds. All returned legal strategies. Two choices differed from advisory prompt preferences, so legality does not prove the best tactics."
+Your evidence: "I ran six current-use-case model calls. They took 7.317 to 11.613 seconds, averaging 8.279 seconds. All returned legal strategies. Two choices differed from advisory prompt preferences, so legality does not prove the best tactics."
 
 Your research status: "The personas come from my Phase 1 sketches. I am using them as design references and do not claim an interview-backed evaluation here."
 

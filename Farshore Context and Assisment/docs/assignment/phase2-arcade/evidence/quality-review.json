@@ -11,7 +11,7 @@
     },
     {
       "id": "S3",
-      "note": "Legal echo/balanced. Red miss counts reach the prompt. Local melody logic targets the weakest lane; this output does not name red."
+      "note": "Legal echo/balanced. Prior red misses reach the model, but its output does not name red. Local targeting uses misses within the new round, starting from zero."
     },
     {
       "id": "S4",

@@ -18,7 +18,7 @@
       "EC3",
       "Invalid / unsupported input",
       "F4, S04 validation",
-      "Give inline supported-choice guidance. Preserve valid settings. No model call for invalid input.",
+      "Explain supported choices and keep valid settings. Reject invalid input before model contact. Inline field guidance is proposed.",
       "E3 records actual application 400 for impossible difficulty."
     ],
     [
@@ -32,7 +32,7 @@
       "EC5",
       "Inappropriate / biased output",
       "F2/F4, A1 uncertain",
-      "Only allow finite strategy IDs and authored descriptions. Do not display generated prose. Reject all extra fields.",
+      "Allow permitted strategy IDs. Show authored descriptions. Reject generated prose and all extra fields.",
       "This limits the output surface; fair tactical behavior still needs player evaluation."
     ],
     [
@@ -46,8 +46,8 @@
       "EC7",
       "Local storage unavailable",
       "F1/F5, S01/S03",
-      "Proposed persistent Saving unavailable message. Keep a memory-only voyage and explain that reload may lose it.",
-      "Current storage exceptions are caught. The persistent warning is Proposed."
+      "Show the implemented persistent saving warning. Keep the in-memory voyage and explain that reload may lose progress.",
+      "Storage exceptions trigger a persistent status notice. This behavior is implemented."
     ],
     [
       "EC8",
@@ -261,10 +261,10 @@
       "id": "A1",
       "name": "Optional mythic rival strategy planning",
       "model": "Llama 3.2 3B through local Ollama",
-      "input": "Encounter ID, Easy/Normal/Hard and at most two numeric attempt summaries. Server derives lane, timing and loss observations. No name, voice or chat text.",
-      "output": "JSON with planId and focus. Each encounter permits two adaptive strategies. Server validates both and supplies the visible description.",
-      "timing": "Use the October 8 six-call experiment. Preparation stops every game clock. Server timeout 90 seconds, browser limit 95 seconds.",
-      "privacy": "Measured setup uses loopback Ollama. No third-party AI provider receives these requests. A hosted endpoint would receive the same numeric summary and needs a changed disclosure.",
+      "input": "Encounter ID, Easy/Normal/Hard and at most two numeric attempt summaries. Server derives habits and losses. Current engines retain zero-valued legacy timing and lane-duration fields. No name, voice or chat text.",
+      "output": "JSON with planId and focus. The model chooses one of two adaptive strategies. The game fixes the required focus. Server validates both and supplies an authored description.",
+      "timing": "Use the October 8 six-call experiment. No round runs during preparation. Server timeout 90 seconds, browser limit 95 seconds.",
+      "privacy": "Measured setup uses loopback Ollama. No third-party AI provider receives these requests. A hosted endpoint would receive the selected shore, difficulty, derived habits and win count. It would need a changed disclosure.",
       "control": "Edit difficulty/mode before play, cancel a pending call, regenerate a ready strategy, switch to Solo to reject it, or start a clearly labeled local AI duel after an error."
     }
   ],
@@ -317,7 +317,7 @@
     [
       "S02",
       "Introduction",
-      "Odysseus and the voyage, next/back/skip.",
+      "Odysseus and the voyage, next/skip.",
       "Daniel",
       "Authored story. Skip preserves the new voyage."
     ],
@@ -375,7 +375,7 @@
       "Round result",
       "Clear/loss/practice, score, opponent score where relevant, retry and next.",
       "All players",
-      "Only full rounds update progress. Failed replay retains past clears."
+      "Completed non-practice rounds update attempts. Failed replays retain past clears."
     ],
     [
       "S11",
@@ -526,7 +526,7 @@
         ],
         [
           "buttons",
-          "Back / Next / Skip"
+          "Next / Skip"
         ]
       ],
       "annotation": "Skip moves to the map. This story text is authored, with no generation.",
@@ -862,7 +862,7 @@
           "Press pads or use keys / Pause"
         ]
       ],
-      "annotation": "The Sirens target missed lanes in later melodies. Pads use labels as well as color.",
+      "annotation": "Local Siren logic targets misses within the current round. Previous-round misses inform model policy selection, not initial lane targeting. Pads also have labels.",
       "status": "Implemented"
     },
     {
@@ -1032,7 +1032,7 @@
           "Back to challenge / Practice again / Map"
         ]
       ],
-      "annotation": "Practice is a tutorial path and cannot be mistaken for a scored clear.",
+      "annotation": "Practice has a separate result label and awards no campaign clear.",
       "status": "Implemented"
     },
     {
@@ -1059,7 +1059,7 @@
           "Replay a trial / New voyage"
         ]
       ],
-      "annotation": "Authored ending avoids a generated story claim. All assistance stays visible in the report.",
+      "annotation": "The ending is authored. The report shows each shore's current Cleared or Assisted status.",
       "status": "Implemented"
     },
     {
@@ -1090,7 +1090,7 @@
           "Earlier mystery or advice mode links"
         ]
       ],
-      "annotation": "A catalog check is separate from generating a strategy. Closing returns to the invoking control.",
+      "annotation": "A catalog check is separate from generating a strategy. Closing returns focus to the main heading.",
       "status": "Implemented"
     },
     {
@@ -1245,7 +1245,7 @@
         ]
       ],
       "annotation": "A persistent warning makes local storage failure visible while keeping play available.",
-      "status": "Proposed"
+      "status": "Implemented"
     }
   ],
   "spike": {
@@ -1823,14 +1823,15 @@
     ],
     "latency": {
       "min": 7.317,
-      "average": 8.278,
+      "average": 8.279,
       "max": 11.613
-    }
+    },
+    "latencyCalculation": "Arithmetic mean of the six archived millisecond values: 8.2785 seconds, rounded half up to 8.279. The raw record retains its original JavaScript floating-point display of 8.278."
   },
   "quality": [
     "Legal focused/center. The prompt prefers sweep for a newcomer, but that preference is advisory. Selection is not proof of best tactics.",
     "Legal chain/balanced. Matches the prompt preference for two previous losses. Rival still plays through local chain logic.",
-    "Legal echo/balanced. Red miss counts reach the prompt. Local melody logic targets the weakest lane; this output does not name red.",
+    "Legal echo/balanced. Prior red misses reach the model, but its output does not name red. Local targeting uses misses within the new round, starting from zero.",
     "Legal pincer/balanced. Prompt favors undertow except for repeated losses, so this valid choice differs from its advisory preference.",
     "Legal feint/balanced. Produces the block-shot policy. Whether the player finds it fair needs a playtest.",
     "Legal focused/left. Required habit focus is preserved. This small result does not establish general adaptation quality."

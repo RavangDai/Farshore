@@ -1,10 +1,11 @@
-import { z } from "zod";
+import { z } from "zod/v3";
 import { parseCase, repliesFor, actors } from "../src/lib/mystery.ts";
+import type { ModelConnection } from "./turn.ts";
 export { GET } from "./turn.ts";
 
 const input = z.object({ actor: z.enum(["circe", "odysseus", "eurylochus"]), question: z.string().trim().min(3).max(500), state: z.unknown() });
 
-export async function POST(request: Request) {
+export async function POST(request: Request, connection?: ModelConnection) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return Response.json({ error: "Questions must come from Farshore." }, { status: 403 });
   let data;
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   } catch { return Response.json({ error: "Write a question of 3–500 characters." }, { status: 400 }); }
   const state = parseCase(data.state);
   if (!state || !state.started || state.room !== actors[data.actor].room) return Response.json({ error: "Meet this character in their room first." }, { status: 400 });
-  const url = process.env.FARSHORE_MODEL_URL, model = process.env.FARSHORE_MODEL_NAME;
+  const url = connection ? connection.url : process.env.FARSHORE_MODEL_URL, model = connection ? connection.model : process.env.FARSHORE_MODEL_NAME, key = connection ? connection.key : process.env.FARSHORE_API_KEY;
   if (!url || !model) return Response.json({ error: "No model is configured. Use a suggested question to continue." }, { status: 503 });
   const replies = repliesFor(data.actor, state);
   const ids = [...replies.map(r => r.id), "unmatched"];
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     // Question matching, not free-form factual generation. The selected ID is
     // checked against this character's currently permitted authored replies.
     const response = await fetch(url, {
-      method: "POST", headers: { "Content-Type": "application/json", ...(process.env.FARSHORE_API_KEY ? { Authorization: "Bearer " + process.env.FARSHORE_API_KEY } : {}) },
+      method: "POST", headers: { "Content-Type": "application/json", ...(key ? { Authorization: "Bearer " + key } : {}) },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(90_000)]),
       body: JSON.stringify({ model, stream: false, temperature: 0, max_tokens: 80,
         response_format: { type: "json_schema", json_schema: { name: "farshore_question_match", strict: true, schema } },

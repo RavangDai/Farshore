@@ -1,12 +1,16 @@
 # Farshore: The Odyssey: Arcade Trials
 
+The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](ONLINE-SETUP.md).
+
+The paragraphs below describe gameplay and the earlier local setup. For the current online build and security boundary, use the setup guide and [SECURITY.md](SECURITY.md).
+
 A head-to-head retro arcade voyage through five distinct games: Polyphemus grid stealth, Circe falling-potion match-3, Sirens four-lane melody memory, Scylla and Charybdis paddle defense, and Antinous turn-based twelve-ring archery.
 
-Run **`npm.cmd run dev`**, open the printed localhost URL (normally **http://localhost:5173**), and choose **Begin voyage**. Each encounter teaches its own controls and offers practice, retries, Easy/Normal/Hard difficulty, pause, and an assisted passage. Keyboard, pointer, and touch controls work without sound. Optional music includes four distinct notes for the Sirens.
+Run **`npm.cmd run dev`**, open the printed localhost URL (normally **http://localhost:3000**), and choose **Begin voyage**. Each encounter teaches its own controls and offers practice, retries, Easy/Normal/Hard difficulty, pause, and an assisted passage. Keyboard, pointer, and touch controls work without sound. Optional music includes four distinct notes for the Sirens.
 
 Choose **Arcade Solo** for learnable opponents or **AI Rival Battle** for immediate adaptive opponents. Rivals take visible actions during play. **Prepare with connected model** optionally uses your configured pretrained model to select the strategy before a match. Local adaptive AI and model-selected strategies are labeled separately. Game code owns scores, warnings, collision rules, and progress.
 
-The browser saves completed encounters and preferences. Existing three-trial saves migrate without losing clears; Circe and the strait are added as pending stops. Practice does not advance progress. Assisted passages are marked in the homecoming report and can be upgraded by replaying. Unfinished rounds restart after reload.
+Guests save completed encounters and preferences in the browser. Signed-in arcade players save them in MongoDB. Existing three-trial saves migrate without losing clears; Circe and the strait are added as pending stops. Practice does not advance progress. Assisted passages are marked in the homecoming report and can be upgraded by replaying. Unfinished rounds restart after reload.
 
 See the [five-trial rules and class demonstration](<Farshore Context and Assisment/docs/arcade/README.md>) and [verification record](<Farshore Context and Assisment/docs/arcade/trials-verification.md>). Real model checks for Circe and Scylla are recorded; the [earlier model experiment](<Farshore Context and Assisment/docs/arcade/technical-spike.md>) describes the previous mechanics.
 
@@ -16,7 +20,7 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Keep Vite running. Do not open index.html directly or use Live Server. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:5173/?mystery) and the [original advice voyage](http://localhost:5173/?voyage), each with separate progress. The existing Phase 2 slides and PDFs describe the original advice voyage and await revision for the arcade concept.
+Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate device progress. The existing Phase 2 slides and PDFs describe the original advice voyage and await revision for the arcade concept. The original Vite edition is available with `npm.cmd run dev:offline` on port 5173.
 
 ## Earlier modes and original voyage notes
 
@@ -53,12 +57,12 @@ npm install
 npm run dev
 ```
 
-4. Open **http://localhost:5173** in your browser. Press **Begin voyage**. Earlier modes are available in Settings.
+4. Open **http://localhost:3000** in your browser. Press **Begin voyage**. Earlier modes are available in Settings.
 5. Leave the terminal running while you play. Press **Ctrl+C** in the terminal to stop.
 
 Next time, only run `npm run dev`. Installation requires internet. All artwork and fonts are included locally. Story mode needs no API key or external model.
 
-Do not double-click `index.html` or use VS Code Live Server. The npm command starts both the game and its local dialogue endpoint.
+Use the npm command to start the game and server endpoints. Live Server does not run the account or model APIs.
 
 ## If Windows PowerShell blocks npm.ps1
 
@@ -69,7 +73,7 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-No PowerShell security policy change is needed. If npm is not recognized, install Node and restart VS Code. If port 5173 is in use, stop your other dev server, or run `npm run dev -- --port 5174` and open the printed address.
+No PowerShell security policy change is needed. If npm is not recognized, install Node and restart VS Code. For a different port, run `npm run dev -- --port 53173` and open the printed address. Match `BETTER_AUTH_URL` to that origin when enabling accounts.
 
 ## Edit the game
 
@@ -89,7 +93,11 @@ No PowerShell security policy change is needed. If npm is not recognized, instal
 | `src/lib/game.ts` | Encounters, scoring, trust, scripted decisions |
 | `src/lib/cast.ts` | Characters, lore, scene assignments, intro |
 | `server/turn.ts` | Dialogue validation and optional model connection |
-| `vite.config.ts` | Local server and API wiring |
+| `app/online-shell.tsx` | Accounts, AI settings, and progress synchronization |
+| `lib/auth.ts` | Better Auth and email/password security |
+| `lib/mongodb.ts` | MongoDB connection and indexes |
+| `lib/progress-repository.ts` | Transactional account saves |
+| `vite.offline.config.ts` | Original local edition's server and API wiring |
 | `public/art/` | Title, scenery, and portrait atlases |
 | `public/fonts/` | Pixel font and license |
 
@@ -121,8 +129,8 @@ npm run build
 npm run preview
 ```
 
-Build checks TypeScript and bundles the app. Preview serves that build at http://localhost:4173 with the same local dialogue endpoint. The preview server is for local use.
+Build checks TypeScript and creates the production Next.js app. Preview serves that build on port 3000. Production requires server environment variables from the setup guide; machine-wide local AI is development-only. Use `build:offline` and `preview:offline` for the original Vite edition and its local model endpoint on port 4173.
 
 Progress is saved per browser and local address. Your hosted-game save will not transfer automatically to localhost. Port 4173 also has separate progress from port 5173.
 
-This edition uses React, TypeScript, Vite, Tailwind CSS, and Radix UI. It runs locally without a hosting account. Original design notes, narrative sources, HCI limitations, and art credits are in `PROJECT-NOTES.md` and `ART-CREDITS.md`.
+The online edition uses React, TypeScript, Next.js, MongoDB, Better Auth, Tailwind CSS, and Radix UI. The original local edition uses Vite. Original design notes, narrative sources, HCI limitations, and art credits are in `PROJECT-NOTES.md` and `ART-CREDITS.md`.

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/v3";
 import { encounters, storyDecision } from "../src/lib/game.ts";
 import { MODEL_TIMEOUT_MS, type ModelStatus } from "../src/lib/turn.ts";
 import { chapterLore } from "../src/lib/odyssey.ts";
@@ -32,7 +32,9 @@ const decisionSchema = {
   required: ["safeChoice", "followed", "tone", "reply", "reason"],
   additionalProperties: false,
 };
-function config() {
+export type ModelConnection = { url?: string; model?: string; key?: string };
+function config(connection?: ModelConnection) {
+  if (connection) return connection;
   const e = process.env;
   return {
     url: e.FARSHORE_MODEL_URL,
@@ -59,8 +61,8 @@ function providerMessage(status: number, url: string) {
   if (status === 429) return "The model service is busy. Wait a moment and try again.";
   return "The model service could not complete the request. Try again in a moment.";
 }
-export async function GET() {
-  const c = config();
+export async function GET(connection?: ModelConnection) {
+  const c = config(connection);
   const status: ModelStatus = {
     aiConfigured: !!(c.url && c.model),
     aiAvailable: false,
@@ -90,7 +92,7 @@ export async function GET() {
   }
   return Response.json(status, { headers: { "Cache-Control": "no-store" } });
 }
-export async function POST(request: Request) {
+export async function POST(request: Request, connection?: ModelConnection) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin)
     return Response.json(
@@ -116,7 +118,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unknown encounter." }, { status: 400 });
   if (data.mode === "story")
     return Response.json(storyDecision(e, data.advice, data.trust));
-  const c = config();
+  const c = config(connection);
   if (!c.url || !c.model)
     return Response.json(
       {

@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+.dev.vars*
+.tmp
+dist
+dist-offline
+output
+.wrangler
+.sites-runtime
+*.log

@@ -1,15 +1,15 @@
-import { z } from "zod";
+import { z } from "zod/v3";
 import { trialFor, validPlan, planDescription, type TrialId, type OpponentPlan } from "../src/lib/arcade.ts";
-import { GET as modelGET } from "./turn.ts";
+import { GET as modelGET, type ModelConnection } from "./turn.ts";
 
 const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
 const input = z.object({ trialId: z.enum(["cyclops", "circe", "sirens", "scylla", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
-export async function GET() {
-  const response = await modelGET(), status = await response.json();
+export async function GET(connection?: ModelConnection) {
+  const response = await modelGET(connection), status = await response.json();
   if (!status.aiConfigured) status.message = "Solo and adaptive AI are ready. Connect a model for optional strategy planning.";
   return Response.json(status, { headers: { "Cache-Control": "no-store" } });
 }
-export async function POST(request: Request) {
+export async function POST(request: Request, connection?: ModelConnection) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return Response.json({ error: "Opponent requests must come from Farshore." }, { status: 403 });
   let data: z.infer<typeof input>;
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     if (raw.length > 6000) return Response.json({ error: "Opponent request is too large." }, { status: 413 });
     data = input.parse(JSON.parse(raw));
   } catch { return Response.json({ error: "Choose a supported encounter and difficulty. At most two attempt summaries are accepted." }, { status: 400 }); }
-  const url = process.env.FARSHORE_MODEL_URL, model = process.env.FARSHORE_MODEL_NAME;
+  const url = connection ? connection.url : process.env.FARSHORE_MODEL_URL, model = connection ? connection.model : process.env.FARSHORE_MODEL_NAME, key = connection ? connection.key : process.env.FARSHORE_API_KEY;
   if (!url || !model) return Response.json({ error: "No model is configured. You can play a standard opponent." }, { status: 503 });
   const trial = trialFor(data.trialId as TrialId);
   const laneTotals = [0, 1, 2].map(i => data.recent.reduce((sum, a) => sum + a.laneMs[i], 0));
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   }[data.trialId];
   try {
     const response = await fetch(url, {
-      method: "POST", headers: { "Content-Type": "application/json", ...(process.env.FARSHORE_API_KEY ? { Authorization: "Bearer " + process.env.FARSHORE_API_KEY } : {}) },
+      method: "POST", headers: { "Content-Type": "application/json", ...(key ? { Authorization: "Bearer " + key } : {}) },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(90_000)]),
       body: JSON.stringify({ model, stream: false, temperature: 0, max_tokens: 100,
         response_format: { type: "json_schema", json_schema: { name: "farshore_opponent", strict: true, schema } },

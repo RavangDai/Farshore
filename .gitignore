@@ -5,3 +5,15 @@ dist/
 *.tsbuildinfo
 .DS_Store
 .tmp/
+
+# Online application runtime state
+.sites-runtime/
+.wrangler/
+.vinext/
+.next/
+.env.*
+!.env.example
+.dev.vars*
+dist-offline/
+next-env.d.ts
+*.tsbuildinfo

@@ -5,6 +5,7 @@ import { mythicSummary, scoreLabel, type MythicState } from "./lib/mythic";
 import { VoyageAudio } from "./lib/voyage-audio";
 import "./arcade.css";
 import "./mythic.css";
+import type { OnlineGame } from "./lib/online";
 
 type Screen = "title" | "intro" | "map" | "brief" | "play" | "result" | "ending";
 type Prefs = { revision: 2; difficulty: Difficulty; sound: boolean; still: boolean; mode: "standard" | "ai" };
@@ -17,9 +18,12 @@ function loadPrefs(): Prefs {
 function Portrait({ tile, label, large = false }: { tile: number; label: string; large?: boolean }) {
   return <span role="img" aria-label={label} className={"a-portrait" + (large ? " large" : "")} style={{ backgroundPosition: `${tile % 5 * 25}% ${Math.floor(tile / 5) * 100 / 3}%` }}/>;
 }
-export default function ArcadeApp() {
-  const [save, setSave] = useState<ArcadeSave>(() => { try { return readArcade(localStorage.getItem(ARCADE_SAVE)) || newArcade(); } catch { return newArcade(); } });
-  const [prefs, setPrefs] = useState(loadPrefs), [screen, setScreen] = useState<Screen>("title");
+export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
+  const saveKey = online ? `${online.storageKey}:voyage` : ARCADE_SAVE;
+  const preferencesKey = online ? `${online.storageKey}:preferences` : ARCADE_PREFS;
+  const [save, setSave] = useState<ArcadeSave>(() => { if (online) return online.initialSave; try { return readArcade(localStorage.getItem(saveKey)) || newArcade(); } catch { return newArcade(); } });
+  const [prefs, setPrefs] = useState(() => online?.initialPreferences || loadPrefs()), [screen, setScreen] = useState<Screen>("title");
+  const previousPreferences = useRef(prefs);
   const [selected, setSelected] = useState<TrialId>("cyclops"), [intro, setIntro] = useState(0);
   const [settings, setSettings] = useState(false), [restart, setRestart] = useState(false), [assistance, setAssistance] = useState(false);
   const [storageError, setStorageError] = useState(""), [audioError, setAudioError] = useState("");
@@ -30,7 +34,8 @@ export default function ArcadeApp() {
   const trial = trialFor(selected), completed = clearedCount(save);
 
   useEffect(() => { const service = new VoyageAudio(); audio.current = service; return () => { service.dispose(); audio.current = null; request.current?.abort(); }; }, []);
-  useEffect(() => { try { localStorage.setItem(ARCADE_SAVE, JSON.stringify(save)); localStorage.setItem(ARCADE_PREFS, JSON.stringify(prefs)); setStorageError(""); } catch { setStorageError("Browser saving is unavailable. Keep this tab open to preserve your voyage."); } }, [save, prefs]);
+  useEffect(() => { try { localStorage.setItem(saveKey, JSON.stringify(save)); localStorage.setItem(preferencesKey, JSON.stringify(prefs)); setStorageError(""); } catch { setStorageError("Browser saving is unavailable. Keep this tab open to preserve your voyage."); } }, [save, prefs, saveKey, preferencesKey]);
+  useEffect(() => { if (previousPreferences.current !== prefs) { previousPreferences.current = prefs; online?.command({ type: "preferences", preferences: prefs }); } }, [prefs, online]);
   useEffect(() => { heading.current?.focus(); window.scrollTo({ top: 0, behavior: "instant" }); }, [screen, selected]);
   useEffect(() => { audio.current?.update({ enabled: prefs.sound, music: .24, effects: .45, ducked: false, quiet: settings, mood: screen === "ending" ? "home" : screen === "play" ? selected === "bow" ? "home" : "danger" : "voyage" }); }, [prefs.sound, screen, selected, settings]);
   useEffect(() => {
@@ -82,7 +87,11 @@ export default function ArcadeApp() {
     wakeAudio(); cancelAi(); setRun({ plan, practice, modelPrepared, key: ++runKey.current }); setScreen("play"); audio.current?.cue("sail");
   }
   function finish(round: MythicState) {
-    if (!round.practice) setSave(old => finishAttempt(old, selected, mythicSummary(round)));
+    if (!round.practice) {
+      const summary = mythicSummary(round);
+      setSave(old => finishAttempt(old, selected, summary));
+      online?.command({ type: "complete", trialId: selected, summary });
+    }
     setResult(round); setScreen("result"); audio.current?.cue(round.won ? "sail" : "costly");
   }
   async function toggleSound() {
@@ -91,10 +100,11 @@ export default function ArcadeApp() {
     setPrefs(old => ({ ...old, sound: enabled }));
   }
   function setDifficulty(value: Difficulty) { cancelAi(); setPrefs(old => ({ ...old, difficulty: value })); }
-  function newVoyage() { cancelAi(); setSave({ ...newArcade(), started: true }); setSelected("cyclops"); setIntro(0); setRestart(false); setScreen("intro"); }
+  function newVoyage() { online?.command({ type: save.started ? "restart" : "start" }); cancelAi(); setSave({ ...newArcade(), started: true }); setSelected("cyclops"); setIntro(0); setRestart(false); setScreen("intro"); }
   function continueVoyage() { const next = trials.find(t => save.records[t.id].cleared === "pending"); if (next) openTrial(next.id); else navigate("ending"); }
   function useAssistance() {
     const updated = assistTrial(save, selected);
+    if (updated !== save) online?.command({ type: "assist", trialId: selected });
     setSave(updated); cancelAi(); setAssistance(false); setResult(null);
     const index = trials.findIndex(t => t.id === selected);
     // React commits the save asynchronously. Navigate from the new state,

@@ -9,6 +9,7 @@ import { GET as arcadeGET, POST as arcadePOST } from "./server/arcade";
 function gameApi(): Plugin {
   const handler: Connect.NextHandleFunction = async (req, res, next) => {
     const path = req.url?.split("?")[0];
+    if (path === "/") { req.url = "/offline.html" + (req.url?.includes("?") ? "?" + req.url.split("?")[1] : ""); return next(); }
     if (!["/api/turn", "/api/mystery", "/api/arcade"].includes(path || "")) return next();
     const get = path === "/api/arcade" ? arcadeGET : path === "/api/mystery" ? mysteryGET : GET;
     const post = path === "/api/arcade" ? arcadePOST : path === "/api/mystery" ? mysteryPOST : POST;
@@ -80,6 +81,7 @@ export default defineConfig(({ mode }) => {
     if (process.env[key] === undefined) process.env[key] = value;
   return {
     plugins: [react(), gameApi()],
+    build: { outDir: "dist-offline", rollupOptions: { input: fileURLToPath(new URL("./offline.html", import.meta.url)) } },
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },

@@ -16,18 +16,38 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ],
     "paths": {
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "allowJs": true,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "isolatedModules": true
   },
   "include": [
     "src",
     "server",
-    "vite.config.ts"
+    "app",
+    "lib",
+    "proxy.ts",
+    "next.config.ts",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "vite.offline.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".tmp",
+    "dist",
+    "dist-offline"
   ]
 }

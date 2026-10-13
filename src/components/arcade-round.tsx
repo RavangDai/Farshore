@@ -82,7 +82,8 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     }
     function keyUp(e: KeyboardEvent) { held.current.delete(e.key.toLowerCase()); if (e.key === " " && current.current.id === "scylla") act({ type: "row", held: false }); }
     window.addEventListener("keydown", key); window.addEventListener("keyup", keyUp); window.addEventListener("blur", blur); document.addEventListener("visibilitychange", visibility);
-    return () => { window.removeEventListener("keydown", key); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", blur); document.removeEventListener("visibilitychange", visibility); };
+    window.addEventListener("farshore:account-open", pause);
+    return () => { window.removeEventListener("keydown", key); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", blur); document.removeEventListener("visibilitychange", visibility); window.removeEventListener("farshore:account-open", pause); };
   }, [phase]);
   return <section className="a-round m-round" aria-label={`${trial.title} ${practice ? "practice" : "challenge"}`}>
     <div className="a-round-top"><div><span className="a-eyebrow">{practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficulty.toUpperCase()}</span><h2>{trial.title}</h2></div><button className="a-btn a-small" onClick={pause} aria-label="Pause challenge">Ⅱ Pause</button></div>

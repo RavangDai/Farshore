@@ -3,15 +3,16 @@ import { database } from "./mongodb";
 import { modelConnection } from "./ai-account";
 import { progressRepository } from "./progress-repository";
 import { runtimeConfig } from "./runtime-config";
-import { checkWriteRequest, json, readJson } from "../server/http";
+import { canonicalRequest, checkWriteRequest, json, readJson } from "../server/http";
 import type { ModelConnection } from "../server/turn";
 type Get = (connection?: ModelConnection) => Promise<Response>;
 type Post = (request: Request, connection?: ModelConnection) => Promise<Response>;
 export function modelApi(get: Get, post: Post) {
   return async (request: Request) => {
+    request = canonicalRequest(request);
     if (request.method === "POST") {
       const invalid = checkWriteRequest(request); if (invalid) return invalid;
-      try { await readJson(request.clone(), 6000); }
+      try { const body = await readJson(request, 6000); request = new Request(request.url, { method: "POST", headers: request.headers, body: JSON.stringify(body), signal: request.signal }); }
       catch (error) { return json({ error: error instanceof Error && error.message === "large_body" ? "This request is too large." : "A valid game request is required." }, error instanceof Error && error.message === "large_body" ? 413 : 400); }
     }
     const config = runtimeConfig();

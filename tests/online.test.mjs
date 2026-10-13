@@ -6,6 +6,7 @@ import { createProgressApi, RevisionConflict, RequestConflict } from '../server/
 import { decryptSecret, encryptSecret } from '../server/secrets.ts';
 import { modelSettingsSchema } from '../src/lib/ai-account.ts';
 import { POST as prepare } from '../server/arcade.ts';
+import { canonicalRequest, checkWriteRequest } from '../server/http.ts';
 
 function store() {
   const records = new Map(), requests = new Map();
@@ -28,6 +29,23 @@ function store() {
 const summary = { won: true, source: 'standard', hits: 0, successes: 1, early: 0, late: 0, misses: 0, laneMs: [0,0,0] };
 function mutation(command, revision=0, id=crypto.randomUUID(), extra={}) { return new Request('https://game.test/api/account', { method: 'POST', headers: { origin: 'https://game.test', 'content-type': 'application/json' }, body: JSON.stringify({ requestId:id, expectedRevision:revision, command, ...extra }) }); }
 const actor = id => async () => ({ id, displayName:id, email:id+'@example.test' });
+
+test('HTTPS proxy requests use the configured public origin without trusting caller host headers', async () => {
+  const previousMode=process.env.NODE_ENV,previousUrl=process.env.BETTER_AUTH_URL;
+  try {
+    process.env.NODE_ENV='production';process.env.BETTER_AUTH_URL='https://play.farshore.test';
+    const request=new Request('http://internal-node:3000/api/arcade',{method:'POST',headers:{origin:'https://play.farshore.test','content-type':'application/json','x-forwarded-host':'attacker.test'},body:JSON.stringify({trialId:'cyclops'})});
+    assert.equal(checkWriteRequest(request),null);
+    const canonical=canonicalRequest(request);
+    assert.equal(canonical.url,'https://play.farshore.test/api/arcade');
+    assert.deepEqual(await canonical.json(),{trialId:'cyclops'});
+    const foreign=new Request('http://internal-node:3000/api/account',{method:'POST',headers:{origin:'https://attacker.test','content-type':'application/json','x-forwarded-host':'attacker.test'},body:'{}'});
+    assert.equal(checkWriteRequest(foreign).status,403);
+  } finally {
+    if(previousMode===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previousMode;
+    if(previousUrl===undefined)delete process.env.BETTER_AUTH_URL;else process.env.BETTER_AUTH_URL=previousUrl;
+  }
+});
 
 test('account progress requires verified identity before any database access', async () => {
   const api = createProgressApi({ async limit(){throw new Error('must not run');} }, async () => null);

@@ -131,6 +131,6 @@ npm run preview
 
 Build checks TypeScript and creates the production Next.js app. Preview serves that build on port 3000. Production requires server environment variables from the setup guide; machine-wide local AI is development-only. Use `build:offline` and `preview:offline` for the original Vite edition and its local model endpoint on port 4173.
 
-Progress is saved per browser and local address. Your hosted-game save will not transfer automatically to localhost. Port 4173 also has separate progress from port 5173.
+Guest saves and earlier-mode progress are scoped to the browser and local address. Signed-in arcade progress follows the account when both deployments use the same database. Different local ports have separate guest saves.
 
 The online edition uses React, TypeScript, Next.js, MongoDB, Better Auth, Tailwind CSS, and Radix UI. The original local edition uses Vite. Original design notes, narrative sources, HCI limitations, and art credits are in `PROJECT-NOTES.md` and `ART-CREDITS.md`.

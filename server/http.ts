@@ -1,6 +1,18 @@
 export const json = (body: unknown, status = 200, headers: Record<string, string> = {}) => Response.json(body, { status, headers: { "Cache-Control": "private, no-store", "Vary": "Cookie", "X-Content-Type-Options": "nosniff", ...headers } });
+function serverOrigin(request: Request) {
+  const base = process.env.NODE_ENV === "production" ? process.env.BETTER_AUTH_URL : undefined;
+  return new URL(base || request.url).origin;
+}
+export function canonicalRequest(request: Request): Request {
+  // Node receives an internal URL behind a reverse proxy. Trust server configuration.
+  const base = process.env.NODE_ENV === "production" ? process.env.BETTER_AUTH_URL : undefined;
+  if (!base) return request;
+  const incoming = new URL(request.url), origin = serverOrigin(request);
+  if (incoming.origin === origin) return request;
+  return new Request(new URL(incoming.pathname + incoming.search, origin), request);
+}
 export function checkWriteRequest(request: Request): Response | null {
-  if (request.headers.get("origin") !== new URL(request.url).origin || ["cross-site", "same-site"].includes(request.headers.get("sec-fetch-site") || "")) return json({ error: "Open Farshore directly to change your account." }, 403);
+  if (request.headers.get("origin") !== serverOrigin(request) || ["cross-site", "same-site"].includes(request.headers.get("sec-fetch-site") || "")) return json({ error: "Open Farshore directly to change your account." }, 403);
   if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") return json({ error: "A JSON request is required." }, 415);
   if (Number(request.headers.get("content-length") || 0) > 24000) return json({ error: "This request is too large." }, 413);
   return null;

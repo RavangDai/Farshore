@@ -11,7 +11,7 @@ The professor explicitly asks for presentation slides and a team contribution st
 
 ## Ten-minute rehearsal
 
-Use speaker-notes.md. Slides 1-12 total 600 seconds. Later slides form an untimed review appendix. The 3-5 minutes of Q&A come afterward. Do not play through all five encounters during the timed presentation. A game demo is optional and is not mandated by this brief.
+Use speaker-notes.md. All 8 slides total 600 seconds. Full flows and wireframes remain in the supporting design packet. The 3-5 minutes of Q&A come afterward. Do not play through all five encounters during the timed presentation. A game demo is optional and is not mandated by this brief.
 
 Your opening: "Farshore turns Odysseus' journey into five distinct arcade trials. Phase 2 shows how a player learns each trial, reviews an optional AI strategy, and recovers when the model fails."
 
@@ -25,7 +25,7 @@ Your research status: "The personas come from my Phase 1 sketches. I am using th
 
 - Why use AI? It selects a rival strategy from recent attempt observations while fixed local rules preserve responsiveness and predictable scoring. Its effect on enjoyment still needs evaluation.
 - Why can players play without it? Optional planning can fail or take more than ten seconds. Local play keeps the game usable.
-- What does the model receive? Shore ID, difficulty and up to two numeric attempt summaries. This test uses loopback Ollama. No names, audio or free text.
+- What does the model receive? The browser sends a shore ID, difficulty and up to two numeric attempt summaries. The server gives Llama derived habits and win count. This test uses loopback Ollama. No names, audio or free text.
 - Can the model cheat? The server rejects illegal strategy/focus fields. Local code owns scores and collision rules. Fairness still needs user playtests.
 - How can a player undo an AI result? Change mode/difficulty to discard it before play. A dedicated Discard control is Proposed. Practice changes no progress. There is no post-round score reversal.
 - What are the failures? A nonexistent model returned 404, malformed provider JSON returned 400, and unsupported difficulty returned app 400 before inference. 429 and sustained capacity were not measured.

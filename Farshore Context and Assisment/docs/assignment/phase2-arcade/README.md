@@ -10,7 +10,7 @@ Current October 8 submission package. The original advice-voyage package in ../p
 | User flows, 30% | F1-F5, labeled with Phase 1 persona sketches, plus EC1-EC8 |
 | Wireframes, 30% | W01-W28, every screen and all five A1 states, with flow/state annotations |
 | AI spike, 10% | Six actual current-use-case calls, raw outputs, min/mean/max, two real provider failures and one app validation failure, one-page summary |
-| Presentation, 10% | 12 timed slides plus a review appendix, 600-second notes, contribution draft and supporting artifacts |
+| Presentation, 10% | 8 presentation slides, 600-second notes, contribution draft and supporting artifacts |
 
 ## Outputs
 

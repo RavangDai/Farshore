@@ -17,17 +17,17 @@ assert sum(1 for f in D['spike']['failures'] if f['boundary']=='real provider' a
 times=[s['seconds'] for s in D['spike']['samples']]
 assert abs(sum(times)/6-D['spike']['latency']['average'])<.001
 counts={}
-for name,expected in [('Farshore-Phase-2-Arcade-Design-Packet.pdf',35),('Farshore-Phase-2-Arcade-Presentation.pdf',51),('technical-spike-summary.pdf',1),('contribution-statement.pdf',1)]:
+for name,expected in [('Farshore-Phase-2-Arcade-Design-Packet.pdf',35),('Farshore-Phase-2-Arcade-Presentation.pdf',8),('technical-spike-summary.pdf',1),('contribution-statement.pdf',1)]:
     counts[name]=len(PdfReader(OUT/name).pages)
     assert counts[name]==expected,(name,counts[name])
 with zipfile.ZipFile(OUT/'Farshore-Phase-2-Arcade-Presentation.pptx') as z:
     slides=[n for n in z.namelist() if re.fullmatch(r'ppt/slides/slide\d+\.xml',n)]
     notes=[n for n in z.namelist() if re.fullmatch(r'ppt/notesSlides/notesSlide\d+\.xml',n)]
-    assert len(slides)==51 and len(notes)==51
+    assert len(slides)==8 and len(notes)==8
     for name in z.namelist():
         if name.endswith(('.xml','.rels')):ET.fromstring(z.read(name))
     assert sum(z.read(n).count(b'<a:tbl>') for n in slides)>=3
-    assert sum(z.read(n).count(b'<p:sp>') for n in slides)>100
+    assert sum(z.read(n).count(b'<p:sp>') for n in slides)>60
 notes=(OUT/'speaker-notes.md').read_text(encoding='utf-8')
 assert sum(map(int,re.findall(r'Timing: (\d+) seconds',notes)))==600
 class Links(HTMLParser):

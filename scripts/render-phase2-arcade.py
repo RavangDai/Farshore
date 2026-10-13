@@ -232,7 +232,7 @@ def contribution_page():
     p.text('Bibek Pathak',52,180,690,27,bold=True)
     return p
 
-def slide_pages():
+def detailed_slide_pages(include_appendix=True):
     slides=[]
     timings=[30,50,45,45,55,60,45,45,55,65,65,40]
     def new(t,s=''):
@@ -310,8 +310,90 @@ def slide_pages():
     assert len(slides)==12 and sum(timings)==600
     for i,p in enumerate(slides):
         p.footer(i+1);p.notes=f'Timing: {timings[i]} seconds.\n\n'+p.notes
-    slides.extend(appendix_slides())
-    assert len(slides)==51
+    if include_appendix:
+        slides.extend(appendix_slides())
+        assert len(slides)==51
+    return slides
+
+def slide_pages():
+    """Eight slides for the ten-minute talk; full evidence stays in the packet."""
+    import re
+    source=detailed_slide_pages(include_appendix=False)
+    slides=[source[0],source[1],source[3],source[4]]
+    for p in slides:
+        p.items=[item for item in p.items if not (item['type']=='text' and item['text'].startswith('Farshore / Phase 2 /'))]
+        p.notes=re.sub(r'^Timing: \d+ seconds\.\n\n','',p.notes)
+    slides[2].notes=source[2].notes.split('\n\n',1)[1]+'\n\n'+slides[2].notes
+    slides[3].subtitle='One of two allowed strategies. Local game logic plays the round.'
+    for item in slides[3].items:
+        if item['type']=='text' and item['text']=='Numeric summaries prepare a strategy before the round':
+            item['text']=slides[3].subtitle
+            item['lines']=backend.wrap(item['text'],item['w'],item['size'])
+
+    p=Page('Player task flows','Five persona-linked paths. Full steps and branches are in the design packet.',w=1280,h=720)
+    slides.append(p)
+    rows=[
+        ('F1  Start and learn','Daniel',['Begin / Continue','Map and briefing','Practice or play']),
+        ('F2  Model strategy','Maya and Rosa',['Choose and prepare','Review strategy','Start or regenerate']),
+        ('F3  Active play','Maya and Daniel',['Player action','Rival response','Result or retry']),
+        ('F4  AI recovery','Rosa and Maya',['Read failure','Retry or local play','Explicit start']),
+        ('F5  Voyage progress','All three personas',['Clear or assistance','Next shore','Homecoming']),
+    ]
+    for i,(title,persona,steps) in enumerate(rows):
+        yy=174+i*90
+        p.text(title,64,yy+2,255,24,bold=True)
+        p.text(persona,64,yy+38,255,20,color=GRAY)
+        for j,label in enumerate(steps):
+            xx=345+j*300
+            p.box(xx,yy,260,66)
+            p.text(label,xx+14,yy+17,232,22,bold=True)
+            if j<2:p.arrow(xx+260,yy+33,xx+300,yy+33)
+    p.text('Pause preserves the round. Practice awards no clear. Assistance has its own label.',64,635,1140,20,color=TEAL)
+    p.notes='Maya needs visible warnings and fixed scoring. Daniel needs a clear objective and short practice. Rosa needs control over the model result. These are design hypotheses based on the supplied Phase 1 sketches. F1: Begin or Continue, read or skip the introduction, choose the first available shore, read the briefing, then practice or play. Restart needs confirmation. F2: select AI Rival Battle, prepare, watch elapsed time with Cancel, validate the allowed plan and focus, review the strategy, then explicitly start. Regenerate replaces the candidate. Changing difficulty or mode discards it. A dedicated Discard is proposed. F3: act with the encounter controls, observe the rival, then reach a result. Pause or lost focus stops clocks and releases controls. A loss offers retry or practice. F4: read the error, retain progress, check settings, then retry or explicitly choose Solo/local AI. No match starts from an invalid response. F5: clear or confirm assistance, continue to the next shore, and reach Homecoming after all five passages. Assistance is labeled and a later clear can replace it. Sources: design packet F1-F5; src/ArcadeApp.tsx; src/components/arcade-round.tsx; server/arcade.ts.'
+
+    p=Page('AI preparation states','Five low-fidelity states keep progress and player choice visible',w=1280,h=720)
+    slides.append(p)
+    states=[
+        ('Initial',64,172,350,['Difficulty and mode','Local rival available','Prepare with model']),
+        ('Loading',464,172,350,['Preparing strategy','Elapsed time and Cancel','Gameplay clock stopped']),
+        ('Success',864,172,350,['Strategy and fixed rules','Start / Prepare another','Edit difficulty or mode']),
+        ('Uncertain',64,416,545,['Unsupported strategy','No match has started','Retry / local AI / Solo']),
+        ('Error',669,416,545,['Service unavailable','Voyage progress kept','Retry / check / local play']),
+    ]
+    for title,x,y,w,labels in states:
+        p.text(title,x,y,w,30,bold=True)
+        p.box(x,y+48,w,166,'#ffffff','#777777')
+        for i,label in enumerate(labels):
+            yy=y+49+i*55
+            if i:p.box(x+1,yy,w-2,1,'#aaaaaa','#aaaaaa')
+            p.text(label,x+18,yy+13,w-36,23,color='#222222')
+    p.notes='These grayscale wireframes summarize W05-W09. Initial makes optional model preparation visible. Loading shows elapsed time and Cancel and consumes no gameplay time. Success names the strategy and keeps difficulty fixed. The player starts, regenerates or changes settings. An unsupported or empty response cannot start a model-planned match. Error preserves the voyage and offers explicit retry or local play. Invalid input stops before inference. No confidence percentage is shown because the model supplies no calibrated probability. Timeout and a busy-provider path are implemented, but they were not induced live in this experiment. Full wireframes cover all fifteen screens, gameplay turns, pause, practice, assistance and save warnings. Sources: design packet W01-W28; src/ArcadeApp.tsx; server/arcade.ts; Phase 2 brief page 2.'
+
+    p=source[9]
+    p.items=[item for item in p.items if not (item['type']=='text' and item['text'].startswith('Farshore / Phase 2 /'))]
+    p.notes=re.sub(r'^Timing: \d+ seconds\.\n\n','',p.notes)
+    slides.append(p)
+
+    p=Page('Recovery and next steps','Two real provider failures and one application validation failure',w=1280,h=720)
+    slides.append(p)
+    p.table(['Triggered condition','Observed response','Designed recovery'],[
+        ['Nonexistent model','Provider HTTP 404','Check / retry / local play'],
+        ['Malformed provider JSON','Provider HTTP 400','Explain / keep selections'],
+        ['Unsupported difficulty','App HTTP 400','Supported-choice guidance'],
+    ],64,172,[450,300,390],24)
+    p.text('Implemented',64,470,530,29,bold=True)
+    p.text('Elapsed time, Cancel and plan validation.\nLocal saves, practice and assistance.',64,521,530,24)
+    p.text('Proposed or awaiting evidence',690,470,525,29,bold=True)
+    p.text('Discard and provider privacy detail.\nInterviews, peer critique and fairness tests.',690,521,525,24)
+    p.text('No live 429 or capacity test. Hardware and future hosting costs are unmeasured.',64,630,1140,20,color=GRAY)
+    p.notes=source[10].notes.split('\n\n',1)[1]+'\n\n'+source[11].notes.split('\n\n',1)[1]
+    p.notes=p.notes.replace('Review appendix','Supporting design packet')
+
+    timings=[35,65,75,80,85,80,95,85]
+    assert len(slides)==8 and sum(timings)==600
+    for i,p in enumerate(slides):
+        p.footer(i+1)
+        p.notes=f'Timing: {timings[i]} seconds.\n\n'+p.notes
     return slides
 
 def appendix_slides():
@@ -393,7 +475,7 @@ if __name__=='__main__':
     pptx(slides,OUT/'Farshore-Phase-2-Arcade-Presentation.pptx')
     draw_pdf(slides,BUILD/'slides-preview.pdf',(960,540))
     (BUILD/'layout.json').write_text(json.dumps([{'title':p.title,'items':p.items} for p in slides],indent=2),encoding='utf-8')
-    (OUT/'speaker-notes.md').write_text('# Ten-minute presentation notes\n\nPresent slides 1-12 in 600 seconds. Slides 13 onward are a review appendix, outside the timed talk. Allow 3-5 minutes of Q&A afterward.\n\n'+'\n\n'.join(f'## {i+1}. {p.title or "Farshore"}\n\n{p.notes}' for i,p in enumerate(slides)),encoding='utf-8')
+    (OUT/'speaker-notes.md').write_text('# Ten-minute presentation notes\n\nPresent all 8 slides in 600 seconds. Full flows, wireframes and exact failure bodies are in the supporting design packet. Allow 3-5 minutes of Q&A afterward.\n\n'+'\n\n'.join(f'## {i+1}. {p.title or "Farshore"}\n\n{p.notes}' for i,p in enumerate(slides)),encoding='utf-8')
     for wf in D['wireframes']:
         p=Page('',w=620,h=800)
         wire(p,wf,30,30,560,510,True)

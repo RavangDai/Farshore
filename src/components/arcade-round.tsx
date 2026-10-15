@@ -15,7 +15,7 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
   const [confirmLeave, setConfirmLeave] = useState(false);
   const arena = useRef<HTMLDivElement>(null), overlay = useRef<HTMLDivElement>(null), callbacks = useRef({ onFinish, onFeedback, onNote }), lastSung = useRef("");
   callbacks.current = { onFinish, onFeedback, onNote };
-  const trial = trialFor(id);
+  const trial = originalCave ? { ...trialFor(id), title: "Cyclops’ Cave: Original Tactics", kind: "Grid stealth", controls: "Arrows / WASD or tap an adjacent tile. Sneak one tile, dash two, or hide beneath a sheep with Space. Evade each marked smash before it lands." } : trialFor(id);
   const strategy = originalCave ? planNames[plan.planId] : planLabel(id, plan);
   function commit(next: GameState) {
     if (next === current.current) return;

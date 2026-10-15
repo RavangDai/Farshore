@@ -2,8 +2,8 @@ import { z } from "zod/v3";
 import { trialFor, validPlan, planDescription, type TrialId, type OpponentPlan } from "../src/lib/arcade.ts";
 import { GET as modelGET, type ModelConnection } from "./turn.ts";
 
-const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
-const input = z.object({ trialId: z.enum(["cyclops", "circe", "sirens", "scylla", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
+const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), score: z.number().int().min(0).max(1000000).optional(), timeMs: z.number().int().min(0).max(3600000).optional(), difficulty: z.enum(["easy", "normal", "hard"]).optional(), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
+const input = z.object({ trialId: z.enum(["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
 export async function GET(connection?: ModelConnection) {
   const response = await modelGET(connection), status = await response.json();
   if (!status.aiConfigured) status.message = "Solo and adaptive AI are ready. Connect a model for optional strategy planning.";
@@ -32,7 +32,10 @@ export async function POST(request: Request, connection?: ModelConnection) {
   const aiPlans = trial.plans.slice(1);
   const schema = { type: "object", properties: { planId: { type: "string", enum: aiPlans }, focus: { type: "string", enum: [expectedFocus] } }, required: ["planId", "focus"], additionalProperties: false };
   const policyGuide = {
-    cyclops: "focused follows a heatmap of audible footsteps; sweep predicts the next grid position from the last two noise clues. The blind giant cannot see the player. Prefer focused for repeated losses, otherwise sweep.",
+    lotus: "pincer pursues through the maze; undertow intercepts junctions. All moves obey walls and fixed warning times.",
+    aeolus: "pincer varies visible wind-gate altitude; undertow strengthens telegraphed currents. Neither changes collision windows.",
+    calypso: "pincer coordinates drifting timbers; undertow uses alternating currents. Safe landings remain reachable.",
+    cyclops: "focused attacks the runner's current lane; sweep estimates the next lane from recent lane choices. Every attack locks 3100 ms before impact and always leaves two clear lanes. Prefer focused for repeated losses, otherwise sweep.",
     circe: "chain previews the next potion for multi-chain matches; hoard uses the same planning but banks curses until the other board is crowded. Prefer chain for repeated losses, otherwise hoard.",
     sirens: "swell repeats the weakest missed sound lane in new melodies; echo also adds visible rests and changes tempo between melodies. Choose a melody strategy using the missed-lane history.",
     scylla: "pincer sends heads around the shield and synchronizes moderate whirlpool pull; undertow adds stronger synchronized pull during approaching attacks. Prefer pincer for repeated losses, otherwise undertow.",

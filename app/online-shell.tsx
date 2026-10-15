@@ -118,7 +118,7 @@ export function OnlineShell() {
     const root = document.getElementById("farshore-account-dialog");
     root?.querySelector<HTMLElement>("button,input")?.focus();
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeAccount();
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeAccount(); }
       if (e.key !== "Tab") return;
       const items = Array.from(root?.querySelectorAll<HTMLElement>("button,input,select,a[href]") || []).filter(el => !el.hasAttribute("disabled") && el.getClientRects().length);
       if (e.shiftKey && document.activeElement === items[0]) { e.preventDefault(); items.at(-1)?.focus(); }

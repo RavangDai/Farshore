@@ -34,11 +34,11 @@ test('HTTPS proxy requests use the configured public origin without trusting cal
   const previousMode=process.env.NODE_ENV,previousUrl=process.env.BETTER_AUTH_URL;
   try {
     process.env.NODE_ENV='production';process.env.BETTER_AUTH_URL='https://play.farshore.test';
-    const request=new Request('http://internal-node:3000/api/arcade',{method:'POST',headers:{origin:'https://play.farshore.test','content-type':'application/json','x-forwarded-host':'attacker.test'},body:JSON.stringify({trialId:'cyclops'})});
+    const request=new Request('http://internal-node:3000/api/arcade',{method:'POST',headers:{origin:'https://play.farshore.test','content-type':'application/json','x-forwarded-host':'attacker.test'},body:JSON.stringify({trialId:'lotus'})});
     assert.equal(checkWriteRequest(request),null);
     const canonical=canonicalRequest(request);
     assert.equal(canonical.url,'https://play.farshore.test/api/arcade');
-    assert.deepEqual(await canonical.json(),{trialId:'cyclops'});
+    assert.deepEqual(await canonical.json(),{trialId:'lotus'});
     const foreign=new Request('http://internal-node:3000/api/account',{method:'POST',headers:{origin:'https://attacker.test','content-type':'application/json','x-forwarded-host':'attacker.test'},body:'{}'});
     assert.equal(checkWriteRequest(foreign).status,403);
   } finally {
@@ -55,9 +55,9 @@ test('account progress requires verified identity before any database access', a
 test('progress stays with the authenticated account and caller-supplied owners are rejected', async () => {
   const db=store(), alice=createProgressApi(db.repository('alice'),actor('alice')), bob=createProgressApi(db.repository('bob'),actor('bob'));
   assert.equal((await alice(mutation({type:'start'}))).status,200);
-  assert.equal((await alice(mutation({type:'complete',trialId:'cyclops',summary},1))).status,200);
+  assert.equal((await alice(mutation({type:'complete',trialId:'lotus',summary},1))).status,200);
   const other=await (await bob(new Request('https://game.test/api/account'))).json();
-  assert.equal(other.record.save.started,false); assert.equal(other.record.save.records.cyclops.cleared,'pending');
+  assert.equal(other.record.save.started,false); assert.equal(other.record.save.records.lotus.cleared,'pending');
   assert.equal((await alice(mutation({type:'restart'},2,crypto.randomUUID(),{userId:'bob'}))).status,400);
   assert.equal(db.records.get('bob').revision,0);
 });
@@ -73,15 +73,15 @@ test('locked encounters cannot grant account progress and malformed summaries ca
   const db=store(), api=createProgressApi(db.repository('alice'),actor('alice'));
   await api(mutation({type:'start'}));
   assert.equal((await api(mutation({type:'complete',trialId:'bow',summary},1))).status,422);
-  assert.equal((await api(mutation({type:'complete',trialId:'cyclops',summary:{...summary,hits:-1}},1))).status,400);
+  assert.equal((await api(mutation({type:'complete',trialId:'lotus',summary:{...summary,hits:-1}},1))).status,400);
   assert.equal(db.records.get('alice').revision,1);
 });
 test('network retries are idempotent and reusing a request ID for different content fails', async () => {
   const db=store(),api=createProgressApi(db.repository('alice'),actor('alice'));await api(mutation({type:'start'}));
-  const id=crypto.randomUUID(), command={type:'complete',trialId:'cyclops',summary};
+  const id=crypto.randomUUID(), command={type:'complete',trialId:'lotus',summary};
   assert.equal((await api(mutation(command,1,id))).status,200);
   const replay=await (await api(mutation(command,1,id))).json();assert.equal(replay.replayed,true);
-  assert.equal(db.records.get('alice').save.records.cyclops.attempts,1);
+  assert.equal(db.records.get('alice').save.records.lotus.attempts,1);
   assert.equal((await api(mutation({type:'restart'},1,id))).status,409);
 });
 test('concurrent device writes have one winner and a recoverable revision conflict', async () => {
@@ -100,8 +100,8 @@ test('import only applies to an empty account and assistance can be upgraded nor
   const base={save:newArcade(),preferences:defaultPreferences(),revision:0,updatedAt:''},old={...newArcade(),started:true};
   const imported=applyProgressCommand(base,commandSchema.parse({type:'import',save:old,preferences:defaultPreferences()}));
   assert.throws(()=>applyProgressCommand({...base,...imported},{type:'import',save:old,preferences:defaultPreferences()}));
-  const assisted=applyProgressCommand({...base,...imported},{type:'assist',trialId:'cyclops'});
-  const cleared=applyProgressCommand({...base,...assisted},{type:'complete',trialId:'cyclops',summary});assert.equal(cleared.save.records.cyclops.cleared,'cleared');
+  const assisted=applyProgressCommand({...base,...imported},{type:'assist',trialId:'lotus'});
+  const cleared=applyProgressCommand({...base,...assisted},{type:'complete',trialId:'lotus',summary});assert.equal(cleared.save.records.lotus.cleared,'cleared');
 });
 test('API keys are encrypted with unique IVs and cannot be decrypted under another owner', async () => {
   const master=btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))),secret='test-provider-key-123456';

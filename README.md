@@ -1,18 +1,18 @@
-# Farshore: The Odyssey: Arcade Trials
+# The Odyssey - Eight Trials. One Journey Home.
 
 The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](ONLINE-SETUP.md).
 
 The paragraphs below describe gameplay and the earlier local setup. For the current online build and security boundary, use the setup guide and [SECURITY.md](SECURITY.md).
 
-A head-to-head retro arcade voyage through five distinct games: Polyphemus grid stealth, Circe falling-potion match-3, Sirens four-lane melody memory, Scylla and Charybdis paddle defense, and Antinous turn-based twelve-ring archery.
+An eight-encounter Greek mythology arcade adventure: Lotus maze rescue, Cyclops cave runner, Aeolus wind sailing, Circe falling-potion match-3, Sirens melody memory, Scylla & Charybdis paddle defense, Calypso raft hopping, and the archery contest at Ithaca.
 
-Run **`npm.cmd run dev`**, open the printed localhost URL (normally **http://localhost:3000**), and choose **Begin voyage**. Each encounter teaches its own controls and offers practice, retries, Easy/Normal/Hard difficulty, pause, and an assisted passage. Keyboard, pointer, and touch controls work without sound. Optional music includes four distinct notes for the Sirens.
+Choose **New Game** after the cinematic opening, follow the connected island map, and complete each encounter to unlock the next. Every island has Easy, Medium, and Hard difficulty, its own briefing, practice, pause/resume, retries, and saved scores and medals. Keyboard and touch controls work without sound. The How to Play screen includes a real A* rescue demonstration.
 
-Choose **Arcade Solo** for learnable opponents or **AI Rival Battle** for immediate adaptive opponents. Rivals take visible actions during play. **Prepare with connected model** optionally uses your configured pretrained model to select the strategy before a match. Local adaptive AI and model-selected strategies are labeled separately. Game code owns scores, warnings, collision rules, and progress.
+The existing arcade engines, audio, local/account saves, optional model preparation, and earlier modes are preserved. Three- and five-stop saves migrate without losing clears. The original Cyclops grid game remains available as practice in its briefing. Details of the adaptation and save behavior are in [ODYSSEY-ADAPTATION.md](ODYSSEY-ADAPTATION.md).
 
-Guests save completed encounters and preferences in the browser. Signed-in arcade players save them in MongoDB. Existing three-trial saves migrate without losing clears; Circe and the strait are added as pending stops. Practice does not advance progress. Assisted passages are marked in the homecoming report and can be upgraded by replaying. Unfinished rounds restart after reload.
+**Arcade Solo** uses learnable game AI. **Adaptive AI** reacts during play. **Prepare with connected model** optionally asks your configured provider to select a constrained local strategy before the encounter. Game code owns scoring, collisions, warnings, and progress.
 
-See the [five-trial rules and class demonstration](<Farshore Context and Assisment/docs/arcade/README.md>) and [verification record](<Farshore Context and Assisment/docs/arcade/trials-verification.md>). Real model checks for Circe and Scylla are recorded; the [earlier model experiment](<Farshore Context and Assisment/docs/arcade/technical-spike.md>) describes the previous mechanics.
+Guests save on the device; signed-in players synchronize through MongoDB. New Game confirms before resetting a voyage. Failed attempts do not unlock islands. Practice and demonstrations do not advance progress. The retained accessibility passage is explicitly confirmed, marked Assisted, and earns no medal. Unfinished encounters restart after a reload.
 
 ```powershell
 npm.cmd run dev
@@ -20,7 +20,7 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate device progress. The existing Phase 2 slides and PDFs describe the original advice voyage and await revision for the arcade concept. The original Vite edition is available with `npm.cmd run dev:offline` on port 5173.
+Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate progress. Earlier design packets and presentation artifacts describe previous editions. The Vite edition remains available with `npm.cmd run dev:offline`.
 
 ## Earlier modes and original voyage notes
 

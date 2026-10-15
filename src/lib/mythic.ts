@@ -1,4 +1,4 @@
-import { validPlan, type AttemptSummary, type Difficulty, type OpponentPlan, type TrialId } from "./arcade.ts";
+import { validPlan, type AttemptSummary, type Difficulty, type OpponentPlan, type TrialId, type LegacyTrialId } from "./arcade.ts";
 
 export const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 export const tierOf = (d: Difficulty) => ["easy", "normal", "hard"].indexOf(d);
@@ -25,7 +25,7 @@ function end<T extends MythicState>(s: T, won: boolean, feedback: string): T { s
 function streak(s: Base, good: boolean) { s.combo = good ? s.combo + 1 : 0; s.bestCombo = Math.max(s.bestCombo, s.combo); }
 function clone<T extends MythicState>(s: T): T { return structuredClone(s); }
 
-export function newMythic(id: TrialId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200): MythicState {
+export function newMythic(id: LegacyTrialId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200): MythicState {
   if (!validPlan(id, plan) || !["easy", "normal", "hard"].includes(difficulty)) throw new Error("Unsupported trial rules");
   const b: Base = { id, difficulty, plan: { ...plan }, practice, seed, elapsed: 0, done: false, won: false, feedback: "", rivalLine: "", score: 0, rivalScore: 0, hits: 0, successes: 0, misses: 0, combo: 0, bestCombo: 0 };
   if (id === "cyclops") return { ...b, id, player: { x: 0, y: 7 }, sheep: [{ x: 1, y: 7 }, { x: 3, y: 5 }, { x: 5, y: 3 }, { x: 6, y: 7 }, { x: 4, y: 0 }], walls: [{ x: 2, y: 6 }, { x: 2, y: 5 }, { x: 4, y: 4 }, { x: 4, y: 3 }, { x: 1, y: 2 }, { x: 5, y: 1 }], noise: [], heat: Array(64).fill(0), target: { x: 3, y: 3 }, turn: 0, phase: "player", timer: 0, evaded: false, stance: "sneak", hidden: false, feedback: "Sneak toward either gold exit. Sheep conceal your footsteps.", rivalLine: "Nobody... where are you?" };
@@ -35,7 +35,7 @@ export function newMythic(id: TrialId, difficulty: Difficulty, plan: OpponentPla
     s.piece = [2, 2, 2]; s.next = nextPiece(s); s.rivalPiece = nextPiece(s); s.rivalNext = nextPiece(s); planPotion(s); return s;
   }
   if (id === "sirens") { const s: SongState = { ...b, id, notes: [], phase: "listen", timer: 0, beat: 0, entered: [], temptation: 0, round: 1, laneMisses: [0, 0, 0, 0], lastLane: -1, flash: 0, feedback: "Listen first. Echo the numbered notes when YOUR REPLY appears.", rivalLine: "Come closer. Remember our song." }; compose(s); return s; }
-  if (id === "scylla") return { ...b, id, paddle: 200, boat: 55, rowing: false, strikes: [], spawn: 1500, head: 0, pull: 0, duration: practice ? 12000 : [30000, 40000, 50000][tierOf(difficulty)], telegraph: 0, targetY: 200, feedback: "Move the shield up and down. Hold Row to resist the vortex.", rivalLine: "Six heads. One ship." };
+  if (id === "scylla") return { ...b, id, paddle: 200, boat: 55, rowing: false, strikes: [], spawn: 1500, head: 0, pull: 0, duration: practice ? 12000 : [60000, 75000, 90000][tierOf(difficulty)], telegraph: 0, targetY: 200, feedback: "Move the shield up and down. Hold Row to resist the vortex.", rivalLine: "Six heads. One ship." };
   const s: BowState = { ...b, id: "bow", aim: { aim: 0, elevation: 0, tension: 75 }, wind: 0, turn: 1, phase: "player", timer: 0, shot: null, blocked: 0, rivalAim: { aim: 0, elevation: 0, tension: 75 }, shots: [], rivalShots: [], feedback: "Read the wind, adjust your trajectory, then release.", rivalLine: "My hall. My contest." }; setWind(s); return s;
 }
 
@@ -127,7 +127,7 @@ export function potionChoice(board: Tile[], piece: Tile[], next: Tile[], adaptiv
   }
   return choice;
 }
-function planPotion(s: PotionState) { const c = potionChoice(s.rivalBoard, s.rivalPiece, s.rivalNext, s.plan.source === "ai"); s.rivalColumn = c.column; s.rivalRotation = c.rotation; }
+function planPotion(s: PotionState) { const c = potionChoice(s.rivalBoard, s.rivalPiece, s.rivalNext, s.difficulty === "hard" || s.plan.source === "ai"); s.rivalColumn = c.column; s.rivalRotation = c.rotation; }
 function potionDrop(s: PotionState, rival: boolean) {
   const result = dropPiece(rival ? s.rivalBoard : s.board, rival ? rotatePiece(s.rivalPiece, s.rivalRotation) : s.piece, rival ? s.rivalColumn : s.column);
   if (!result) { end(s, rival, rival ? "Circe's board reaches the ceiling. The enchantment breaks!" : "Your board reaches the ceiling. Keep columns open and brew moly."); return; }
@@ -150,7 +150,7 @@ function potionDrop(s: PotionState, rival: boolean) {
 export function songBeat(s: SongState) { return [820, 650, 520][tierOf(s.difficulty)] * (s.plan.source === "ai" && s.plan.planId === "echo" ? [1, .85, 1.15][(s.round - 1) % 3] : 1); }
 function compose(s: SongState) {
   const count = Math.min(6, s.round + 2), weakest = s.laneMisses.indexOf(Math.max(...s.laneMisses));
-  s.notes = Array.from({ length: count }, (_, i) => ({ lane: s.plan.source === "ai" ? i % 2 === 1 ? weakest : Math.floor(roll(s) * 4) : (i + s.round - 1) % 4, rest: s.plan.planId === "echo" && i === count - 2 && s.round > 1 }));
+  s.notes = Array.from({ length: count }, (_, i) => ({ lane: s.plan.source === "ai" || s.difficulty === "hard" ? i % 2 === 1 ? weakest : Math.floor(roll(s) * 4) : (i + s.round - 1) % 4, rest: s.plan.planId === "echo" && i === count - 2 && s.round > 1 }));
   s.rivalLine = s.plan.source === "ai" && Math.max(...s.laneMisses) > 0 ? `The ${["red", "blue", "green", "gold"][weakest]} note slips away from you. Hear it again.` : "Listen to our melody. Then sing it back.";
   s.phase = "listen"; s.timer = 0; s.entered = []; s.lastLane = -1;
 }
@@ -187,7 +187,7 @@ export function bestAim(wind: number, blocked = 0, difficulty: Difficulty = "nor
 function setWind(s: BowState) { s.wind = Math.round((roll(s) - .5) * [40, 80, 110][tierOf(s.difficulty)]); }
 function rivalShot(s: BowState) {
   let aim: Aim;
-  if (s.plan.source === "ai") {
+  if (s.plan.source === "ai" || s.difficulty === "hard") {
     aim = bestAim(s.wind, 0, s.difficulty);
     // Small execution error preserves a beatable contest; policy is about aim.
     aim.aim += Math.round((roll(s) - .5) * 3); aim.elevation += Math.round((roll(s) - .5) * 2);
@@ -261,13 +261,13 @@ export function tickMythic(state: MythicState, delta: number): MythicState {
     else if (s.phase === "rest" && s.timer >= 1700) { s.round++; compose(s); s.feedback = "The next melody begins. Watch the four lanes."; }
   } else if (s.id === "scylla") {
     const time = s.elapsed / 1000;
-    const synced = s.plan.source === "ai" && (s.strikes.some(a => !a.reflected && a.x < 480) || s.telegraph > 0);
+    const synced = (s.plan.source === "ai" || s.difficulty === "hard") && (s.strikes.some(a => !a.reflected && a.x < 480) || s.telegraph > 0);
     s.pull = clamp(5 + 4 * Math.sin(time * 2) + (synced ? s.plan.planId === "undertow" ? 7 : 4 : 0), 2, 16);
     s.boat = clamp(s.boat + (s.rowing ? 11 - s.pull * .3 : -s.pull * .48) * dt / 1000, 0, 85);
     s.spawn -= dt;
     if (s.spawn <= 0 && !s.telegraph) {
       s.head = (s.head + 1) % 6;
-      s.targetY = s.plan.source === "ai" ? clamp(s.paddle + (s.head % 2 ? 90 : -90), 45, 355) : 55 + s.head * 57;
+      s.targetY = s.plan.source === "ai" || s.difficulty !== "easy" ? clamp(s.paddle + (s.head % 2 ? 90 : -90), 45, 355) : 55 + s.head * 57;
       s.telegraph = [950, 800, 650][tier];
       s.rivalLine = synced ? "Charybdis pulls while Scylla aims around your shield!" : `Scylla's head ${s.head + 1} prepares a strike. Follow the gold warning.`;
     }
@@ -299,7 +299,7 @@ export function tickMythic(state: MythicState, delta: number): MythicState {
   return s;
 }
 export function mythicSummary(s: MythicState): AttemptSummary {
-  return { won: s.won, source: s.plan.source, hits: clamp(s.hits, 0, 100), successes: clamp(s.successes, 0, 100), early: 0, late: 0, misses: clamp(s.misses, 0, 100), laneMs: [0, 0, 0], ...(s.id === "sirens" ? { laneMisses: [...s.laneMisses] as [number, number, number, number] } : {}) };
+  return { won: s.done && s.won, source: s.plan.source, hits: clamp(s.hits, 0, 100), successes: clamp(s.successes, 0, 100), early: 0, late: 0, misses: clamp(s.misses, 0, 100), laneMs: [0, 0, 0], score: Math.round(s.score), timeMs: Math.round(s.elapsed), difficulty: s.difficulty, ...(s.id === "sirens" ? { laneMisses: [...s.laneMisses] as [number, number, number, number] } : {}) };
 }
 export function scoreLabel(s: MythicState) { return s.id === "bow" ? "rings" : s.id === "circe" ? "brew points" : "points"; }
 export function statusLabel(s: MythicState) {

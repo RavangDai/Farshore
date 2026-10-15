@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
-import { mythicAction, newMythic, scoreLabel, songBeat, statusLabel, tickMythic, type Action, type MythicState } from "../lib/mythic";
+import { planLabel, planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
+import { songBeat, statusLabel } from "../lib/mythic";
+import { createGame, gameAction, tickGame, isAdventure, demonstrate, type GameAction, type GameState } from "../lib/arcade-runtime";
+import { adventureStatus } from "../lib/odyssey-games";
+import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
+import { AIObservatory } from "./ai-observatory";
 
-type Props = { id: TrialId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; still: boolean; modelPrepared?: boolean; onFinish: (round: MythicState) => void; onLeave: () => void; onFeedback: (good: boolean) => void; onNote: (lane: number) => void };
-export function ArcadeRound({ id, difficulty, plan, practice, seed, still, modelPrepared, onFinish, onLeave, onFeedback, onNote }: Props) {
-  const [round, setRound] = useState(() => newMythic(id, difficulty, plan, practice, seed));
+type Props = { id: TrialId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; still: boolean; modelPrepared?: boolean; originalCave?: boolean; demo?: boolean; onSettings: () => void; onFinish: (round: GameState) => void; onLeave: () => void; onFeedback: (good: boolean) => void; onNote: (lane: number) => void };
+export function ArcadeRound({ id, difficulty, plan, practice, seed, still, modelPrepared, originalCave, demo, onSettings, onFinish, onLeave, onFeedback, onNote }: Props) {
+  const [round, setRound] = useState(() => createGame(id, difficulty, plan, practice, seed, originalCave));
   const current = useRef(round), finished = useRef(false), held = useRef(new Set<string>());
   const [phase, setPhase] = useState<"countdown" | "active" | "paused">("countdown"), [count, setCount] = useState(3), countdown = useRef(3000);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const arena = useRef<HTMLDivElement>(null), overlay = useRef<HTMLDivElement>(null), callbacks = useRef({ onFinish, onFeedback, onNote }), lastSung = useRef("");
   callbacks.current = { onFinish, onFeedback, onNote };
   const trial = trialFor(id);
-  function commit(next: MythicState) {
+  const strategy = originalCave ? planNames[plan.planId] : planLabel(id, plan);
+  function commit(next: GameState) {
     if (next === current.current) return;
     const old = current.current; current.current = next; setRound(next);
     if (next.id === "sirens" && next.phase === "listen") {
@@ -22,13 +27,14 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     if (next.score > old.score || next.hits > old.hits || next.misses > old.misses) callbacks.current.onFeedback(next.score > old.score);
     if (next.done && !finished.current) { finished.current = true; callbacks.current.onFinish(next); }
   }
-  function act(action: Action) {
+  function act(action: GameAction) {
     if (phase !== "active" || finished.current) return;
     if (action.type === "note" && current.current.id === "sirens" && current.current.phase === "reply") callbacks.current.onNote(action.lane);
-    commit(mythicAction(current.current, action));
+    commit(gameAction(current.current, action));
   }
-  function release() { held.current.clear(); if (current.current.id === "scylla") commit(mythicAction(current.current, { type: "row", held: false })); }
+  function release() { held.current.clear(); if (current.current.id === "scylla") commit(gameAction(current.current, { type: "row", held: false })); }
   function pause() { release(); setPhase("paused"); }
+  function restartRound() { const next = createGame(id, difficulty, plan, practice, seed, originalCave); current.current = next; finished.current = false; lastSung.current = ""; held.current.clear(); setRound(next); resume(); }
   function resume() { countdown.current = 3000; setCount(3); setConfirmLeave(false); setPhase("countdown"); }
   useEffect(() => { if (phase === "active") arena.current?.focus(); else if (phase === "paused") overlay.current?.querySelector<HTMLButtonElement>("button")?.focus(); }, [phase, confirmLeave]);
   useEffect(() => {
@@ -45,11 +51,17 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
         pending += delta;
         if (pending >= 32) {
           let next = current.current;
+          if (isAdventure(next) && next.id === "lotus") {
+            const dx = Number(held.current.has("arrowright") || held.current.has("d")) - Number(held.current.has("arrowleft") || held.current.has("a"));
+            const dy = Number(held.current.has("arrowdown") || held.current.has("s")) - Number(held.current.has("arrowup") || held.current.has("w"));
+            if (dx || dy) next = gameAction(next, { type: "move", dx: dx ? dx : 0, dy: dx ? 0 : dy });
+          }
           if (next.id === "scylla") {
             const direction = Number(held.current.has("arrowdown") || held.current.has("s")) - Number(held.current.has("arrowup") || held.current.has("w"));
-            if (direction) next = mythicAction(next, { type: "paddle", y: next.paddle + direction * 310 * pending / 1000 });
+            if (direction) next = gameAction(next, { type: "paddle", y: next.paddle + direction * 310 * pending / 1000 });
           }
-          commit(tickMythic(next, pending)); pending = 0;
+          if (demo) next = demonstrate(next);
+          commit(tickGame(next, pending)); pending = 0;
         }
       }
       if (!finished.current) handle = requestAnimationFrame(frame);
@@ -60,18 +72,27 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     function visibility() { if (document.hidden) pause(); }
     function blur() { pause(); }
     function key(e: KeyboardEvent) {
-      if (e.key === "Escape") { e.preventDefault(); pause(); return; }
+      if (document.querySelector(".a-modal")) return;
+      if (e.key === "Escape") { e.preventDefault(); if (phase === "paused") resume(); else pause(); return; }
       if (phase === "paused" && e.key === "Tab") {
-        const nodes = [...(overlay.current?.querySelectorAll<HTMLButtonElement>("button") || [])];
+        const nodes = [...(overlay.current?.querySelectorAll<HTMLElement>("button, summary") || [])];
         if (e.shiftKey && document.activeElement === nodes[0]) { e.preventDefault(); nodes.at(-1)?.focus(); }
         else if (!e.shiftKey && document.activeElement === nodes.at(-1)) { e.preventDefault(); nodes[0]?.focus(); } return;
       }
-      if (phase !== "active" || (e.target as HTMLElement).closest("input,select,a,summary")) return;
+      if (demo || phase !== "active" || (e.target as HTMLElement).closest("input,select,a,summary")) return;
       const k = e.key.toLowerCase(), state = current.current;
+      if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k) && !(e.target as HTMLElement).closest("button")) e.preventDefault();
       if (k === " " && (e.target as HTMLElement).closest("button")) return;
       if (state.id === "scylla" && ["arrowup", "arrowdown", "w", "s", " "].includes(k)) { e.preventDefault(); held.current.add(k); if (k === " ") act({ type: "row", held: true }); return; }
+      if (isAdventure(state) && state.id === "lotus" && ["arrowleft", "arrowright", "arrowup", "arrowdown", "w", "a", "s", "d"].includes(k)) { e.preventDefault(); held.current.add(k); }
       if (e.repeat) return;
-      if (state.id === "cyclops") {
+      if (isAdventure(state)) {
+        const moves: Record<string, [number, number]> = { arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0], arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1] };
+        if (state.id === "aeolus" && [" ", "arrowup", "w"].includes(k)) { e.preventDefault(); act({ type: "lift" }); }
+        else if (k === " " && state.id === "cyclops") { e.preventDefault(); act({ type: "jump" }); }
+        else if (k === " " && state.id === "calypso") { e.preventDefault(); act({ type: "move", dx: 0, dy: -1 }); }
+        else if (moves[k]) { e.preventDefault(); act({ type: "move", dx: moves[k][0], dy: moves[k][1] }); }
+      } else if (state.id === "cyclops") {
         const moves: Record<string, [number, number]> = { arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0], arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1] };
         if (moves[k]) { e.preventDefault(); act({ type: "move", dx: moves[k][0], dy: moves[k][1] }); }
         else if (k === " ") { e.preventDefault(); act({ type: "hide" }); }
@@ -86,15 +107,16 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     return () => { window.removeEventListener("keydown", key); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", blur); document.removeEventListener("visibilitychange", visibility); window.removeEventListener("farshore:account-open", pause); };
   }, [phase]);
   return <section className="a-round m-round" aria-label={`${trial.title} ${practice ? "practice" : "challenge"}`}>
-    <div className="a-round-top"><div><span className="a-eyebrow">{practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficulty.toUpperCase()}</span><h2>{trial.title}</h2></div><button className="a-btn a-small" onClick={pause} aria-label="Pause challenge">Ⅱ Pause</button></div>
-    <div className="m-scoreboard"><div><span>ODYSSEUS</span><strong>{String(round.score).padStart(3, "0")}</strong></div><span className="m-score-vs">VS</span><div><span>{trial.character.toUpperCase()}</span><strong>{id === "circe" || id === "bow" ? String(round.rivalScore).padStart(3, "0") : id === "cyclops" ? `${round.hits} / 3` : id === "sirens" && round.id === "sirens" ? `${round.temptation}%` : `${round.hits} / 5`}</strong></div></div>
-    <div className="m-match-status"><span>{statusLabel(round)}</span><span>{planNames[plan.planId]}</span></div>
+    <div className="a-round-top"><div><span className="a-eyebrow">{demo ? "AI DEMONSTRATION / NO PROGRESS SAVED" : practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficulty.toUpperCase()}</span><h2>{trial.title}</h2></div><button className="a-btn a-small" onClick={pause} aria-label="Pause challenge">Ⅱ Pause</button></div>
+    <p className="od-round-objective">{practice && id === "lotus" ? "Rescue one sailor and bring them back to the ship." : originalCave ? "Original cave tactics / Reach either gold exit" : trial.objective}</p>{isAdventure(round) && <div className="od-vitals"><span className="od-avatar" aria-label="Odysseus"/><span>ODYSSEUS</span><span className="od-health" aria-label={`${3 - round.hits} of 3 lives`}>{[0,1,2].map(i => <i key={i} className={i < 3 - round.hits ? "full" : ""}/>)}</span><span>{Math.ceil(Math.max(0, round.duration - round.elapsed) / 1000)}s remaining</span></div>}<div className="m-scoreboard"><div><span>ODYSSEUS</span><strong>{String(round.score).padStart(3, "0")}</strong></div><span className="m-score-vs">{isAdventure(round) ? "//" : "VS"}</span><div><span>{isAdventure(round) ? round.id === "lotus" ? "CREW ABOARD" : round.id === "cyclops" ? "CHASE GAP" : round.id === "aeolus" ? "WIND BLESSINGS" : "SHORES REACHED" : trial.character.toUpperCase()}</span><strong>{id === "circe" || id === "bow" ? String(round.rivalScore).padStart(3, "0") : isAdventure(round) ? round.id === "lotus" ? `${round.rescued} / ${practice ? 1 : 3}` : round.id === "cyclops" ? `${Math.round(round.gap)}m` : round.id === "aeolus" ? round.blessings : `${round.progress} / ${practice ? 1 : 5}` : id === "cyclops" ? `${round.hits} / 3` : id === "sirens" && round.id === "sirens" ? `${round.temptation}%` : `${round.hits} / 5`}</strong></div></div>
+    <div className="m-match-status"><span>{isAdventure(round) ? adventureStatus(round) : statusLabel(round)}</span><span>{strategy}</span></div>
+    <AIObservatory state={round}/>
     <div ref={arena} tabIndex={0} className="m-arena" aria-label={`${trial.kind}. ${trial.controls}`}>
-      <div inert={phase !== "active"}><MythicGame state={round} active={phase === "active"} act={act} still={still}/></div>
-      {phase !== "active" && <div ref={overlay} className="a-round-overlay" role={phase === "paused" ? "dialog" : "status"} aria-modal={phase === "paused" ? true : undefined} aria-label={phase === "paused" ? "Challenge paused" : "Get ready"}><div className="a-overlay-panel">{phase === "countdown" ? <><span className="a-eyebrow">{trial.kind.toUpperCase()}</span><strong className="a-count">{count}</strong><p>{trial.controls}</p></> : <><span className="a-eyebrow">TAKE A BREATH</span><h2>Voyage paused</h2><p>Both rivals and every clock are stopped.</p>{confirmLeave ? <><p>Leave this attempt? Completed encounters stay saved.</p><button className="a-btn a-primary" onClick={onLeave}>Leave attempt</button><button className="a-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button></> : <><button className="a-btn a-primary" onClick={resume}>Resume with countdown</button><button className="a-btn" onClick={() => setConfirmLeave(true)}>Back to encounter</button></>}</>}</div></div>}
+      <div inert={phase !== "active"}>{isAdventure(round) ? <AdventureGame state={round} active={phase === "active"} act={act} still={still}/> : <MythicGame state={round} active={phase === "active"} act={act} still={still}/>}</div>
+      {phase !== "active" && <div ref={overlay} className="a-round-overlay" role={phase === "paused" ? "dialog" : "status"} aria-modal={phase === "paused" ? true : undefined} aria-label={phase === "paused" ? "Challenge paused" : "Get ready"}><div className="a-overlay-panel">{phase === "countdown" ? <><span className="a-eyebrow">{trial.kind.toUpperCase()}</span><strong className="a-count">{count}</strong><p>{trial.controls}</p></> : <><span className="a-eyebrow">TAKE A BREATH</span><h2>PAUSED</h2><p>Both rivals and every clock are stopped.</p>{confirmLeave ? <><p>Leave this attempt? Completed encounters stay saved.</p><button className="a-btn a-primary" onClick={onLeave}>Leave attempt</button><button className="a-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button></> : <><button className="a-btn a-primary" onClick={resume}>Resume with countdown</button><button className="a-btn" onClick={restartRound}>Restart encounter</button><details className="od-pause-controls"><summary>Controls</summary><p>{trial.controls}</p></details><button className="a-btn" onClick={onSettings}>Settings</button><button className="a-btn" onClick={() => setConfirmLeave(true)}>Return to map</button></>}</>}</div></div>}
     </div>
     <p className="a-game-feedback" role="status" aria-live="polite">{round.feedback}</p>
-    <div className="m-rival-speech"><span className="m-mini-portrait" style={{ backgroundPosition: `${trial.portrait % 5 * 25}% ${Math.floor(trial.portrait / 5) * 100 / 3}%` }}/><div><span>{trial.character} · {planNames[plan.planId]}</span><p aria-live="polite">{round.rivalLine}</p></div></div>
-    <p className="m-help">{scoreLabel(round)} · {practice ? "Practice leaves your voyage progress untouched." : modelPrepared ? "The model chose the strategy. The rival takes actions locally during play." : plan.source === "ai" ? "Adaptive rival logic reacts during play." : "Solo rivals use learnable strategies."}</p>
+    <div className="m-rival-speech"><span className="m-mini-portrait" style={{ backgroundPosition: `${trial.portrait % 5 * 25}% ${Math.floor(trial.portrait / 5) * 100 / 3}%` }}/><div><span>{trial.character} · {strategy}</span><p aria-live="polite">{round.rivalLine}</p></div></div>
+    <p className="m-help">{id === "bow" ? "rings" : id === "circe" ? "brew points" : "points"} · {practice ? "Practice leaves your voyage progress untouched." : modelPrepared ? "The model chose the strategy. The rival takes actions locally during play." : plan.source === "ai" ? "Adaptive rival logic reacts during play." : "Solo rivals use learnable strategies."}</p>
   </section>;
 }

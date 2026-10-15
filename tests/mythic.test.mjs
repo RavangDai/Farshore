@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { adaptivePlan, assistTrial, finishAttempt, newArcade, readArcade, standardPlan, trials, unlocked } from "../src/lib/arcade.ts";
+import { adaptivePlan, assistTrial, finishAttempt, newArcade, readArcade, standardPlan, trials as campaignTrials, unlocked } from "../src/lib/arcade.ts";
 import { archeryShot, bestAim, columnHeight, dropPiece, mythicAction, mythicSummary, newMythic, potionChoice, resolveBoard, songBeat, tickMythic } from "../src/lib/mythic.ts";
 
+const trials = campaignTrials.filter(t => ["cyclops", "circe", "sirens", "scylla", "bow"].includes(t.id));
 function advance(s, ms) { for (let elapsed = 0; elapsed < ms && !s.done; elapsed += 50) s = tickMythic(s, Math.min(50, ms - elapsed)); return s; }
 const covers = (t, p) => p.x >= t.x && p.x <= t.x + 1 && p.y >= t.y && p.y <= t.y + 1;
-test("five trials have distinct engines, legal strategies, deterministic starts and bounded clocks", () => {
+test("five preserved engines have distinct rules, legal strategies, deterministic starts and bounded clocks", () => {
   assert.deepEqual(trials.map(t => t.id), ["cyclops", "circe", "sirens", "scylla", "bow"]);
   assert.equal(new Set(trials.map(t => t.kind)).size, 5);
   for (const t of trials) for (const difficulty of ["easy", "normal", "hard"]) for (const planId of t.plans) {
@@ -125,9 +126,9 @@ test("Antinous takes an observable independent turn; block shot affects only the
 });
 test("save migration retains old clears, introduces new shores, and enforces the new route", () => {
   const old = { version: 1, started: true, records: { cyclops: { cleared: "cleared", attempts: 1, recent: [] }, sirens: { cleared: "cleared", attempts: 1, recent: [] }, bow: { cleared: "cleared", attempts: 1, recent: [] } } };
-  let save = readArcade(JSON.stringify(old)); assert.equal(save.version, 2); assert.equal(save.records.bow.cleared, "cleared"); assert.equal(save.records.circe.cleared, "pending"); assert.equal(unlocked(save, "bow"), false);
+  let save = readArcade(JSON.stringify(old)); assert.equal(save.version, 3); assert.equal(save.records.bow.cleared, "cleared"); assert.equal(save.records.circe.cleared, "pending"); assert.equal(unlocked(save, "bow"), true);
   assert.deepEqual(readArcade(JSON.stringify(save)), save);
-  save = assistTrial(save, "circe"); assert.equal(unlocked(save, "scylla"), true); save = assistTrial(save, "scylla"); assert.equal(unlocked(save, "bow"), true);
+  save = assistTrial(save, "lotus"); save = assistTrial(save, "aeolus"); save = assistTrial(save, "circe"); assert.equal(unlocked(save, "scylla"), true); save = assistTrial(save, "scylla"); assert.equal(unlocked(save, "bow"), true);
   const fresh = { ...newArcade(), started: true }; assert.equal(finishAttempt(fresh, "bow", mythicSummary(newMythic("bow", "normal", standardPlan("bow")))), fresh);
   assert.equal(readArcade('null'), null);
 });

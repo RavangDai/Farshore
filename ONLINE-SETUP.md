@@ -75,4 +75,6 @@ The integration suite starts a temporary real MongoDB replica set and exercises 
 
 The tests do not provision your Atlas account or publish the app. Live SMTP delivery and deployment checks remain dependent on your later configuration.
 
+The completed local checks and their limits are recorded in [ONLINE-VERIFICATION.md](ONLINE-VERIFICATION.md).
+
 References: [Better Auth's MongoDB adapter](https://better-auth.com/docs/adapters/mongodb), [email/password authentication](https://better-auth.com/docs/authentication/email-password), [MongoDB transaction requirements](https://www.mongodb.com/docs/manual/core/transactions/), [Next.js self-hosting](https://nextjs.org/docs/app/guides/self-hosting).

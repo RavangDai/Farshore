@@ -1,4 +1,4 @@
-# The Odyssey - Eight Trials. One Journey Home.
+# FARSHORE - Eight Trials. One Journey Home.
 
 The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](ONLINE-SETUP.md).
 

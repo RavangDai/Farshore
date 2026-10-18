@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { planLabel, planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
+import { trials, planLabel, planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
 import { songBeat, statusLabel } from "../lib/mythic";
 import { createGame, gameAction, tickGame, isAdventure, demonstrate, type GameAction, type GameState } from "../lib/arcade-runtime";
 import { adventureStatus } from "../lib/odyssey-games";
 import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
+import { FarshoreHUD, EncounterBanner } from "./farshore-hud";
+import { CharacterPortrait } from "./farshore-art";
 import { AIObservatory } from "./ai-observatory";
 
 type Props = { id: TrialId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; still: boolean; modelPrepared?: boolean; originalCave?: boolean; demo?: boolean; onSettings: () => void; onFinish: (round: GameState) => void; onLeave: () => void; onFeedback: (good: boolean) => void; onNote: (lane: number) => void };
@@ -13,6 +15,9 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
   const current = useRef(round), finished = useRef(false), held = useRef(new Set<string>());
   const [phase, setPhase] = useState<"countdown" | "active" | "paused">("countdown"), [count, setCount] = useState(3), countdown = useRef(3000);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [burst, setBurst] = useState<{ label: string; good: boolean; key: number } | null>(null);
+  const burstTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (burstTimer.current) clearTimeout(burstTimer.current); }, []);
   const arena = useRef<HTMLDivElement>(null), overlay = useRef<HTMLDivElement>(null), callbacks = useRef({ onFinish, onFeedback, onNote }), lastSung = useRef("");
   callbacks.current = { onFinish, onFeedback, onNote };
   const trial = originalCave ? { ...trialFor(id), title: "Cyclops’ Cave: Original Tactics", kind: "Grid stealth", controls: "Arrows / WASD or tap an adjacent tile. Sneak one tile, dash two, or hide beneath a sheep with Space. Evade each marked smash before it lands." } : trialFor(id);
@@ -20,6 +25,11 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
   function commit(next: GameState) {
     if (next === current.current) return;
     const old = current.current; current.current = next; setRound(next);
+    if (next.score > old.score || next.hits > old.hits) {
+      if (burstTimer.current) clearTimeout(burstTimer.current);
+      setBurst({ label: next.hits > old.hits ? "WATCH YOUR STEP" : `+${next.score - old.score}`, good: next.hits <= old.hits, key: Date.now() });
+      burstTimer.current = setTimeout(() => setBurst(null), 900);
+    }
     if (next.id === "sirens" && next.phase === "listen") {
       const i = Math.floor(next.timer / songBeat(next)), key = `${next.round}:${i}`;
       if (i < next.notes.length && key !== lastSung.current) { lastSung.current = key; if (!next.notes[i].rest) callbacks.current.onNote(next.notes[i].lane); }
@@ -106,17 +116,18 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     window.addEventListener("farshore:account-open", pause);
     return () => { window.removeEventListener("keydown", key); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", blur); document.removeEventListener("visibilitychange", visibility); window.removeEventListener("farshore:account-open", pause); };
   }, [phase]);
-  return <section className="a-round m-round" aria-label={`${trial.title} ${practice ? "practice" : "challenge"}`}>
-    <div className="a-round-top"><div><span className="a-eyebrow">{demo ? "AI DEMONSTRATION / NO PROGRESS SAVED" : practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficulty.toUpperCase()}</span><h2>{trial.title}</h2></div><button className="a-btn a-small" onClick={pause} aria-label="Pause challenge">Ⅱ Pause</button></div>
-    <p className="od-round-objective">{practice && id === "lotus" ? "Rescue one sailor and bring them back to the ship." : originalCave ? "Original cave tactics / Reach either gold exit" : trial.objective}</p>{isAdventure(round) && <div className="od-vitals"><span className="od-avatar" aria-label="Odysseus"/><span>ODYSSEUS</span><span className="od-health" aria-label={`${3 - round.hits} of 3 lives`}>{[0,1,2].map(i => <i key={i} className={i < 3 - round.hits ? "full" : ""}/>)}</span><span>{Math.ceil(Math.max(0, round.duration - round.elapsed) / 1000)}s remaining</span></div>}<div className="m-scoreboard"><div><span>ODYSSEUS</span><strong>{String(round.score).padStart(3, "0")}</strong></div><span className="m-score-vs">{isAdventure(round) ? "//" : "VS"}</span><div><span>{isAdventure(round) ? round.id === "lotus" ? "CREW ABOARD" : round.id === "cyclops" ? "CHASE GAP" : round.id === "aeolus" ? "WIND BLESSINGS" : "SHORES REACHED" : trial.character.toUpperCase()}</span><strong>{id === "circe" || id === "bow" ? String(round.rivalScore).padStart(3, "0") : isAdventure(round) ? round.id === "lotus" ? `${round.rescued} / ${practice ? 1 : 3}` : round.id === "cyclops" ? `${Math.round(round.gap)}m` : round.id === "aeolus" ? round.blessings : `${round.progress} / ${practice ? 1 : 5}` : id === "cyclops" ? `${round.hits} / 3` : id === "sirens" && round.id === "sirens" ? `${round.temptation}%` : `${round.hits} / 5`}</strong></div></div>
+  return <section data-trial={id} className="a-round m-round fs-round" aria-label={`${trial.title} ${practice ? "practice" : "challenge"}`}>
+    <div className="a-round-top"><span className="fs-round-number">0{trials.findIndex(t => t.id === id) + 1}</span><div><span className="a-eyebrow">{demo ? "AI DEMONSTRATION / NO PROGRESS SAVED" : practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficulty.toUpperCase()}</span><h2>{trial.title}</h2></div></div>
+    <p className="od-round-objective">{practice && id === "lotus" ? "Rescue one sailor and bring them back to the ship." : originalCave ? "Original cave tactics / Reach either gold exit" : trial.objective}</p><FarshoreHUD state={round} onPause={pause}/>
     <div className="m-match-status"><span>{isAdventure(round) ? adventureStatus(round) : statusLabel(round)}</span><span>{strategy}</span></div>
     <AIObservatory state={round}/>
     <div ref={arena} tabIndex={0} className="m-arena" aria-label={`${trial.kind}. ${trial.controls}`}>
-      <div inert={phase !== "active"}>{isAdventure(round) ? <AdventureGame state={round} active={phase === "active"} act={act} still={still}/> : <MythicGame state={round} active={phase === "active"} act={act} still={still}/>}</div>
-      {phase !== "active" && <div ref={overlay} className="a-round-overlay" role={phase === "paused" ? "dialog" : "status"} aria-modal={phase === "paused" ? true : undefined} aria-label={phase === "paused" ? "Challenge paused" : "Get ready"}><div className="a-overlay-panel">{phase === "countdown" ? <><span className="a-eyebrow">{trial.kind.toUpperCase()}</span><strong className="a-count">{count}</strong><p>{trial.controls}</p></> : <><span className="a-eyebrow">TAKE A BREATH</span><h2>PAUSED</h2><p>Both rivals and every clock are stopped.</p>{confirmLeave ? <><p>Leave this attempt? Completed encounters stay saved.</p><button className="a-btn a-primary" onClick={onLeave}>Leave attempt</button><button className="a-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button></> : <><button className="a-btn a-primary" onClick={resume}>Resume with countdown</button><button className="a-btn" onClick={restartRound}>Restart encounter</button><details className="od-pause-controls"><summary>Controls</summary><p>{trial.controls}</p></details><button className="a-btn" onClick={onSettings}>Settings</button><button className="a-btn" onClick={() => setConfirmLeave(true)}>Return to map</button></>}</>}</div></div>}
+      <div className="fs-arena-stage" inert={phase !== "active"}>{(id === "circe" || id === "sirens") && <EncounterBanner id={id}/ >}{isAdventure(round) ? <AdventureGame state={round} active={phase === "active"} act={act} still={still}/> : <MythicGame state={round} active={phase === "active"} act={act} still={still}/>}</div>
+      {burst && <span key={burst.key} className={`fs-action-burst ${burst.good ? "good" : "hurt"}`} aria-hidden="true">{burst.label}</span>}
+      {phase !== "active" && <div ref={overlay} className="a-round-overlay" role={phase === "paused" ? "dialog" : "status"} aria-modal={phase === "paused" ? true : undefined} aria-label={phase === "paused" ? "Challenge paused" : "Get ready"}><div className="a-overlay-panel fs-stone-panel">{phase === "countdown" ? <><span className="a-eyebrow">{trial.kind.toUpperCase()}</span><strong className="a-count">{count}</strong><p>{trial.controls}</p></> : <><span className="a-eyebrow">TAKE A BREATH</span><h2>PAUSED</h2><p>Both rivals and every clock are stopped.</p>{confirmLeave ? <><p>Leave this attempt? Completed encounters stay saved.</p><button className="a-btn a-primary" onClick={onLeave}>Leave attempt</button><button className="a-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button></> : <><button className="a-btn a-primary" onClick={resume}>Resume with countdown</button><button className="a-btn" onClick={restartRound}>Restart encounter</button><details className="od-pause-controls"><summary>Controls</summary><p>{trial.controls}</p></details><button className="a-btn" onClick={onSettings}>Settings</button><button className="a-btn" onClick={() => setConfirmLeave(true)}>Return to map</button></>}</>}</div></div>}
     </div>
     <p className="a-game-feedback" role="status" aria-live="polite">{round.feedback}</p>
-    <div className="m-rival-speech"><span className="m-mini-portrait" style={{ backgroundPosition: `${trial.portrait % 5 * 25}% ${Math.floor(trial.portrait / 5) * 100 / 3}%` }}/><div><span>{trial.character} · {strategy}</span><p aria-live="polite">{round.rivalLine}</p></div></div>
+    <div className="m-rival-speech"><CharacterPortrait tile={trial.portrait} label={trial.character}/><div><span>{trial.character} · {strategy}</span><p aria-live="polite">{round.rivalLine}</p></div></div>
     <p className="m-help">{id === "bow" ? "rings" : id === "circe" ? "brew points" : "points"} · {practice ? "Practice leaves your voyage progress untouched." : modelPrepared ? "The model chose the strategy. The rival takes actions locally during play." : plan.source === "ai" ? "Adaptive rival logic reacts during play." : "Solo rivals use learnable strategies."}</p>
   </section>;
 }

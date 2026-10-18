@@ -1,4 +1,4 @@
-# The Odyssey adaptation
+# FARSHORE: eight-trial adaptation
 
 The existing React/TypeScript application, Next.js hosting, guest and MongoDB account saves, audio service, optional model preparation, and round lifecycle are preserved. This is an extension of Farshore rather than a new scaffold.
 

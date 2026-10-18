@@ -1,4 +1,4 @@
-# Farshore: The Odyssey: Arcade Trials
+# FARSHORE - Eight Trials. One Journey Home.
 
 October 8, 2026: the default game now follows the five-stop mythic arcade concept. Each shore has its own rules and interaction: grid stealth, potion match-3, melody memory, paddle defense, and turn-based archery. `src/lib/mythic.ts` owns the new deterministic engines; `src/lib/arcade.ts` owns content, strategies, and save migration. The previous timing/three-lane rules remain in `src/lib/legacy-arcade.ts` for historical checks.
 

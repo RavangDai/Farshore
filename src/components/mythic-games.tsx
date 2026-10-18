@@ -1,3 +1,4 @@
+import { useFarshoreAtlas, useFarshoreSprites, drawFarshoreTile, drawFarshoreSprite } from "../lib/farshore-rendering";
 import { useEffect, useRef, type CSSProperties } from "react";
 import { archeryShot, columnHeight, rotatePiece, songBeat, tierOf, TILE_NAMES, type Action, type BowState, type GridState, type MythicState, type PotionState, type SongState, type StraitState, type Tile } from "../lib/mythic";
 
@@ -52,8 +53,10 @@ function sea(ctx: CanvasRenderingContext2D, t: number) {
   for (let y = 30; y < 400; y += 28) for (let x = 0; x < 800; x += 90) { ctx.beginPath(); ctx.moveTo(x + Math.sin(t + y) * 7, y); ctx.lineTo(x + 35 + Math.sin(t + y) * 7, y); ctx.stroke(); }
 }
 export function StraitGame({ state: s, active, act, still }: { state: StraitState; still: boolean } & Controls) {
+  const atlas = useFarshoreAtlas(), sprites = useFarshoreSprites();
   const canvas = useCanvas(ctx => {
     sea(ctx, still ? 0 : s.elapsed / 1400);
+    drawFarshoreTile(ctx, atlas, 5, 0, 0, 800, 400, .4);
     ctx.save(); ctx.translate(78, 210); ctx.rotate(still ? 0 : -s.elapsed / 900);
     for (let i = 0; i < 5; i++) { ctx.strokeStyle = i % 2 ? "#73a9a8" : "#153440"; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(0, 0, 16 + i * 15, i, i + Math.PI * 1.65); ctx.stroke(); } ctx.restore();
     ctx.fillStyle = "#061e2f"; ctx.beginPath(); ctx.ellipse(78, 210, 15, 21, 0, 0, Math.PI * 2); ctx.fill();
@@ -62,6 +65,7 @@ export function StraitGame({ state: s, active, act, still }: { state: StraitStat
     if (s.telegraph > 0) { ctx.setLineDash([8, 8]); ctx.strokeStyle = "#ebc57999"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(720, 50 + s.head * 60); ctx.lineTo(300, s.targetY); ctx.stroke(); ctx.setLineDash([]); ctx.strokeRect(284, s.targetY - 16, 32, 32); }
     const boatX = 155 + s.boat;
     ctx.fillStyle = "#b67e55"; ctx.beginPath(); ctx.moveTo(boatX - 35, 220); ctx.lineTo(boatX + 40, 220); ctx.lineTo(boatX + 22, 243); ctx.lineTo(boatX - 20, 243); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#efddb2"; ctx.fillRect(boatX - 2, 155, 4, 65); ctx.beginPath(); ctx.moveTo(boatX + 4, 162); ctx.lineTo(boatX + 4, 209); ctx.lineTo(boatX + 31, 209); ctx.fill();
+    if (sprites) { ctx.fillStyle = "#0c263a"; ctx.fillRect(boatX - 40, 153, 85, 91); drawFarshoreSprite(ctx, sprites, 3, boatX - 53, 145, 106, 106); }
     if (s.rowing) { ctx.strokeStyle = "#a7d8d3"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(boatX - 15, 236); ctx.lineTo(boatX - 45, 253); ctx.moveTo(boatX + 15, 236); ctx.lineTo(boatX + 48, 253); ctx.stroke(); }
     ctx.fillStyle = "#f1d08b"; ctx.fillRect(288, s.paddle - 38, 15, 76); ctx.fillStyle = "#fff0c4"; ctx.fillRect(292, s.paddle - 34, 3, 68);
     for (const a of s.strikes) { ctx.fillStyle = a.reflected ? "#98e1bb" : "#ed977e"; ctx.beginPath(); ctx.arc(a.x, a.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = a.reflected ? "#98e1bb70" : "#ed977e70"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x - a.vx * .09, a.y - a.vy * .09); ctx.stroke(); }
@@ -72,12 +76,15 @@ export function StraitGame({ state: s, active, act, still }: { state: StraitStat
 }
 
 export function BowGame({ state: s, active, act }: { state: BowState } & Controls) {
+  const atlas = useFarshoreAtlas(), sprites = useFarshoreSprites();
   const preview = archeryShot(s.aim, s.wind, s.blocked, "player", s.difficulty), shot = s.phase === "player" ? preview : s.shot || preview;
   const canvas = useCanvas(ctx => {
     const g = ctx.createLinearGradient(0, 0, 0, 400); g.addColorStop(0, "#263848"); g.addColorStop(1, "#493e38"); ctx.fillStyle = g; ctx.fillRect(0, 0, 800, 400);
     ctx.fillStyle = "#152939"; ctx.fillRect(285, 80, 230, 140); ctx.fillStyle = "#deb879"; ctx.fillRect(370, 98, 60, 80);
     ctx.strokeStyle = "#b79b7160"; ctx.lineWidth = 2; for (const x of [0, 120, 260, 540, 680, 800]) { ctx.beginPath(); ctx.moveTo(x, 400); ctx.lineTo(400 + (x - 400) * .13, 180); ctx.stroke(); }
     for (const x of [28, 124, 642, 738]) { ctx.fillStyle = "#5d6260"; ctx.fillRect(x, 15, 34, 252); ctx.fillStyle = "#a5a493"; ctx.fillRect(x - 5, 12, 44, 10); }
+    drawFarshoreTile(ctx, atlas, 7, 0, 0, 800, 400, .58);
+    if (sprites) drawFarshoreSprite(ctx, sprites, 2, 35, 168, 140, 140);
     // Twelve aligned rings, projected from near to far in the hall.
     for (let i = 12; i >= 1; i--) { const scale = 1 / (1 + (i - 1) * .21), y = 181 + 74 * scale, radius = 69 * scale; ctx.strokeStyle = s.blocked === i ? "#e8977c" : i <= shot.rings && s.phase !== "player" ? "#a8dbb6" : "#dbb978"; ctx.lineWidth = 3 + scale * 3; ctx.beginPath(); ctx.ellipse(400, y, radius, radius * .75, 0, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = "#87928b"; ctx.fillRect(400 + radius, y - 9 * scale, 30 * scale, 26 * scale); ctx.fillStyle = "#765747"; ctx.fillRect(400 + radius + 7 * scale, y + 12 * scale, 5 * scale, 74 * scale); ctx.font = `${Math.max(10, 14 * scale)}px monospace`; ctx.fillStyle = "#f4deaf"; ctx.fillText(String(i), 396 + radius, y - 14 * scale); }
     ctx.beginPath(); ctx.strokeStyle = s.phase === "player" ? "#bfe4df" : shot.owner === "player" ? "#f8dd9a" : "#e2a390"; ctx.lineWidth = 3; ctx.setLineDash(s.phase === "player" ? [5, 5] : []); ctx.moveTo(400, 360);

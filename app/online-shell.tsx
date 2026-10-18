@@ -1,4 +1,5 @@
 "use client";
+import { FarshoreLogo } from "../src/components/farshore-art";
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { z } from "zod/v3";
 import { ARCADE_PREFS, ARCADE_SAVE, readArcade } from "../src/lib/arcade";
@@ -188,7 +189,7 @@ export function OnlineShell() {
 
   return <div className="o-shell">
     <header className="o-account-bar"><span className="o-wordmark">FARSHORE <small>ONLINE</small></span><span className={`o-save-status o-${status}`} role="status"><i/>{label}</span><button className="o-account-button" onClick={() => openAccount()}>{player ? player.displayName : "Sign in"}<span aria-hidden="true">↗</span></button></header>
-    <div inert={accountOpen}>{gameReady && GameComponent ? <GameComponent key={`${player?.id || "guest"}:${gameKey}:${mode}`} online={gameOnline}/> : <main className="o-loading"><h1>Loading Farshore</h1><p>{saveError || "Loading your voyage..."}</p>{saveError && <button className="a-btn" onClick={() => setGameKey(k => k + 1)}>Try again</button>}</main>}</div>
+    <div inert={accountOpen}>{gameReady && GameComponent ? <GameComponent key={`${player?.id || "guest"}:${gameKey}:${mode}`} online={gameOnline}/> : <main className="o-loading"><h1><FarshoreLogo/></h1><span className="fs-loading-tagline">Eight Trials. One Journey Home.</span><span className="fs-loading-track" aria-hidden="true"><i/></span><p>{saveError || "Loading your voyage..."}</p>{saveError && <button className="a-btn" onClick={() => setGameKey(k => k + 1)}>Try again</button>}</main>}</div>
     {(saveError || cacheError) && <aside className="o-save-notice" role="status"><p>{saveError || cacheError}</p>{status === "conflict" ? <button onClick={() => void reloadVoyage()}>Load latest online voyage</button> : status === "expired" ? <button onClick={() => openAccount()}>Sign in again</button> : player ? <button onClick={() => void retrySaving()}>Retry save</button> : null}</aside>}
     {accountOpen && <div className="o-backdrop"><section className="o-card o-account-dialog" id="farshore-account-dialog" role="dialog" aria-modal="true" aria-labelledby="o-account-title"><div className="o-dialog-top"><span className="a-eyebrow">YOUR FARSHORE ACCOUNT</span><button className="o-close" onClick={closeAccount} aria-label="Close account">×</button></div>
       <h2 id="o-account-title">{player ? "Your account" : authView === "signup" ? "Create an account" : authView === "recover" ? "Reset your password" : "Welcome back"}</h2>

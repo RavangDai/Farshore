@@ -59,7 +59,7 @@ function checkLotus(s: LotusState) {
   if (!s.carrying && sailor >= 0) { s.sailors.splice(sailor, 1); s.carrying = true; s.feedback = "A sailor follows you. Bring them to the ship at the bottom left."; }
   const pickup = s.pickups.findIndex(p => same(p, s.player));
   if (pickup >= 0) { s.pickups.splice(pickup, 1); s.protection = 14000; s.score += 75; s.feedback = "Moly protects you for fourteen seconds. Make for the ship!"; }
-  if (s.carrying && same(s.player, LOTUS_SHIP)) { s.carrying = false; s.rescued++; reward(s, 500); s.feedback = `${s.rescued} of 3 sailors safe aboard.`; if (s.rescued >= (s.practice ? 1 : 3)) end(s, true, "Your companions remember Ithaca. The ship leaves the lotus shore."); }
+  if (s.carrying && same(s.player, LOTUS_SHIP)) { s.carrying = false; s.rescued++; reward(s, 500); s.feedback = `${s.rescued} of ${s.practice ? 1 : 3} sailors safe aboard.`; if (s.rescued >= (s.practice ? 1 : 3)) end(s, true, "Your companions remember Ithaca. The ship leaves the lotus shore."); }
   if (!s.protection && s.guardians.some(p => same(p, s.player)) && damage(s, "A guardian caught you. You return to the ship; keep an eye on the patrols.")) {
     if (s.carrying) { s.sailors.push({ ...s.player }); s.carrying = false; }
     s.player = { ...LOTUS_SHIP };
@@ -202,7 +202,7 @@ export function adventureSummary(s: AdventureState): AttemptSummary {
   return { won: s.done && s.won, source: s.plan.source, hits: s.damageTaken, successes: Math.min(100, s.successes), misses: s.misses, early: 0, late: 0, laneMs: [0, 0, 0], score: s.score, timeMs: Math.round(s.elapsed), difficulty: s.difficulty };
 }
 export function adventureStatus(s: AdventureState) {
-  if (s.id === "lotus") return `${s.rescued}/3 crew aboard${s.carrying ? " · Sailor following" : ""}${s.protection ? ` · Protection ${Math.ceil(s.protection / 1000)}s` : ""}`;
+  if (s.id === "lotus") return `${s.rescued}/${s.practice ? 1 : 3} crew aboard${s.carrying ? " · Sailor following" : ""}${s.protection ? ` · Protection ${Math.ceil(s.protection / 1000)}s` : ""}`;
   if (s.id === "cyclops") return `${Math.min(100, Math.floor(s.elapsed / s.duration * 100))}% to daylight · Chase gap ${Math.round(s.gap)}m`;
   if (s.id === "aeolus") return `${s.blessings} wind blessings · ${Math.floor(s.elapsed / s.duration * 100)}% to open sea`;
   return `Crossing ${s.crossing}/5 · ${s.progress}/5 shores reached`;

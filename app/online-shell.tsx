@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { FarshoreLogo } from "../src/components/farshore-art";
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { z } from "zod/v3";
@@ -10,6 +11,12 @@ type Pending = z.infer<typeof mutationSchema>;
 type Status = "device" | "loading" | "saved" | "saving" | "pending" | "conflict" | "expired";
 type AuthView = "login" | "signup" | "recover";
 type Game = ComponentType<{ online?: OnlineGame }>;
+function FarshoreLoading() {
+  return <main className="o-loading"><h1><FarshoreLogo/></h1><span className="fs-loading-tagline">Eight Trials. One Journey Home.</span><span className="fs-loading-track" aria-hidden="true"><i/></span><p>Preparing your journey...</p></main>;
+}
+const ArcadeGame = dynamic(() => import("../src/ArcadeApp"), { ssr: false, loading: FarshoreLoading });
+const AdviceGame = dynamic(() => import("../src/App"), { ssr: false, loading: FarshoreLoading });
+const MysteryGame = dynamic(() => import("../src/MysteryApp"), { ssr: false, loading: FarshoreLoading });
 async function api(path: string, method = "GET", body?: unknown, signal?: AbortSignal) {
   const response = await fetch(path, { method, credentials: "same-origin", ...(body !== undefined ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}), signal: signal || AbortSignal.timeout(18000) });
   const data = await response.json();
@@ -66,7 +73,7 @@ export function OnlineShell() {
     let alive = true;
     const params = new URLSearchParams(window.location.search), selected = params.has("voyage") ? "voyage" : params.has("mystery") ? "mystery" : "arcade";
     setMode(selected);
-    (selected === "voyage" ? import("../src/App") : selected === "mystery" ? import("../src/MysteryApp") : import("../src/ArcadeApp")).then(module => { if (alive) setGameComponent(() => module.default as Game); });
+    setGameComponent(() => (selected === "voyage" ? AdviceGame : selected === "mystery" ? MysteryGame : ArcadeGame) as Game);
     const note = params.get("auth"), linkError = params.get("error");
     if (note || linkError) { setAccountOpen(true); setAuthMessage(note === "confirmed" && !linkError ? "Email confirmed. You can sign in." : "That link is unavailable or expired. Sign in or request a new reset link."); }
     void api("/api/auth/session").then(({ response, data }) => {

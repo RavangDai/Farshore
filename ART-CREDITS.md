@@ -1,4 +1,8 @@
-# Farshore art credits
+# FARSHORE art credits
+
+## Illustrated arcade edition
+
+The 2026 illustrated FARSHORE assets are original images generated with the built-in Image Generation tool using the user-provided FARSHORE UI concept as a style reference. `public/art/farshore/` contains the moonlit sea backdrop, eight-trial/four-character atlas, and transparent Odysseus/ship sprites. Saved paths and the production prompt set are documented in [FARSHORE-VISUAL-DESIGN.md](FARSHORE-VISUAL-DESIGN.md). The reference screenshot is not used as the interface.
 
 ## Voyage map
 

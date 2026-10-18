@@ -62,7 +62,7 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
     }
-    document.addEventListener("keydown", key); return () => { document.removeEventListener("keydown", key); heading.current?.focus(); };
+    document.addEventListener("keydown", key); return () => { document.removeEventListener("keydown", key); if (screen === "play") document.querySelector<HTMLButtonElement>(".a-round-overlay button")?.focus(); else heading.current?.focus(); };
   }, [settings, restart, assistance]);
   function cancelAi() { generation.current++; request.current?.abort(); request.current = null; setAiState("idle"); setAiPlan(null); setAiError(""); }
   async function checkModel() {

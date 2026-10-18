@@ -10,6 +10,7 @@ import "./arcade.css";
 import "./mythic.css";
 import "./odyssey.css";
 import "./farshore.css";
+import "./farshore-brand.css";
 import { FarshoreLogo, Torch, TrialArtwork, CharacterPortrait } from "./components/farshore-art";
 import { TrialSelection } from "./components/trial-selection";
 import { defaultPreferences, preferencesSchema, type OnlineGame, type OnlinePreferences } from "./lib/online";

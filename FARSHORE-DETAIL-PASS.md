@@ -25,4 +25,4 @@ Final production prompt:
 
 ## Verification
 
-All 134 tests pass, including six new engine tests for one-time collection, precision rewards, untouched gate bonuses, raft repair costs, lifetime-damage accounting, and centered versus edge parries. TypeScript also passes. Browser screenshots are saved with the redesign outputs.
+All 134 tests pass, including six new engine tests for one-time collection, precision rewards, untouched gate bonuses, raft repair costs, lifetime-damage accounting, and centered versus edge parries. TypeScript, Next.js production, and Vite offline builds pass. Browser checks covered keyboard trial navigation, live character movement, the tactical cue, the complete AI rescue/results flow without saving progress, and 390 × 844 layouts without horizontal overflow. Screenshots are saved with the redesign outputs.

@@ -513,13 +513,22 @@ export function caveAction(state: CaveState, input: CaveInput): CaveState {
 // Perception
 // ---------------------------------------------------------------------------
 
-/** Metres to the nearest lane-blocking obstacle in each lane. */
+/** Metres to the nearest obstacle in each lane that no jump or slide answers. */
 export function laneBlockedDistances(s: CaveState): number[] {
   const out = [Infinity, Infinity, Infinity];
   for (const o of s.obstacles) {
     if (o.resolved || o.z < 0) continue;
-    // Only hazards that cannot be answered in place close a lane.
     if (AVOIDANCE[o.kind].jump || AVOIDANCE[o.kind].slide) continue;
+    if (o.z < out[o.lane]) out[o.lane] = o.z;
+  }
+  return out;
+}
+
+/** Metres to the nearest obstacle of any kind in each lane. */
+export function laneClearDistances(s: CaveState): number[] {
+  const out = [Infinity, Infinity, Infinity];
+  for (const o of s.obstacles) {
+    if (o.resolved || o.z < 0) continue;
     if (o.z < out[o.lane]) out[o.lane] = o.z;
   }
   return out;
@@ -539,6 +548,7 @@ export function perceive(s: CaveState): CavePerception {
     speed: s.speed,
     lives: Math.max(0, 3 - s.hits),
     laneBlocked: laneBlockedDistances(s),
+    laneClear: laneClearDistances(s),
     laneTargeted: targeted,
     zone: s.zone,
     remainingMs: Math.max(0, s.duration - s.elapsed),

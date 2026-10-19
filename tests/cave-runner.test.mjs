@@ -14,9 +14,18 @@ import {
   JUMP_MS,
   SLIDE_MS,
   MAX_GAP,
+  HIT_DEPTH,
   caveSummary,
 } from "../src/lib/encounters/cave-runner.ts";
-import { cavePolicy, escapeLanes, decideCave, LANE_CHANGE_MS, laneName } from "../src/lib/ai/cyclops.ts";
+import {
+  cavePolicy,
+  escapeLanes,
+  cleanEscapeLanes,
+  decideCave,
+  LANE_CHANGE_MS,
+  ESCAPE_MARGIN_S,
+  laneName,
+} from "../src/lib/ai/cyclops.ts";
 import {
   newPlayerModel,
   observeChoice,
@@ -969,4 +978,172 @@ test("the summary clamps into the shared attempt record's valid range", () => {
   assert.equal(huge.hits, 100);
   assert.equal(huge.score, 1000000);
   assert.equal(huge.timeMs, 3600000);
+});
+
+// ---------------------------------------------------------------------------
+// The fair-play invariant, asserted independently of player skill
+// ---------------------------------------------------------------------------
+
+/** Look-ahead, in metres, at which a wave's avoidance prompt is on screen. */
+const VISIBLE_Z = 50;
+/** Two threats closer together than this in time must be answered as one. */
+const CONFLICT_MS = LANE_CHANGE_MS + 260;
+
+/** Lanes a boulder claims, each with the time until it lands. */
+function boulderClaims(s) {
+  const claims = [];
+  for (const b of s.boulders) if (!b.resolved) claims.push({ lane: b.lane, at: b.total - b.t });
+  if (s.cyclops.state === "winding" && s.cyclops.windLane >= 0) {
+    claims.push({ lane: s.cyclops.windLane, at: s.cyclops.timer + 900 });
+  }
+  return claims;
+}
+
+/** Obstacles arriving together, keyed by depth. */
+function threatGroups(s) {
+  const out = new Map();
+  for (const o of s.obstacles) {
+    if (o.resolved) continue;
+    const key = Math.round(o.z / 4);
+    if (!out.has(key)) out.set(key, { z: o.z, items: [] });
+    const group = out.get(key);
+    group.z = Math.min(group.z, o.z);
+    group.items.push(o);
+  }
+  return [...out.values()];
+}
+
+/**
+ * Lanes Odysseus could reach and survive against one arriving group.
+ *
+ * A pending boulder denies a lane only if it lands near the group's arrival: a
+ * boulder that has already landed a second earlier is not a claim on that lane.
+ */
+function survivableOptions(s, group) {
+  const impactMs = ((group.z - HIT_DEPTH) / Math.max(1, s.speed)) * 1000;
+  const claims = boulderClaims(s);
+  const options = [];
+  for (let lane = 0; lane < 3; lane++) {
+    if (Math.abs(lane - s.lane) * LANE_CHANGE_MS > impactMs) continue;
+    if (claims.some(c => c.lane === lane && Math.abs(c.at - impactMs) < CONFLICT_MS)) continue;
+    const here = group.items.filter(o => o.lane === lane);
+    if (here.some(o => !AVOIDANCE[o.kind].jump && !AVOIDANCE[o.kind].slide)) continue;
+    options.push({ lane, needsAction: here.length > 0 });
+  }
+  return options;
+}
+
+test("every threat the cave produces is survivable, whatever the player has been doing", () => {
+  // A careless player who wanders at random: the guarantee must not depend on
+  // skill, so the check runs from wherever that wandering leaves them.
+  let checked = 0;
+  let actionOnly = 0;
+  for (const difficulty of ["easy", "normal", "hard"]) {
+    for (const source of ["standard", "ai"]) {
+      const opponent = { planId: source === "ai" ? "focused" : "alternating", focus: "center", source };
+      for (let n = 1; n <= 8; n++) {
+        let s = newCave(difficulty, opponent, false, n * 1013);
+        const seen = new Set();
+        let lastMove = 0;
+        for (let t = 0; t < 90000 && !s.done; t += 32) {
+          if (s.elapsed - lastMove > 900) {
+            const dx = [-1, 0, 1][Math.floor((s.seed / 4294967296) * 3)];
+            if (dx) s = caveAction(s, { type: "move", dx });
+            lastMove = s.elapsed;
+          }
+          for (const group of threatGroups(s)) {
+            if (group.z > VISIBLE_Z || group.z < VISIBLE_Z - 6) continue;
+            const key = group.items.map(o => o.id).sort().join(",");
+            if (seen.has(key)) continue;
+            seen.add(key);
+            checked++;
+            const options = survivableOptions(s, group);
+            assert.ok(
+              options.length > 0,
+              `${difficulty}/${source}/${n * 1013} at ${Math.round(s.elapsed)} ms: no survivable lane from ${laneName(s.lane)} against ${group.items.map(o => `${laneName(o.lane)}:${o.kind}`).join(", ")} (boulders ${JSON.stringify(boulderClaims(s))})`,
+            );
+            if (!options.some(o => !o.needsAction)) actionOnly++;
+          }
+          // Keep the run alive so later, faster sections are sampled too.
+          s.hits = 0;
+          s.invulnerable = 0;
+          s.cyclops.gap = 60;
+          s = tickCave(s, 32);
+        }
+      }
+    }
+  }
+  assert.ok(checked > 1500, `expected a broad sample, only checked ${checked}`);
+  // Waves that demand a jump or slide are the point of the encounter, but they
+  // should be a minority of what the player meets.
+  assert.ok(actionOnly / checked < 0.4, `${Math.round((actionOnly / checked) * 100)}% of waves demanded an action`);
+});
+
+test("a committed boulder always leaves an action-free lane to stand in", () => {
+  for (const difficulty of ["easy", "normal", "hard"]) {
+    let s = newCave(difficulty, adaptive, false, 8081);
+    let verified = 0;
+    for (let t = 0; t < 70000 && !s.done; t += 32) {
+      const before = s.cyclops.state;
+      const view = perceive(s);
+      s = tickCave(s, 32);
+      if (before !== "winding" && s.cyclops.state === "winding") {
+        const clean = cleanEscapeLanes(view, s.cyclops.windLane, s.cyclops.windTotal + 900, view.speed);
+        assert.ok(
+          clean.length > 0,
+          `${difficulty}: a throw at ${laneName(s.cyclops.windLane)} left no action-free lane (blocked ${JSON.stringify(view.laneBlocked)}, nearest ${JSON.stringify(view.laneClear)})`,
+        );
+        verified++;
+      }
+      s.hits = 0;
+      s.cyclops.gap = 58;
+    }
+    assert.ok(verified > 2, `${difficulty}: only ${verified} throws observed`);
+  }
+});
+
+test("the escape margin looks past the boulder's own impact", () => {
+  // A lane that closes shortly after the boulder lands is not an escape: a
+  // player cannot be asked to dodge in and straight back out again.
+  const view = {
+    at: 1000,
+    lane: 1,
+    laneProgress: 0,
+    airborne: false,
+    sliding: false,
+    gap: 50,
+    speed: 20,
+    lives: 3,
+    // Lane 0 closes just after the 1.95 s impact; lane 2 stays open.
+    laneBlocked: [42, Infinity, Infinity],
+    laneClear: [42, Infinity, Infinity],
+    laneTargeted: [false, false, false],
+    zone: "cave",
+    remainingMs: 40000,
+  };
+  const horizon = 1950;
+  assert.ok(!escapeLanes(view, 1, horizon, 20).includes(0), "lane 0 closes inside the margin");
+  assert.ok(escapeLanes(view, 1, horizon, 20).includes(2), "lane 2 is a genuine escape");
+  assert.ok(ESCAPE_MARGIN_S >= 1, "the margin must cover a lane change plus a reaction");
+});
+
+test("a lane needing a jump is an escape but not an action-free one", () => {
+  const view = {
+    at: 1000,
+    lane: 1,
+    laneProgress: 0,
+    airborne: false,
+    sliding: false,
+    gap: 50,
+    speed: 20,
+    lives: 3,
+    // Lane 0 holds something jumpable; lane 2 is empty.
+    laneBlocked: [Infinity, Infinity, Infinity],
+    laneClear: [12, Infinity, Infinity],
+    laneTargeted: [false, false, false],
+    zone: "cave",
+    remainingMs: 40000,
+  };
+  assert.deepEqual(escapeLanes(view, 1, 1950, 20), [0, 2]);
+  assert.deepEqual(cleanEscapeLanes(view, 1, 1950, 20), [2]);
 });

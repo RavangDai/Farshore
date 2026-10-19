@@ -1,9 +1,10 @@
-import { isAdventure, type GameState } from "./arcade-runtime.ts";
+import { isAdventure, isCave, type GameState } from "./arcade-runtime.ts";
+import { AVOIDANCE, caveProgress } from "./encounters/cave-runner.ts";
 import type { TrialId } from "./arcade.ts";
 
 export const fieldNotes: Record<TrialId, { region: string; bonus: string; lesson: string; keys: string[] }> = {
   lotus: { region: "THE FORGETFUL SHORE", bonus: "Find three laurel relics · +125 each", lesson: "Lead one sailor at a time. Moly protects you for 14 seconds. Easy mode marks the way back to the ship.", keys: ["WASD", "ARROWS"] },
-  cyclops: { region: "BENEATH MOUNT AETNA", bonus: "Timed jumps and slides · +200 each", lesson: "Read the locked lane warning. Sheep restore a life; coins offer a safer scoring route. Boulders must be sidestepped.", keys: ["A / D", "SPACE", "S"] },
+  cyclops: { region: "BENEATH MOUNT AETNA", bonus: "Timed jumps and slides · +200 each", lesson: "Read the prompt above each hazard: JUMP, SLIDE, or DODGE. A red lane means a boulder is already locked there — leave it. Sheep restore a life.", keys: ["A / D", "W / SPACE", "S"] },
   aeolus: { region: "THE KEEPER OF WINDS", bonus: "Collect a blessing without clipping the gate", lesson: "Short taps maintain altitude. Center the opening for a perfect passage. Green amphorae repair the hull.", keys: ["SPACE", "W / ↑"] },
   circe: { region: "THE ENCHANTED ISLE OF AEAEA", bonus: "Build chain reactions to send curses", lesson: "Match three. Moly purifies adjacent swine. The faint piece shows exactly where your stack will land.", keys: ["A / D", "W", "SPACE"] },
   sirens: { region: "THE SINGING ROCKS", bonus: "Echo five melodies with no missed notes", lesson: "Listen first, then repeat the sequence. Skip rests. The numbered strings keep every cue visible without sound.", keys: ["A", "S", "D", "F"] },
@@ -13,6 +14,43 @@ export const fieldNotes: Record<TrialId, { region: string; bonus: string; lesson
 };
 
 export function encounterCue(s: GameState): { title: string; detail: string; value: string; fill: number; danger?: boolean } {
+  if (isCave(s)) {
+    // The nearest hazard the player still has time to answer.
+    const next = s.obstacles
+      .filter(o => !o.resolved && o.z > 0 && o.z < 56)
+      .sort((a, b) => a.z - b.z)[0];
+    const locked = s.cyclops.state === "winding" ? s.cyclops.windLane : s.boulders.find(b => !b.resolved)?.lane ?? -1;
+    const laneName = ["LEFT", "CENTRE", "RIGHT"];
+    const seconds = next ? Math.max(0, next.z / Math.max(1, s.speed)) : 0;
+    if (locked === s.lane) {
+      return {
+        title: `BOULDER LOCKED · ${laneName[locked]}`,
+        detail: "Polyphemus has committed to this lane. Step aside before it lands.",
+        value: `${s.sheepSaved} sheep · ${s.precision} precise`,
+        fill: caveProgress(s),
+        danger: true,
+      };
+    }
+    if (next && next.lane === s.lane) {
+      const rule = AVOIDANCE[next.kind];
+      return {
+        title: `${rule.prompt} · ${next.kind.toUpperCase()}`,
+        detail: `${rule.jump ? "Jump it" : rule.slide ? "Slide under it" : "Change lanes"} — ${seconds.toFixed(1)}s away.`,
+        value: `${s.sheepSaved} sheep · ${s.precision} precise`,
+        fill: caveProgress(s),
+        danger: seconds < 0.8,
+      };
+    }
+    return {
+      title: s.zone === "daylight" ? "DAYLIGHT · RUN FOR THE MOUTH" : s.zone === "collapse" ? "THE HALL IS COMING DOWN" : "RUN FOR THE DAYLIGHT",
+      detail: locked >= 0
+        ? `A boulder is locked on the ${laneName[locked].toLowerCase()} lane. Stay clear of it.`
+        : "Watch the prompt above each hazard. Glowing sheep restore a life.",
+      value: `${s.sheepSaved} sheep · ${s.precision} precise`,
+      fill: caveProgress(s),
+      danger: s.cyclops.gap < 24,
+    };
+  }
   if (isAdventure(s)) {
     if (s.id === "lotus") return { title: s.carrying ? "BRING YOUR SAILOR HOME" : s.protection ? "MOLY'S PROTECTION" : "FIND YOUR LOST CREW", detail: s.carrying ? "The ship waits in the lower-left garden." : s.protection ? "Guardians cannot harm you while the golden ward holds." : "Touch a sailor, then lead them to the ship. Relics are optional.", value: s.protection ? `${Math.ceil(s.protection / 1000)}s ward` : `${s.relicsFound}/3 relics`, fill: s.protection ? s.protection / 14000 : s.relicsFound / 3 };
     if (s.id === "cyclops") {

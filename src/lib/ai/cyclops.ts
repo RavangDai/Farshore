@@ -64,10 +64,16 @@ export type CavePerception = {
   speed: number;
   lives: number;
   /**
-   * Metres to the nearest obstacle that blocks each lane outright, measured at
-   * the moment of perception. Infinity means the lane is clear.
+   * Metres to the nearest obstacle that blocks each lane outright — one that no
+   * jump or slide answers. Infinity means nothing blocks the lane.
    */
   laneBlocked: number[];
+  /**
+   * Metres to the nearest obstacle of any kind in each lane, including the ones
+   * a jump or slide clears. Used to find a lane where Odysseus needs to do
+   * nothing at all, which is what the fairness rule requires.
+   */
+  laneClear: number[];
   /** Lanes with a boulder already locked in. */
   laneTargeted: boolean[];
   zone: CaveZone;
@@ -123,26 +129,46 @@ export function cavePolicy(difficulty: Difficulty, adaptive: boolean): CavePolic
 }
 
 /**
- * Lanes the player can still reach and survive, given the obstacle layout that
- * will exist when a boulder thrown now would arrive.
+ * The safety margin, in seconds of running, added beyond a boulder's impact
+ * before a lane is accepted as an escape.
  *
- * A lane counts as an escape when it is not the targeted lane, is not blocked
- * within the impact window, and is adjacent enough to reach in the telegraph.
+ * Without it the opponent could lock onto a lane whose neighbours close moments
+ * after the boulder lands, which is survivable only with frame-perfect play.
+ * One lane change plus one reaction is the honest allowance.
+ */
+export const ESCAPE_MARGIN_S = 1.1;
+
+/**
+ * Lanes Odysseus can reach and survive if a boulder is thrown at `targetLane`.
+ *
+ * A lane qualifies when it is not the target, carries no boulder of its own, is
+ * close enough to reach inside the telegraph, and stays free of un-answerable
+ * hazards until a margin past the moment of impact.
  */
 export function escapeLanes(view: CavePerception, targetLane: number, horizonMs: number, speed: number): number[] {
-  const horizonMetres = (speed * horizonMs) / 1000;
+  const horizonMetres = (speed * horizonMs) / 1000 + speed * ESCAPE_MARGIN_S;
   const reach = Math.max(1, Math.floor(horizonMs / LANE_CHANGE_MS));
   const escapes: number[] = [];
   for (let lane = 0; lane < 3; lane++) {
     if (lane === targetLane) continue;
     if (Math.abs(lane - view.lane) > reach) continue;
     if (view.laneTargeted[lane]) continue;
-    // A blocking obstacle inside the impact window closes the lane. Obstacles
-    // further ahead than the window are a later problem, not this throw's.
     if (view.laneBlocked[lane] <= horizonMetres) continue;
     escapes.push(lane);
   }
   return escapes;
+}
+
+/**
+ * Escape lanes where Odysseus needs no jump or slide — he only has to be there.
+ *
+ * The fairness rule is stated in terms of these: a boulder is only ever thrown
+ * when at least one such lane exists, so answering a committed attack never
+ * demands two correct inputs in the same window.
+ */
+export function cleanEscapeLanes(view: CavePerception, targetLane: number, horizonMs: number, speed: number): number[] {
+  const horizonMetres = (speed * horizonMs) / 1000 + speed * ESCAPE_MARGIN_S;
+  return escapeLanes(view, targetLane, horizonMs, speed).filter(lane => view.laneClear[lane] > horizonMetres);
 }
 
 function perceptionReadings(view: CavePerception): Reading[] {
@@ -158,6 +184,15 @@ function perceptionReadings(view: CavePerception): Reading[] {
       value: view.laneBlocked
         .map((d, i) => (Number.isFinite(d) ? `${laneName(i)} ${Math.round(d)}m` : `${laneName(i)} clear`))
         .join(" · "),
+      hint: "hazards no jump or slide answers",
+    },
+    {
+      key: "clear",
+      label: "Nearest hazard",
+      value: view.laneClear
+        .map((d, i) => (Number.isFinite(d) ? `${laneName(i)} ${Math.round(d)}m` : `${laneName(i)} open`))
+        .join(" · "),
+      hint: "any kind",
     },
     { key: "zone", label: "Cave section", value: view.zone === "cave" ? "Narrow passage" : view.zone === "collapse" ? "Collapsing hall" : "Daylight ahead" },
   ];
@@ -234,12 +269,14 @@ export function decideCave(
   const laneScores: number[] = [0, 0, 0];
   for (let lane = 0; lane < 3; lane++) {
     const escapes = escapeLanes(view, lane, horizonMs, view.speed);
+    const clean = cleanEscapeLanes(view, lane, horizonMs, view.speed);
     let score: number;
     let note: string;
-    if (escapes.length === 0) {
-      // Fairness: a throw with no survivable alternative is never a candidate.
+    if (clean.length === 0) {
+      // Fairness: a throw is only ever made when Odysseus has somewhere to
+      // stand that asks nothing more of him than being there.
       score = -1000;
-      note = "no escape lane would remain — withheld";
+      note = escapes.length === 0 ? "no escape lane would remain — withheld" : "no action-free escape lane — withheld";
     } else if (policy.predictive) {
       const p = forecast.distribution[lane] ?? 0;
       score = p * 100;
@@ -250,7 +287,7 @@ export function decideCave(
       }
       // Favour a lane the layout is already squeezing: fewer alternatives for
       // the player means a throw there is worth more.
-      const squeeze = (3 - escapes.length) * 6;
+      const squeeze = (3 - clean.length) * 6;
       if (squeeze > 0) {
         score += squeeze;
         note += ` +${squeeze} layout squeeze`;
@@ -302,17 +339,17 @@ export function decideCave(
   // decision that was actually made.
   const fairnessNote =
     withheldLanes > 0
-      ? ` ${withheldLanes} of 3 lanes were withheld because a throw there would have left no reachable escape.`
+      ? ` ${withheldLanes} of 3 lanes were withheld because a throw there would have left no action-free escape lane.`
       : "";
 
   if (selected.startsWith("boulder:")) {
     const lane = LANE_NAMES.findIndex(n => n.toLowerCase() === selected.slice(8));
-    const escapes = escapeLanes(view, lane, horizonMs, view.speed);
+    const clean = cleanEscapeLanes(view, lane, horizonMs, view.speed);
     const confidence = policy.predictive ? clamp01(forecast.distribution[lane] ?? 0) : undefined;
     const reason = policy.predictive
-      ? `${laneName(lane)} scored highest: the decayed lane history and the observed ${laneName(view.lane)}→? transitions put Odysseus there with probability ${pct(forecast.distribution[lane] ?? 0)} in ${ms(horizonMs)}${weakest === lane ? ", and that lane has the worst escape record" : ""}. ${escapes.length} escape lane${escapes.length === 1 ? "" : "s"} stay open.`
+      ? `${laneName(lane)} scored highest: the decayed lane history and the observed ${laneName(view.lane)}→? transitions put Odysseus there with probability ${pct(forecast.distribution[lane] ?? 0)} in ${ms(horizonMs)}${weakest === lane ? ", and that lane has the worst escape record" : ""}. ${clean.length} action-free escape lane${clean.length === 1 ? "" : "s"} stay open.`
       : policy.tracking
-        ? `Odysseus is in ${laneName(view.lane)} right now, so the throw tracks that lane. ${escapes.length} escape lane${escapes.length === 1 ? "" : "s"} stay open.`
+        ? `Odysseus is in ${laneName(view.lane)} right now, so the throw tracks that lane. ${clean.length} action-free escape lane${clean.length === 1 ? "" : "s"} stay open.`
         : `Fixed rotation reached step ${(wave % 3) + 1}, which targets ${laneName(lane)}. No player history is consulted on this difficulty.`;
     const decision = commitDecision(ai, view.at, {
       algorithm: policy.algorithm,
@@ -387,7 +424,7 @@ export function decideCave(
     selectedCandidate: "wait",
     reason:
       withheldLanes > 0
-        ? `${withheldLanes} of 3 lanes were withheld because a throw there would have left Odysseus no reachable escape. Polyphemus waits for a fair opening.`
+        ? `${withheldLanes} of 3 lanes were withheld because a throw there would have left Odysseus no action-free escape lane. Polyphemus waits for a fair opening.`
         : "No action outscored holding position. Polyphemus keeps watching.",
   });
   ai.committed = null;

@@ -833,7 +833,9 @@ function playCave(state, { reactionMs = 180 } = {}) {
         if (o.z > 46) continue;
         const reachableInTime = o.z > stepMetres * (steps + 1);
         if (!rule.jump && !rule.slide) score -= reachableInTime ? 180 : 600;
-        else score -= 26;
+        // A jumpable hazard is only answerable if there is still room to press
+        // after arriving in the lane. Arriving on top of one is as bad as a wall.
+        else score -= o.z > stepMetres * (steps + 1) + actWindow * 0.45 ? 26 : 220;
       }
       return score;
     };

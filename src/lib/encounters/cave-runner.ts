@@ -52,6 +52,15 @@ export const COYOTE_MS = 90;
 export const BUFFER_MS = 130;
 /** Collision half-depth in metres: how deep the hit band around z=0 is. */
 export const HIT_DEPTH = 1.6;
+/**
+ * How close the runner's rendered position must be to a lane's centre to count
+ * as standing in it, in lane units.
+ *
+ * Collisions are judged on where Odysseus actually appears, not on the lane he
+ * has asked to move to. Exactly half way between two lanes he is in neither,
+ * which is the familiar runner rule: commit early, or thread the gap.
+ */
+export const LANE_TOLERANCE = 0.5;
 /** Starting chase distance in metres. */
 export const START_GAP = 74;
 /** Waves at the mouth of the cave that carry a single hazard, to teach. */
@@ -208,6 +217,10 @@ export type CaveState = {
 };
 
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
+
+/** Whether the runner's rendered position puts him inside `lane`. */
+export const occupiesLane = (s: Pick<CaveState, "laneX">, lane: number) =>
+  Math.abs(s.laneX - (lane - 1) * LANE_SPAN) < LANE_TOLERANCE;
 
 function random(s: CaveState) {
   s.seed = (Math.imul(s.seed, 1664525) + 1013904223) >>> 0;
@@ -621,8 +634,10 @@ function applyAction(s: CaveState, action: CaveAction) {
 
 function resolveBoulder(s: CaveState, b: Boulder) {
   b.resolved = true;
-  const hit = s.lane === b.lane && s.changing <= 0;
-  const grazing = s.lane === b.lane && s.changing > 0;
+  const hit = occupiesLane(s, b.lane);
+  // Clearing the marked lane with the change still in flight is the tightest
+  // legal answer, and it scores as one.
+  const grazing = !hit && s.changing > 0 && s.lane === b.lane;
   observeResolution(s.model, b.lane, !hit);
   if (hit) {
     damage(s, `The boulder lands in the ${laneName(b.lane).toLowerCase()} lane. Leave the marked lane before it falls.`);
@@ -639,7 +654,7 @@ function resolveBoulder(s: CaveState, b: Boulder) {
 function resolveObstacle(s: CaveState, o: Obstacle) {
   o.resolved = true;
   const rule = AVOIDANCE[o.kind];
-  const sameLane = s.lane === o.lane || (s.changing > 0 && Math.abs(s.laneX - (o.lane - 1)) < 0.55);
+  const sameLane = occupiesLane(s, o.lane);
   if (!sameLane) {
     reward(s, 100, "+100");
     observeResolution(s.model, o.lane, true);
@@ -731,7 +746,7 @@ export function tickCave(state: CaveState, delta: number): CaveState {
   }
   for (const sheepEntity of s.sheep) {
     if (sheepEntity.taken || sheepEntity.z > HIT_DEPTH) continue;
-    if (s.lane === sheepEntity.lane && s.jump <= 0) {
+    if (occupiesLane(s, sheepEntity.lane) && s.jump <= 0) {
       sheepEntity.taken = true;
       s.sheepSaved++;
       s.hits = Math.max(0, s.hits - 1);
@@ -745,7 +760,7 @@ export function tickCave(state: CaveState, delta: number): CaveState {
   }
   for (const coin of s.coins) {
     if (coin.taken || coin.z > HIT_DEPTH) continue;
-    if (s.lane === coin.lane) {
+    if (occupiesLane(s, coin.lane)) {
       coin.taken = true;
       s.coinsTaken++;
       s.pickupAt = s.elapsed;

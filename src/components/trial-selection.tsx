@@ -3,14 +3,14 @@ import { useState, type KeyboardEvent } from "react";
 import { fieldNotes } from "../lib/field-notes";
 import { trials, unlocked, difficultyNames, clearedCount, type ArcadeSave, type TrialId, type Difficulty } from "../lib/arcade";
 import { TrialArtwork } from "./farshore-art";
-import { OdysseyMap } from "./odyssey-map";
+import { VoyageChart } from "./voyage-chart";
 
 const shortNames: Record<TrialId, string> = { lotus: "Lotus-Eaters", cyclops: "Cyclops’ Cave", aeolus: "Aeolus", circe: "Circe’s Palace", sirens: "Sirens’ Passage", scylla: "Scylla & Charybdis", calypso: "Calypso’s Raft", bow: "Ithaca" };
-type Props = { save: ArcadeSave; selected: TrialId; difficulty: Difficulty; onSelect: (id: TrialId) => void; onOpen: (id: TrialId) => void; onDifficulty: (d: Difficulty) => void; onBegin: () => void };
+type Props = { save: ArcadeSave; selected: TrialId; difficulty: Difficulty; still?: boolean; onSelect: (id: TrialId) => void; onOpen: (id: TrialId) => void; onDifficulty: (d: Difficulty) => void; onBegin: () => void };
 
 export function TrialSelection(props: Props) {
   const [view, setView] = useState<"trials" | "map">("trials");
-  const { save, selected, difficulty, onSelect, onOpen, onDifficulty, onBegin } = props;
+  const { save, selected, difficulty, still = false, onSelect, onOpen, onDifficulty, onBegin } = props;
   const trial = trials.find(t => t.id === selected)!, index = trials.indexOf(trial), record = save.records[selected], canPlay = unlocked(save, selected), best = record.bests[difficulty];
   const note = fieldNotes[selected];
   function moveSelection(e: KeyboardEvent<HTMLDivElement>) {
@@ -24,7 +24,7 @@ export function TrialSelection(props: Props) {
   }
   return <section className="fs-selection">
     <div className="fs-selection-heading"><div><span className="a-eyebrow">THE VOYAGE HOME</span><h1>Select your trial</h1></div><div className="fs-view-switch" aria-label="Encounter selection view"><button aria-pressed={view === "trials"} onClick={() => setView("trials")}><LayoutGrid size={15}/> Trials</button><button aria-pressed={view === "map"} onClick={() => setView("map")}><Map size={15}/> Voyage map</button></div></div>
-    {view === "map" ? <OdysseyMap {...props}/> : <div className="fs-trial-layout"><div className="fs-trial-gallery"><div className="fs-gallery-rule"><span>TROY</span><i/><Ship size={19}/><i/><span>ITHACA</span></div><div className="fs-trial-grid" onKeyDown={moveSelection} aria-label="Select one of eight Greek mythology trials">{trials.map((t, i) => {
+    {view === "map" ? <VoyageChart {...props} still={still}/> : <div className="fs-trial-layout"><div className="fs-trial-gallery"><div className="fs-gallery-rule"><span>TROY</span><i/><Ship size={19}/><i/><span>ITHACA</span></div><div className="fs-trial-grid" onKeyDown={moveSelection} aria-label="Select one of eight Greek mythology trials">{trials.map((t, i) => {
       const open = unlocked(save, t.id), cleared = save.records[t.id].cleared !== "pending", medal = save.records[t.id].bests[difficulty]?.medal;
       return <button key={t.id} data-trial-index={i} className={`fs-trial-card ${selected === t.id ? "selected" : ""} ${open ? "unlocked" : "locked"} ${cleared ? "completed" : ""}`} onClick={() => onSelect(t.id)} aria-pressed={selected === t.id} aria-label={`${i + 1}. ${t.title}. ${cleared ? "Completed" : open ? "Unlocked" : "Locked"}`}>
         <TrialArtwork id={t.id}/><span className="fs-trial-number">{i + 1}</span><span className="fs-trial-card-state">{cleared ? <Check size={13}/> : !open ? <LockKeyhole size={13}/> : null}</span><span className="fs-trial-card-shade"/><strong>{shortNames[t.id]}</strong><span className="fs-trial-card-kind">{t.kind}</span>{medal && <span className={`fs-card-medal ${medal}`}><Trophy size={12}/>{medal}</span>}

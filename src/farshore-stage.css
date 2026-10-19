@@ -1235,7 +1235,7 @@ body.fs-stage-open {
 .fs-arena-status {
   position: absolute;
   /* Under the HUD banner, clear of both the runner and the cue strip. */
-  inset: 124px 0 auto 0;
+  inset: 132px 0 auto 0;
   z-index: 3;
   display: flex;
   gap: 14px;

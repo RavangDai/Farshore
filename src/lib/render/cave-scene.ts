@@ -379,13 +379,17 @@ export class CaveScene {
   private drawPolyphemus(c: CanvasRenderingContext2D, s: CaveState, now: number, options: CaveSceneOptions) {
     const cy = s.cyclops;
     const near = clamp01(1 - (cy.gap - 8) / (START_GAP - 8));
-    const scale = lerp(0.72, 2.1, near * near);
-    const baseY = HORIZON_Y + lerp(26, 330, near);
+    const scale = lerp(0.55, 1.8, near * near);
+    // Anchored by the crown of his head rather than by a notional foot line:
+    // his legs are behind the camera, so only the head position is meaningful,
+    // and this keeps him inside the frame at every size.
+    const CROWN = 518;
+    const headTop = lerp(152, 26, near);
     const stridePhase = (cy.stride / 1000) * Math.PI * 2;
     const sway = options.still ? 0 : Math.sin(stridePhase) * 26 * scale;
     const lurch = options.still ? 0 : Math.abs(Math.sin(stridePhase)) * 20 * scale;
     const x = CENTRE_X + sway;
-    const y = baseY - lurch;
+    const y = headTop + CROWN * scale - lurch;
     const winding = cy.state === "winding";
     const roaring = cy.state === "roaring" || now - cy.roarAt < 620;
     const wind = winding ? easeOut(1 - cy.timer / Math.max(1, cy.windTotal)) : 0;

@@ -69,6 +69,15 @@ export type AIDecision = {
   reason: string;
   /** Telegraph length in ms. The target is locked for this whole window. */
   commitMs?: number;
+  /**
+   * The escape routes this decision left the player, counted at the moment it
+   * was made.
+   *
+   * Recording it on the decision rather than recomputing it later is what lets
+   * the fairness guarantee be checked against the instant it was actually
+   * given, and lets the inspector state the promise the opponent kept.
+   */
+  safety?: { escapes: number; actionFree: number };
   /** Filled in by the learn stage once the action resolves. */
   outcome?: DecisionOutcome;
   outcomeNote?: string;

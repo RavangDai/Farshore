@@ -420,6 +420,7 @@ export function decideCave(
   if (selected.startsWith("boulder:")) {
     const lane = LANE_NAMES.findIndex(n => n.toLowerCase() === selected.slice(8));
     const clean = cleanEscapeLanes(view, lane, horizonMs, view.speed);
+    const safety = { escapes: escapeLanes(view, lane, horizonMs, view.speed).length, actionFree: clean.length };
     const confidence = policy.predictive ? clamp01(forecast.distribution[lane] ?? 0) : undefined;
     const reason = policy.predictive
       ? `${laneName(lane)} scored highest: the decayed lane history and the observed ${laneName(view.lane)}→? transitions put Odysseus there with probability ${pct(forecast.distribution[lane] ?? 0)} in ${ms(horizonMs)}${weakest === lane ? ", and that lane has the worst escape record" : ""}. ${clean.length} action-free escape lane${clean.length === 1 ? "" : "s"} stay open.`
@@ -438,6 +439,7 @@ export function decideCave(
       ...(confidence === undefined ? {} : { confidence }),
       reason,
       commitMs: policy.telegraphMs,
+      safety,
     });
     ai.committed = decision;
     ai.commitRemaining = policy.telegraphMs;

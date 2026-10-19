@@ -312,7 +312,11 @@ export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: (
                           }}
                         />
                       </i>
-                      <small>The target was locked when the warning began and is never re-aimed.</small>
+                      <small>
+                        The target was locked when the warning began and is never re-aimed.
+                        {runtime.committed.safety &&
+                          ` ${runtime.committed.safety.actionFree} lane${runtime.committed.safety.actionFree === 1 ? "" : "s"} were left open where no jump or slide is needed.`}
+                      </small>
                     </div>
                   ) : (
                     <p className="ai-empty">Nothing committed right now.</p>

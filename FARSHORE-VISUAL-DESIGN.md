@@ -22,7 +22,9 @@ The online shell uses Next.js's documented dynamic component loader so each mode
 
 ## Verification
 
-- All 128 existing regression tests pass, covering encounter engines, progression, saves, account isolation, and AI adapters.
+- All 134 regression tests pass, covering encounter engines, optional skill rewards, progression, saves, account isolation, and AI adapters.
 - Next.js production build and the Vite offline build pass. The offline bundle retains its existing size advisory.
 - Browser review at desktop size and 390 × 844 verified the splash, menu, trial selector, difficulty choices, game HUD, touch movement, Escape pause, resume countdown, and confirmation before leaving an attempt. Practice did not unlock the next trial or alter campaign records.
 - Screenshots are saved in `output/farshore-redesign/`. The supplied reference remains a design reference, separate from the original production artwork.
+
+The [encounter detail pass](FARSHORE-DETAIL-PASS.md) documents the added game rewards, tactical cues, richer arena rendering, transparent item atlas, and its production prompt.

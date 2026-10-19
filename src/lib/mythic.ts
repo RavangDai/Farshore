@@ -280,7 +280,7 @@ export function tickMythic(state: MythicState, delta: number): MythicState {
       const oldX = a.x; a.x += a.vx * dt / 1000; a.y += a.vy * dt / 1000;
       if (a.y < 20 || a.y > 380) { a.y = clamp(a.y, 20, 380); a.vy *= -1; }
       if (!a.reflected && oldX > 300 && a.x <= 300) {
-        if (Math.abs(a.y - s.paddle) <= [58, 47, 37][tier]) { a.reflected = true; a.vx = Math.abs(a.vx) * 1.45; a.vy = (a.y - s.paddle) * 3; s.successes++; s.score += 100; streak(s, true); s.feedback = "Reflected! The head recoils. Keep rowing."; }
+        if (Math.abs(a.y - s.paddle) <= [58, 47, 37][tier]) { const perfect = Math.abs(a.y - s.paddle) <= 12; a.reflected = true; a.vx = Math.abs(a.vx) * 1.45; a.vy = (a.y - s.paddle) * 3; s.successes++; s.score += perfect ? 200 : 100; if (perfect) s.boat = Math.min(85, s.boat + 4); streak(s, true); s.feedback = perfect ? "Perfect parry! +200 points. The recoil carries the ship away from the vortex." : "Reflected! The head recoils. Keep rowing."; }
         else { s.hits++; s.boat = Math.max(0, s.boat - 7); streak(s, false); s.feedback = "A head strikes the hull. Move the shield toward the next warning."; continue; }
       }
       if (a.x < 800) keep.push(a);

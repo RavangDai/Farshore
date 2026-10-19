@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { trials, planLabel, planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
+import { trials, difficultyNames, planLabel, planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
 import { songBeat, statusLabel } from "../lib/mythic";
 import { createGame, gameAction, tickGame, isAdventure, demonstrate, type GameAction, type GameState } from "../lib/arcade-runtime";
 import { adventureStatus } from "../lib/odyssey-games";
@@ -8,6 +8,7 @@ import { MythicGame } from "./mythic-games";
 import { FarshoreHUD, EncounterBanner } from "./farshore-hud";
 import { CharacterPortrait } from "./farshore-art";
 import { AIObservatory } from "./ai-observatory";
+import { EncounterIntel, FieldNotes } from "./encounter-intel";
 
 type Props = { id: TrialId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; still: boolean; modelPrepared?: boolean; originalCave?: boolean; demo?: boolean; onSettings: () => void; onFinish: (round: GameState) => void; onLeave: () => void; onFeedback: (good: boolean) => void; onNote: (lane: number) => void };
 export function ArcadeRound({ id, difficulty, plan, practice, seed, still, modelPrepared, originalCave, demo, onSettings, onFinish, onLeave, onFeedback, onNote }: Props) {
@@ -117,17 +118,21 @@ export function ArcadeRound({ id, difficulty, plan, practice, seed, still, model
     return () => { window.removeEventListener("keydown", key); window.removeEventListener("keyup", keyUp); window.removeEventListener("blur", blur); document.removeEventListener("visibilitychange", visibility); window.removeEventListener("farshore:account-open", pause); };
   }, [phase]);
   return <section data-trial={id} className="a-round m-round fs-round" aria-label={`${trial.title} ${practice ? "practice" : "challenge"}`}>
-    <div className="a-round-top"><span className="fs-round-number">0{trials.findIndex(t => t.id === id) + 1}</span><div><span className="a-eyebrow">{demo ? "AI DEMONSTRATION / NO PROGRESS SAVED" : practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficulty.toUpperCase()}</span><h2>{trial.title}</h2></div></div>
+    <div className="a-round-top"><span className="fs-round-number">0{trials.findIndex(t => t.id === id) + 1}</span><div><span className="a-eyebrow">{demo ? "AI DEMONSTRATION / NO PROGRESS SAVED" : practice ? "PRACTICE" : plan.source === "ai" ? modelPrepared ? "MODEL-PLANNED AI BATTLE" : "ADAPTIVE AI BATTLE" : "ARCADE SOLO"} · {difficultyNames[difficulty].toUpperCase()}</span><h2>{trial.title}</h2></div></div>
     <p className="od-round-objective">{practice && id === "lotus" ? "Rescue one sailor and bring them back to the ship." : originalCave ? "Original cave tactics / Reach either gold exit" : trial.objective}</p><FarshoreHUD state={round} onPause={pause}/>
+    <EncounterIntel state={round}/>
     <div className="m-match-status"><span>{isAdventure(round) ? adventureStatus(round) : statusLabel(round)}</span><span>{strategy}</span></div>
     <AIObservatory state={round}/>
+    <div className="fs-playfield-layout"><div className="fs-playfield-main">
     <div ref={arena} tabIndex={0} className="m-arena" aria-label={`${trial.kind}. ${trial.controls}`}>
       <div className="fs-arena-stage" inert={phase !== "active"}>{(id === "circe" || id === "sirens") && <EncounterBanner id={id}/ >}{isAdventure(round) ? <AdventureGame state={round} active={phase === "active"} act={act} still={still}/> : <MythicGame state={round} active={phase === "active"} act={act} still={still}/>}</div>
       {burst && <span key={burst.key} className={`fs-action-burst ${burst.good ? "good" : "hurt"}`} aria-hidden="true">{burst.label}</span>}
       {phase !== "active" && <div ref={overlay} className="a-round-overlay" role={phase === "paused" ? "dialog" : "status"} aria-modal={phase === "paused" ? true : undefined} aria-label={phase === "paused" ? "Challenge paused" : "Get ready"}><div className="a-overlay-panel fs-stone-panel">{phase === "countdown" ? <><span className="a-eyebrow">{trial.kind.toUpperCase()}</span><strong className="a-count">{count}</strong><p>{trial.controls}</p></> : <><span className="a-eyebrow">TAKE A BREATH</span><h2>PAUSED</h2><p>Both rivals and every clock are stopped.</p>{confirmLeave ? <><p>Leave this attempt? Completed encounters stay saved.</p><button className="a-btn a-primary" onClick={onLeave}>Leave attempt</button><button className="a-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button></> : <><button className="a-btn a-primary" onClick={resume}>Resume with countdown</button><button className="a-btn" onClick={restartRound}>Restart encounter</button><details className="od-pause-controls"><summary>Controls</summary><p>{trial.controls}</p></details><button className="a-btn" onClick={onSettings}>Settings</button><button className="a-btn" onClick={() => setConfirmLeave(true)}>Return to map</button></>}</>}</div></div>}
     </div>
-    <p className="a-game-feedback" role="status" aria-live="polite">{round.feedback}</p>
+    <p className="a-game-feedback" role="status" aria-live="polite">{round.feedback}</p></div><aside className="fs-playfield-support">
+    <FieldNotes id={id}/>
     <div className="m-rival-speech"><CharacterPortrait tile={trial.portrait} label={trial.character}/><div><span>{trial.character} · {strategy}</span><p aria-live="polite">{round.rivalLine}</p></div></div>
     <p className="m-help">{id === "bow" ? "rings" : id === "circe" ? "brew points" : "points"} · {practice ? "Practice leaves your voyage progress untouched." : modelPrepared ? "The model chose the strategy. The rival takes actions locally during play." : plan.source === "ai" ? "Adaptive rival logic reacts during play." : "Solo rivals use learnable strategies."}</p>
+    </aside></div>
   </section>;
 }

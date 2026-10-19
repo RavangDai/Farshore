@@ -1,4 +1,5 @@
 import { useFarshoreAtlas, useFarshoreSprites, drawFarshoreTile, drawFarshoreSprite } from "../lib/farshore-rendering";
+import { sceneFrame, torchlight, motes } from "../lib/scene-details";
 import { useEffect, useRef, type CSSProperties } from "react";
 import { archeryShot, columnHeight, rotatePiece, songBeat, tierOf, TILE_NAMES, type Action, type BowState, type GridState, type MythicState, type PotionState, type SongState, type StraitState, type Tile } from "../lib/mythic";
 
@@ -19,6 +20,7 @@ export function GridGame({ state: s, active, act }: { state: GridState } & Contr
 
 export function PotionTile({ tile }: { tile: Tile }) {
   if (!tile) return null;
+  if (tile < 5) return <span className={`fs-item-icon fs-item-${tile + 11}`} aria-hidden="true"/>;
   return <svg viewBox="0 0 32 32" aria-hidden="true">{tile === 1 ? <><path fill="#d3a185" d="M10 2h12v6h-3v4l7 6v12H6V18l7-6V8h-3z"/><path fill="#bc5e8b" d="M8 20h16v8H8z"/></> : tile === 2 ? <><path fill="#9fd5aa" d="M15 29V8h3v21zM17 18C3 17 3 7 4 5c13 0 14 8 13 13M17 23c-1-13 6-17 12-17 0 10-5 16-12 17"/></> : tile === 3 ? <><path fill="#dba19c" d="M6 9 3 2l10 5h7l9-5-3 10v12l-5 5H10l-5-5V12z"/><path fill="#955d74" d="M10 18h13v8H10z"/><path fill="#263340" d="M8 12h3v3H8zM22 12h3v3h-3zM13 21h2v2h-2zM19 21h2v2h-2z"/></> : tile === 4 ? <><path fill="#baa7e8" d="m16 2 13 14-13 14L3 16z"/><path fill="none" stroke="#4b477e" strokeWidth="2" d="M16 7v18M9 12l7 5 7-5"/></> : <><path fill="#657582" d="M4 4h24v24H4z"/><path fill="#243846" d="m9 8 7 7 7-7 3 3-7 7 7 7-3 3-7-7-7 7-3-3 7-7-7-7z"/></>}</svg>;
 }
 function PotionBoard({ board, piece, column, rotation = 0, timer, delay, label }: { board: Tile[]; piece: Tile[]; column: number; rotation?: number; timer: number; delay: number; label: string }) {
@@ -65,17 +67,27 @@ export function StraitGame({ state: s, active, act, still }: { state: StraitStat
     if (s.telegraph > 0) { ctx.setLineDash([8, 8]); ctx.strokeStyle = "#ebc57999"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(720, 50 + s.head * 60); ctx.lineTo(300, s.targetY); ctx.stroke(); ctx.setLineDash([]); ctx.strokeRect(284, s.targetY - 16, 32, 32); }
     const boatX = 155 + s.boat;
     ctx.fillStyle = "#b67e55"; ctx.beginPath(); ctx.moveTo(boatX - 35, 220); ctx.lineTo(boatX + 40, 220); ctx.lineTo(boatX + 22, 243); ctx.lineTo(boatX - 20, 243); ctx.closePath(); ctx.fill(); ctx.fillStyle = "#efddb2"; ctx.fillRect(boatX - 2, 155, 4, 65); ctx.beginPath(); ctx.moveTo(boatX + 4, 162); ctx.lineTo(boatX + 4, 209); ctx.lineTo(boatX + 31, 209); ctx.fill();
-    if (sprites) { ctx.fillStyle = "#0c263a"; ctx.fillRect(boatX - 40, 153, 85, 91); drawFarshoreSprite(ctx, sprites, 3, boatX - 53, 145, 106, 106); }
+    if (sprites) { drawFarshoreSprite(ctx, sprites, 3, boatX - 53, 145, 106, 106); }
     if (s.rowing) { ctx.strokeStyle = "#a7d8d3"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(boatX - 15, 236); ctx.lineTo(boatX - 45, 253); ctx.moveTo(boatX + 15, 236); ctx.lineTo(boatX + 48, 253); ctx.stroke(); }
     ctx.fillStyle = "#f1d08b"; ctx.fillRect(288, s.paddle - 38, 15, 76); ctx.fillStyle = "#fff0c4"; ctx.fillRect(292, s.paddle - 34, 3, 68);
+    ctx.strokeStyle = "#50d5f5"; ctx.lineWidth = 2; ctx.strokeRect(285, s.paddle - 39, 20, 78); ctx.fillStyle = "#e9fbff"; ctx.fillRect(286, s.paddle - 12, 18, 24);
+    for (let i = 0; i < 6; i++) {
+      const y = 50 + i * 60, aiming = i === s.head && s.telegraph > 0;
+      const scales = ctx.createLinearGradient(700, y - 16, 740, y + 16); scales.addColorStop(0, aiming ? "#cb814c" : "#284b69"); scales.addColorStop(.5, aiming ? "#e4b16c" : "#5d879a"); scales.addColorStop(1, "#152a40");
+      ctx.fillStyle = scales; ctx.beginPath(); ctx.ellipse(717, y, 23, 15, -.15, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#08101c"; ctx.beginPath(); ctx.moveTo(695, y + 1); ctx.lineTo(720, y + 6); ctx.lineTo(698, y + 10); ctx.fill();
+      ctx.fillStyle = "#f5dfac"; for (let tooth = 0; tooth < 3; tooth++) { ctx.beginPath(); ctx.moveTo(697 + tooth * 6, y + 2); ctx.lineTo(701 + tooth * 6, y + 2); ctx.lineTo(699 + tooth * 6, y + 8); ctx.fill(); }
+      ctx.fillStyle = aiming ? "#ffdb87" : "#4cd8ee"; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = aiming ? 14 : 5; ctx.beginPath(); ctx.ellipse(712, y - 7, 5, 3, -.3, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    }
     for (const a of s.strikes) { ctx.fillStyle = a.reflected ? "#98e1bb" : "#ed977e"; ctx.beginPath(); ctx.arc(a.x, a.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = a.reflected ? "#98e1bb70" : "#ed977e70"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x - a.vx * .09, a.y - a.vy * .09); ctx.stroke(); }
-    ctx.font = "14px monospace"; ctx.fillStyle = "#cbddd8"; ctx.fillText("CHARYBDIS", 24, 30); ctx.fillText("SCYLLA", 686, 30); ctx.fillText("SHIELD", 270, 387);
+    for (const a of s.strikes) { const g = ctx.createRadialGradient(a.x, a.y, 1, a.x, a.y, 24); g.addColorStop(0, "#fff0bbee"); g.addColorStop(.25, a.reflected ? "#7fffcabb" : "#ff9a31bb"); g.addColorStop(1, "#f6540000"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(a.x, a.y, 24, 0, Math.PI * 2); ctx.fill(); }
+    ctx.font = "14px monospace"; ctx.fillStyle = "#cbddd8"; ctx.fillText("CHARYBDIS", 24, 30); ctx.fillText("SCYLLA", 686, 30); ctx.fillText("SHIELD", 270, 387); sceneFrame(ctx, 800, 400);
   });
   function paddle(e: React.PointerEvent<HTMLCanvasElement>) { const r = e.currentTarget.getBoundingClientRect(); if (active) act({ type: "paddle", y: (e.clientY - r.top) / r.height * 400 }); }
   return <div className="m-strait-game"><canvas ref={canvas} width={800} height={400} className="m-canvas m-strait-canvas" aria-label={`Shield at ${Math.round(s.paddle)}. Ship distance from vortex ${Math.round(s.boat)}. ${s.strikes.filter(a => !a.reflected).length} strikes incoming. Move with Up and Down; hold Space to row.`} onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); paddle(e); }} onPointerMove={e => { if (e.buttons) paddle(e); }}>Twin-paddle game board. Use the controls below.</canvas><div className="m-vortex-meter"><span>Vortex</span><meter min="0" max="85" value={s.boat}/><span>Open sea</span></div><div className="m-controls m-button-row"><button className="a-btn" disabled={!active} onClick={() => act({ type: "paddle", y: s.paddle - 32 })}>Shield ↑</button><button className={"a-btn a-primary m-row-hold" + (s.rowing ? " m-held" : "")} disabled={!active} onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); act({ type: "row", held: true }); }} onPointerUp={() => act({ type: "row", held: false })} onPointerCancel={() => act({ type: "row", held: false })} onLostPointerCapture={() => act({ type: "row", held: false })} onKeyDown={e => { if ([" ", "Enter"].includes(e.key)) { e.preventDefault(); act({ type: "row", held: true }); } }} onKeyUp={e => { if ([" ", "Enter"].includes(e.key)) { e.preventDefault(); act({ type: "row", held: false }); } }} onBlur={() => act({ type: "row", held: false })}>{s.rowing ? "Rowing!" : "Hold to row"}<kbd>SPACE</kbd></button><button className="a-btn" disabled={!active} onClick={() => act({ type: "paddle", y: s.paddle + 32 })}>Shield ↓</button></div><p className="m-help">Up / Down for shield · Hold Space to row · Drag on the sea to aim the shield</p></div>;
 }
 
-export function BowGame({ state: s, active, act }: { state: BowState } & Controls) {
+export function BowGame({ state: s, active, act, still = false }: { state: BowState; still?: boolean } & Controls) {
   const atlas = useFarshoreAtlas(), sprites = useFarshoreSprites();
   const preview = archeryShot(s.aim, s.wind, s.blocked, "player", s.difficulty), shot = s.phase === "player" ? preview : s.shot || preview;
   const canvas = useCanvas(ctx => {
@@ -84,6 +96,7 @@ export function BowGame({ state: s, active, act }: { state: BowState } & Control
     ctx.strokeStyle = "#b79b7160"; ctx.lineWidth = 2; for (const x of [0, 120, 260, 540, 680, 800]) { ctx.beginPath(); ctx.moveTo(x, 400); ctx.lineTo(400 + (x - 400) * .13, 180); ctx.stroke(); }
     for (const x of [28, 124, 642, 738]) { ctx.fillStyle = "#5d6260"; ctx.fillRect(x, 15, 34, 252); ctx.fillStyle = "#a5a493"; ctx.fillRect(x - 5, 12, 44, 10); }
     drawFarshoreTile(ctx, atlas, 7, 0, 0, 800, 400, .58);
+    torchlight(ctx, 186, 149, still ? 0 : s.elapsed); torchlight(ctx, 612, 149, still ? 0 : s.elapsed);
     if (sprites) drawFarshoreSprite(ctx, sprites, 2, 35, 168, 140, 140);
     // Twelve aligned rings, projected from near to far in the hall.
     for (let i = 12; i >= 1; i--) { const scale = 1 / (1 + (i - 1) * .21), y = 181 + 74 * scale, radius = 69 * scale; ctx.strokeStyle = s.blocked === i ? "#e8977c" : i <= shot.rings && s.phase !== "player" ? "#a8dbb6" : "#dbb978"; ctx.lineWidth = 3 + scale * 3; ctx.beginPath(); ctx.ellipse(400, y, radius, radius * .75, 0, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = "#87928b"; ctx.fillRect(400 + radius, y - 9 * scale, 30 * scale, 26 * scale); ctx.fillStyle = "#765747"; ctx.fillRect(400 + radius + 7 * scale, y + 12 * scale, 5 * scale, 74 * scale); ctx.font = `${Math.max(10, 14 * scale)}px monospace`; ctx.fillStyle = "#f4deaf"; ctx.fillText(String(i), 396 + radius, y - 14 * scale); }
@@ -93,6 +106,7 @@ export function BowGame({ state: s, active, act }: { state: BowState } & Control
     // End-on inspection makes the effect of aim and wind legible.
     ctx.fillStyle = "#0d2430ee"; ctx.fillRect(18, 290, 125, 96); ctx.strokeStyle = "#d5b67a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(80, 338, 26, 0, Math.PI * 2); ctx.stroke(); ctx.strokeStyle = "#779997"; ctx.beginPath(); ctx.moveTo(45, 338); ctx.lineTo(115, 338); ctx.moveTo(80, 303); ctx.lineTo(80, 373); ctx.stroke(); const p = shot.path.at(-1)!; ctx.fillStyle = "#bce3d5"; ctx.beginPath(); ctx.arc(clampCanvas(80 + p.x * 110, 23, 137), clampCanvas(338 - p.y * 110, 299, 380), 4, 0, Math.PI * 2); ctx.fill(); ctx.font = "11px monospace"; ctx.fillStyle = "#c7d9d1"; ctx.fillText("FAR RING", 51, 305);
     ctx.fillStyle = "#e0c086"; ctx.font = "16px monospace"; ctx.fillText(s.phase === "player" ? "TRAJECTORY PREVIEW" : `${shot.owner === "player" ? "ODYSSEUS" : "ANTINOUS"}: ${shot.rings} / 12 RINGS`, 250, 31);
+    motes(ctx, still ? 0 : s.elapsed, "embers"); sceneFrame(ctx, 800, 400);
   });
   return <div className="m-bow-game"><div className="m-board-heading"><span>WIND {s.wind === 0 ? "CALM" : `${Math.abs(s.wind)} ${s.wind > 0 ? "→" : "←"}`}</span><span>{s.blocked ? `RING ${s.blocked} BLOCKED` : "12 OPEN RINGS"}</span></div><canvas ref={canvas} width={800} height={400} className="m-canvas" aria-label={`Twelve axe rings in the hall. ${s.phase === "player" ? "Predicted" : shot.owner + " shot"}: ${shot.rings} rings.`}>Axe-ring trajectory gallery.</canvas><div className="m-aim-controls">{(["aim", "elevation", "tension"] as const).map(field => <label key={field} htmlFor={`archery-${field}`}><span>{field === "aim" ? "Wind aim" : field === "elevation" ? "Elevation" : "String tension"}<output>{s.aim[field]}{field !== "tension" ? "°" : "%"}</output></span><input id={`archery-${field}`} type="range" min={field === "tension" ? 45 : -20} max={field === "tension" ? 100 : 20} step={1} value={s.aim[field]} disabled={!active || s.phase !== "player"} onChange={e => act({ type: "aim", field, value: Number(e.target.value) })}/></label>)}</div><div className="m-shot-row"><span aria-live="polite">{s.phase === "player" ? `Preview: ${preview.rings} / 12 rings` : `Antinous ${s.phase === "rival" ? "is lining up his shot..." : `shot ${s.rivalShots.at(-1)} rings.`}`}</span><button className="a-btn a-primary" disabled={!active || s.phase !== "player"} onClick={() => act({ type: "shoot" })}>Release arrow <kbd>SPACE</kbd></button></div><div className="m-shot-history"><span>YOU {s.shots.map((n, i) => <b key={i}>{n}</b>)}</span><span>ANTINOUS {s.rivalShots.map((n, i) => <b key={i}>{n}</b>)}</span></div><p className="m-help">Aim against the wind · Higher tension flattens the arc · Most rings after five shots wins</p></div>;
 }
@@ -102,5 +116,5 @@ export function MythicGame({ state, active, act, still }: { state: MythicState; 
   if (state.id === "circe") return <PotionGame state={state} active={active} act={act}/>;
   if (state.id === "sirens") return <SongGame state={state} active={active} act={act}/>;
   if (state.id === "scylla") return <StraitGame state={state} active={active} act={act} still={still}/>;
-  return <BowGame state={state} active={active} act={act}/>;
+  return <BowGame state={state} active={active} act={act} still={still}/>;
 }

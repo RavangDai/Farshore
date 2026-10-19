@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { LOTUS_MAZE, LOTUS_SHIP, adventureStatus, type AdventureState, type AdventureAction } from "../lib/odyssey-games";
-import { useFarshoreAtlas, useFarshoreSprites, drawFarshoreTile, drawFarshoreSprite } from "../lib/farshore-rendering";
+import { LOTUS_MAZE, LOTUS_SHIP, mazePath, adventureStatus, type AdventureState, type AdventureAction } from "../lib/odyssey-games";
+import { useFarshoreAtlas, useFarshoreSprites, useFarshoreItems, drawFarshoreItem, drawFarshoreTile, drawFarshoreSprite } from "../lib/farshore-rendering";
+import { gardenTile, shadow, torchlight, motes, sceneFrame } from "../lib/scene-details";
 
 const gold = "#e9b85c", cyan = "#32d4f5", cream = "#f6f0e3";
 function circle(c: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string) { c.fillStyle = fill; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
@@ -27,7 +28,7 @@ function sea(c: CanvasRenderingContext2D, time: number, still: boolean) {
 }
 export function AdventureGame({ state: s, active, act, still }: { state: AdventureState; active: boolean; act: (a: AdventureAction) => void; still: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const atlas = useFarshoreAtlas(), sprites = useFarshoreSprites();
+  const atlas = useFarshoreAtlas(), sprites = useFarshoreSprites(), items = useFarshoreItems();
   useEffect(() => {
     const c = canvas.current?.getContext("2d"); if (!c) return;
     c.clearRect(0, 0, 800, 480); sea(c, s.elapsed, still);
@@ -36,30 +37,41 @@ export function AdventureGame({ state: s, active, act, still }: { state: Adventu
       const unit = 39, ox = 108, oy = 22;
       for (let y = 0; y < LOTUS_MAZE.length; y++) for (let x = 0; x < LOTUS_MAZE[y].length; x++) {
         const px = ox + x * unit, py = oy + y * unit;
-        c.fillStyle = LOTUS_MAZE[y][x] === "#" ? "#334b2f" : "#9b8356"; c.fillRect(px, py, unit - 1, unit - 1);
-        if (LOTUS_MAZE[y][x] === "#") { c.fillStyle = "#66817835"; c.fillRect(px, py, unit - 1, 3); c.fillStyle = "#7f6aa03b"; c.fillRect(px + 9, py + 14, 19, 9); }
-        else if ((x * 7 + y * 3) % 9 === 0) { circle(c, px + 11, py + 13, 3, "#a879ff66"); circle(c, px + 16, py + 10, 3, "#a879ff66"); }
+        gardenTile(c, px, py, unit, LOTUS_MAZE[y][x] === "#", x * 7 + y * 13);
       }
       const pos = (p: { x: number; y: number }) => ({ x: ox + p.x * unit + unit / 2, y: oy + p.y * unit + unit / 2 });
       const home = pos(LOTUS_SHIP); circle(c, home.x, home.y, 19, "#32d4f565"); ship(c, home.x, home.y + 3, .37, sprites);
-      for (const p of s.pickups) { const a = pos(p); circle(c, a.x, a.y, 13, "#e9b85c24"); c.fillStyle = gold; c.font = "22px Georgia"; c.textAlign = "center"; c.fillText("✦", a.x, a.y + 8); }
-      for (const p of s.sailors) { const a = pos(p); hero(c, a.x, a.y + 4, .6, true); c.fillStyle = cream; c.font = "bold 14px sans-serif"; c.textAlign = "center"; c.fillText("!", a.x, a.y - 18); }
-      for (const p of s.guardians) { const a = pos(p); circle(c, a.x, a.y, 14, "#a879ff22"); circle(c, a.x, a.y, 10, "#77519d"); c.fillStyle = "#edd7ff"; c.fillRect(a.x - 6, a.y - 3, 4, 3); c.fillRect(a.x + 2, a.y - 3, 4, 3); }
+      if (s.carrying && (s.difficulty === "easy" || s.practice)) {
+        c.strokeStyle = "#ffdf8988"; c.lineWidth = 3; c.setLineDash([3, 7]); c.beginPath(); const start = pos(s.player); c.moveTo(start.x, start.y);
+        for (const p of mazePath(s.player, LOTUS_SHIP)) { const a = pos(p); c.lineTo(a.x, a.y); } c.stroke(); c.setLineDash([]);
+      }
+      for (const p of s.relics) { const a = pos(p); circle(c, a.x, a.y, 13, "#ffcf522b"); if (!drawFarshoreItem(c, items, 3, a.x - 12, a.y - 12, 24)) circle(c, a.x, a.y, 7, gold); }
+      for (const p of s.pickups) { const a = pos(p); circle(c, a.x, a.y, 17, "#e9b85c24"); if (!drawFarshoreItem(c, items, 2, a.x - 17, a.y - 17, 34)) circle(c, a.x, a.y, 8, gold); }
+      for (const p of s.sailors) { const a = pos(p); shadow(c, a.x, a.y + 13, 12); if (!drawFarshoreItem(c, items, 0, a.x - 19, a.y - 28, 38, 45)) hero(c, a.x, a.y + 4, .6, true); c.fillStyle = cream; c.font = "bold 12px Georgia"; c.textAlign = "center"; c.fillText("!", a.x, a.y - 28); }
+      for (const p of s.guardians) { const a = pos(p); shadow(c, a.x, a.y + 13, 14); circle(c, a.x, a.y + 10, 17, "#a879ff30"); if (!drawFarshoreItem(c, items, 1, a.x - 22, a.y - 27, 44, 48)) circle(c, a.x, a.y, 10, "#77519d"); }
       const a = pos(s.player); if (s.protection) { c.strokeStyle = gold; c.lineWidth = 2; c.beginPath(); c.arc(a.x, a.y, 18, 0, Math.PI * 2); c.stroke(); } if (!s.invulnerable || Math.floor(s.elapsed / 100) % 2) hero(c, a.x, a.y + 6, .73, false, sprites);
-      if (s.carrying) { circle(c, a.x + 13, a.y + 11, 5, cyan); }
+      if (s.carrying) { const follower = pos(s.previous); drawFarshoreItem(c, items, 0, follower.x - 14, follower.y - 22, 28, 35); }
+      motes(c, still ? 0 : s.elapsed, "pollen");
     } else if (s.id === "cyclops") {
       c.fillStyle = "#12101d"; c.fillRect(0, 0, 800, 480); const glow = c.createRadialGradient(400, 80, 5, 400, 170, 390); glow.addColorStop(0, "#737369"); glow.addColorStop(.25, "#3d3c3c"); glow.addColorStop(1, "#181626"); c.fillStyle = glow; c.fillRect(0, 0, 800, 480);
       drawFarshoreTile(c, atlas, 1, 0, 0, 800, 480, .7);
       c.fillStyle = "#080a12aa"; c.fillRect(0, 230, 800, 250);
       c.fillStyle = "#88764d22"; c.beginPath(); c.moveTo(345, 90); c.lineTo(455, 90); c.lineTo(770, 480); c.lineTo(30, 480); c.fill();
+      c.fillStyle = "#32d4f512"; c.beginPath(); c.moveTo(345 + s.lane * 37, 90); c.lineTo(382 + s.lane * 37, 90); c.lineTo(277 + s.lane * 247, 480); c.lineTo(30 + s.lane * 247, 480); c.fill();
       for (let i = 0; i < 4; i++) { c.strokeStyle = "#e9b85c44"; c.lineWidth = 2; c.beginPath(); c.moveTo(345 + i * 37, 90); c.lineTo(30 + i * 247, 480); c.stroke(); }
       for (let i = 0; i < 6; i++) { const p = ((s.elapsed / 2400 + i / 6) % 1), y = 90 + p * p * 390, half = 55 + p * 315; c.strokeStyle = "#bbae9130"; c.beginPath(); c.moveTo(400 - half, y); c.lineTo(400 + half, y); c.stroke(); }
-      for (const x of [115, 685]) { c.fillStyle = "#7d533a"; c.fillRect(x, 225, 7, 65); circle(c, x + 3, 216, 23, "#ffb64d13"); circle(c, x + 3, 216, 9, "#ffcb64"); }
+      for (const x of [102, 698]) torchlight(c, x, 231, still ? 0 : s.elapsed);
       if (!atlas) { c.fillStyle = "#645240"; c.beginPath(); c.ellipse(400, 64, 42, 54, 0, 0, Math.PI * 2); c.fill(); circle(c, 400, 58, 13, "#a95044"); c.fillStyle = "#211a22"; c.fillRect(386, 56, 28, 5); }
       for (const o of [...s.obstacles].sort((a, b) => b.remaining - a.remaining)) {
         const p = 1 - o.remaining / o.warning, y = 105 + p * p * 310, width = 36 + p * 145, x = 400 + (o.lane - 1) * (39 + p * 210);
         c.save(); c.translate(x, y); c.scale(width / 100, width / 100);
-        if (o.kind === "sheep") { circle(c, 0, -8, 22, "#d9e1d3"); circle(c, 20, -5, 11, "#798991"); }
+        shadow(c, 0, 10, 36, 9);
+        const item = { rock: 4, crate: 5, beam: 6, sheep: 7, coin: 3, gap: -1 }[o.kind];
+        if (item >= 0 && drawFarshoreItem(c, items, item, -45, -66, 90, 90)) {
+          if (o.kind === "beam" || o.kind === "crate") { c.fillStyle = gold; c.font = "bold 12px Georgia"; c.textAlign = "center"; c.fillText(o.kind === "beam" ? "SLIDE" : "JUMP", 0, -68); }
+        }
+        else if (o.kind === "coin") circle(c, 0, -8, 18, gold);
+        else if (o.kind === "sheep") { circle(c, 0, -8, 22, "#d9e1d3"); circle(c, 20, -5, 11, "#798991"); }
         else if (o.kind === "beam") { c.fillStyle = "#956442"; c.fillRect(-45, -47, 90, 18); c.fillRect(-45, -47, 9, 60); c.fillRect(36, -47, 9, 60); c.fillStyle = gold; c.font = "14px sans-serif"; c.textAlign = "center"; c.fillText("SLIDE", 0, -52); }
         else if (o.kind === "gap") { c.fillStyle = "#050812"; c.beginPath(); c.ellipse(0, 8, 45, 16, 0, 0, Math.PI * 2); c.fill(); c.strokeStyle = "#e9b85c"; c.stroke(); }
         else { c.fillStyle = o.kind === "rock" ? "#6d7080" : "#9a7044"; c.beginPath(); c.moveTo(-30, 8); c.lineTo(-36, -15); c.lineTo(-12, -44); c.lineTo(23, -38); c.lineTo(36, 8); c.fill(); c.strokeStyle = "#d6c08c"; c.stroke(); }
@@ -68,16 +80,21 @@ export function AdventureGame({ state: s, active, act, still }: { state: Adventu
       const x = 400 + (s.lane - 1) * 230, y = 420 - (s.jump ? Math.sin(s.jump / 1000 * Math.PI) * 85 : 0);
       c.save(); if (s.slide) { c.translate(x, y); c.scale(1, .5); hero(c, 0, 0, 1.8, false, sprites, 1); } else if (!s.invulnerable || Math.floor(s.elapsed / 100) % 2) hero(c, x, y, 1.8, false, sprites, 1); c.restore();
       c.fillStyle = "#b2b7c5"; c.font = "12px monospace"; c.textAlign = "center"; c.fillText("LEFT", 165, 465); c.fillText("CENTER", 400, 465); c.fillText("RIGHT", 635, 465);
+      motes(c, still ? 0 : s.elapsed, "embers");
     } else if (s.id === "aeolus") {
       drawFarshoreTile(c, atlas, 2, 0, 0, 800, 480, .3);
       for (const gate of s.gates) {
         const top = gate.center - gate.gap / 2, bottom = gate.center + gate.gap / 2;
         c.fillStyle = "#3b5563"; c.fillRect(gate.x - 22, 0, 44, top); c.fillRect(gate.x - 26, top - 14, 52, 14); c.fillStyle = "#708486"; c.fillRect(gate.x - 17, 0, 5, top - 15);
         c.fillStyle = "#203c50"; c.beginPath(); c.moveTo(gate.x - 42, 480); c.lineTo(gate.x - 34, bottom + 20); c.lineTo(gate.x - 7, bottom); c.lineTo(gate.x + 25, bottom + 13); c.lineTo(gate.x + 40, 480); c.fill(); c.strokeStyle = "#32d4f567"; c.stroke();
-        if (!gate.collected) { circle(c, gate.x, gate.center, 17, gate.pickup === "repair" ? "#5dde9322" : "#32d4f522"); c.fillStyle = gate.pickup === "repair" ? "#5dde93" : cyan; c.font = "22px sans-serif"; c.textAlign = "center"; c.fillText(gate.pickup === "repair" ? "+" : "✦", gate.x, gate.center + 8); }
+        drawFarshoreItem(c, items, 8, gate.x - 42, bottom, 84, 480 - bottom + 5);
+        c.save(); c.translate(gate.x, top); c.scale(1, -1); drawFarshoreItem(c, items, 8, -30, 0, 60, top + 6); c.restore();
+        c.strokeStyle = "#84e8f12c"; c.setLineDash([3, 8]); c.beginPath(); c.moveTo(gate.x - 70, gate.center); c.lineTo(gate.x + 65, gate.center); c.stroke(); c.setLineDash([]);
+        if (!gate.collected) { circle(c, gate.x, gate.center, 20, gate.pickup === "repair" ? "#5dde9333" : "#32d4f533"); if (!drawFarshoreItem(c, items, gate.pickup === "repair" ? 9 : 10, gate.x - 19, gate.center - 19, 38)) circle(c, gate.x, gate.center, 8, cyan); }
       }
       if (!s.invulnerable || Math.floor(s.elapsed / 100) % 2) ship(c, 155, s.y + 7, .72, sprites);
       c.fillStyle = "#aec5d0"; c.font = "12px monospace"; c.textAlign = "left"; c.fillText("THE WINDS OF AEOLUS", 25, 30);
+      c.fillStyle = "#0d304f77"; c.fillRect(0, 395, 800, 85); c.strokeStyle = "#96e2ef4a"; c.beginPath(); for (let x = 0; x <= 800; x += 8) { const y = 394 + Math.sin(x / 27 + (still ? 0 : s.elapsed / 450)) * 7; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); motes(c, still ? 0 : s.elapsed, "rain");
     } else {
       drawFarshoreTile(c, atlas, 6, 0, 0, 800, 480, .3);
       const width = 99, oy = 445, height = 46;
@@ -90,6 +107,8 @@ export function AdventureGame({ state: s, active, act, still }: { state: Adventu
           const x = 54 + (n * 5.5 + r.offset % 5.5) * width;
           c.fillStyle = "#9c7247"; c.fillRect(x, y - 13, r.width * width, 28); c.strokeStyle = "#d7ac65"; c.strokeRect(x, y - 13, r.width * width, 28); c.fillStyle = "#614a36"; c.fillRect(x + 8, y - 4, r.width * width - 16, 3);
           for (let rope = 30; rope < r.width * width; rope += 80) { c.fillStyle = "#d7bf80"; c.fillRect(x + rope, y - 13, 3, 28); }
+          c.strokeStyle = "#3f2f2499"; c.lineWidth = 1; for (let grain = 0; grain < 5; grain++) { c.beginPath(); c.moveTo(x + 4, y - 10 + grain * 5); c.bezierCurveTo(x + 80, y - 15 + grain * 5, x + 160, y - 3 + grain * 5, x + r.width * width - 4, y - 10 + grain * 5); c.stroke(); }
+          if (!s.gatheredRows.includes(row)) { const center = x + r.width * width / 2; circle(c, center, y - 3, 15, "#ffd67a33"); drawFarshoreItem(c, items, 11, center - 17, y - 22, 34); }
         } c.restore();
         c.fillStyle = "#a9bcd077"; c.font = "16px sans-serif"; c.textAlign = "left"; c.fillText(r.speed > 0 ? "→" : "←", 15, y + 6);
       }
@@ -101,8 +120,10 @@ export function AdventureGame({ state: s, active, act, still }: { state: Adventu
         c.fillStyle = s.lightning.warning > 0 ? "#ffb391" : "#fff6c5"; c.font = "bold 19px sans-serif"; c.textAlign = "center"; c.fillText(s.lightning.warning > 0 ? "!" : "ϟ", x, y + 6);
       }
       if (!s.invulnerable || Math.floor(s.elapsed / 100) % 2) hero(c, 54 + s.x * width, oy - s.row * height + 3, .95, false, sprites);
+      motes(c, still ? 0 : s.elapsed, "rain");
     }
-  }, [s, still, atlas, sprites]);
+    sceneFrame(c, 800, 480);
+  }, [s, still, atlas, sprites, items]);
   const move = (dx: number, dy: number) => act({ type: "move", dx, dy });
   return <div className="od-game"><canvas ref={canvas} width={800} height={480} className="od-canvas" role="img" aria-label={`${s.id} game. ${adventureStatus(s)}. ${s.feedback}`}/><div className="od-touch-controls" aria-label="Game controls">
     {s.id === "aeolus" ? <button className="a-btn a-primary" disabled={!active} onClick={() => act({ type: "lift" })}>Catch the wind <kbd>SPACE</kbd></button> : <>

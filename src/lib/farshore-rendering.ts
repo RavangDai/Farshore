@@ -12,6 +12,13 @@ function useGameImage(path: string) {
 }
 export const useFarshoreAtlas = () => useGameImage("/art/farshore/trials-and-cast.png");
 export const useFarshoreSprites = () => useGameImage("/art/farshore/odysseus-and-ship.png");
+export const useFarshoreItems = () => useGameImage("/art/farshore/trial-items-v2.png");
+export function drawFarshoreItem(c: CanvasRenderingContext2D, image: HTMLImageElement | null, index: number, x: number, y: number, width: number, height = width) {
+  if (!image?.complete || !image.naturalWidth) return false;
+  const tw = image.naturalWidth / 4, th = image.naturalHeight / 4;
+  c.drawImage(image, index % 4 * tw, Math.floor(index / 4) * th, tw, th, x, y, width, height);
+  return true;
+}
 export function drawFarshoreSprite(c: CanvasRenderingContext2D, image: HTMLImageElement | null, index: number, x: number, y: number, width: number, height: number) {
   if (!image?.complete || !image.naturalWidth) return;
   const tw = image.naturalWidth / 2, th = image.naturalHeight / 2;

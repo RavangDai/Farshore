@@ -4,13 +4,13 @@ export type AdventureId = "lotus" | "cyclops" | "aeolus" | "calypso";
 type Point = { x: number; y: number };
 export type AIDebug = { algorithm: string; state: string; target: string; prediction: string; confidence: number; pathLength: number; decision: string };
 type Base = { id: AdventureId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; elapsed: number; done: boolean; won: boolean; feedback: string; rivalLine: string; score: number; rivalScore: number; hits: number; damageTaken: number; successes: number; misses: number; combo: number; bestCombo: number; invulnerable: number; duration: number; debug: AIDebug };
-export type LotusState = Base & { id: "lotus"; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number };
-export type Obstacle = { lane: number; kind: "rock" | "crate" | "beam" | "gap" | "sheep"; remaining: number; warning: number };
-export type RunnerState = Base & { id: "cyclops"; lane: number; history: number[]; jump: number; slide: number; gap: number; obstacles: Obstacle[]; spawn: number; wave: number };
-export type WindGate = { x: number; center: number; gap: number; passed: boolean; pickup: "wind" | "repair"; collected: boolean };
-export type WindState = Base & { id: "aeolus"; y: number; vy: number; gates: WindGate[]; spawn: number; wave: number; blessings: number; gust: number; gustClock: number; liftHistory: number[]; lastCenter: number };
+export type LotusState = Base & { id: "lotus"; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number };
+export type Obstacle = { lane: number; kind: "rock" | "crate" | "beam" | "gap" | "sheep" | "coin"; remaining: number; warning: number };
+export type RunnerState = Base & { id: "cyclops"; lane: number; history: number[]; jump: number; slide: number; gap: number; obstacles: Obstacle[]; spawn: number; wave: number; coins: number; precision: number };
+export type WindGate = { x: number; center: number; gap: number; passed: boolean; pickup: "wind" | "repair"; collected: boolean; hit?: boolean };
+export type WindState = Base & { id: "aeolus"; y: number; vy: number; gates: WindGate[]; spawn: number; wave: number; blessings: number; gust: number; gustClock: number; liftHistory: number[]; lastCenter: number; perfectPasses: number };
 export type RaftRow = { offset: number; speed: number; width: number };
-export type RaftState = Base & { id: "calypso"; x: number; row: number; progress: number; rows: RaftRow[]; moveClock: number; crossing: number; stormClock: number; lightning: { x: number; row: number; warning: number; age: number } | null; wood: number };
+export type RaftState = Base & { id: "calypso"; x: number; row: number; progress: number; rows: RaftRow[]; moveClock: number; crossing: number; stormClock: number; lightning: { x: number; row: number; warning: number; age: number } | null; wood: number; gatheredRows: number[] };
 export type AdventureState = LotusState | RunnerState | WindState | RaftState;
 export type AdventureAction = { type: "move"; dx: number; dy: number } | { type: "jump" } | { type: "slide" } | { type: "lift" };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
@@ -49,12 +49,14 @@ function newRows(s: Base): RaftRow[] {
 export function newAdventure(id: AdventureId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200): AdventureState {
   if (!validPlan(id, plan) || !["easy", "normal", "hard"].includes(difficulty)) throw new Error("Unsupported encounter rules");
   const b: Base = { id, difficulty, plan: { ...plan }, practice, seed, elapsed: 0, done: false, won: false, feedback: "", rivalLine: "", score: 0, rivalScore: 0, hits: 0, damageTaken: 0, successes: 0, misses: 0, combo: 0, bestCombo: 0, invulnerable: 0, duration: practice ? 20000 : 75000, debug: { algorithm: "Patrol", state: "Observing", target: "None", prediction: "No history yet", confidence: 0, pathLength: 0, decision: "Awaiting first decision" } };
-  if (id === "lotus") return { ...b, id, duration: practice ? 60000 : [180000, 150000, 120000][tier(b)], player: { ...LOTUS_SHIP }, previous: { ...LOTUS_SHIP }, sailors: [{ x: 1, y: 1 }, { x: 13, y: 1 }, { x: 13, y: 9 }], carrying: false, rescued: 0, guardians: [{ x: 7, y: 1 }, { x: 11, y: 5 }], guardClock: 0, moveClock: 0, protection: 0, pickups: [{ x: 3, y: 3 }, { x: 9, y: 7 }], patrol: 0, feedback: "Find a sailor, then return to the ship at the bottom left.", rivalLine: "Patrol · the guardians keep watch over the lotus garden." };
-  if (id === "cyclops") return { ...b, id, lane: 1, history: [1], jump: 0, slide: 0, gap: 70, obstacles: [], spawn: 1700, wave: 0, feedback: "Watch the horizon. Change lanes, jump crates, and slide under beams.", rivalLine: "Polyphemus is closing in. Every attack is warned before it reaches you." };
-  if (id === "aeolus") return { ...b, id, y: 200, vy: 0, gates: [], spawn: 1200, wave: 0, blessings: 0, gust: 0, gustClock: 0, liftHistory: [], lastCenter: 200, feedback: "Tap Lift in short bursts. Sail through the clear water between the rocks.", rivalLine: "Aeolus sends a gentle breeze. Read the next opening." };
-  return { ...b, id: "calypso", duration: practice ? 60000 : 150000, x: 3.5, row: 0, progress: 0, rows: newRows(b), moveClock: 0, crossing: 1, stormClock: 5000, lightning: null, wood: 0, feedback: "Hop onto a timber. Cross seven currents, then rest on the far shore.", rivalLine: "The current carries every timber. Choose your landing before you jump." };
+  if (id === "lotus") return { ...b, id, relics: [{ x: 3, y: 5 }, { x: 11, y: 3 }, { x: 9, y: 9 }], relicsFound: 0, duration: practice ? 60000 : [180000, 150000, 120000][tier(b)], player: { ...LOTUS_SHIP }, previous: { ...LOTUS_SHIP }, sailors: [{ x: 1, y: 1 }, { x: 13, y: 1 }, { x: 13, y: 9 }], carrying: false, rescued: 0, guardians: [{ x: 7, y: 1 }, { x: 11, y: 5 }], guardClock: 0, moveClock: 0, protection: 0, pickups: [{ x: 3, y: 3 }, { x: 9, y: 7 }], patrol: 0, feedback: "Find a sailor, then return to the ship at the bottom left.", rivalLine: "Patrol · the guardians keep watch over the lotus garden." };
+  if (id === "cyclops") return { ...b, id, coins: 0, precision: 0, lane: 1, history: [1], jump: 0, slide: 0, gap: 70, obstacles: [], spawn: 1700, wave: 0, feedback: "Watch the horizon. Change lanes, jump crates, and slide under beams.", rivalLine: "Polyphemus is closing in. Every attack is warned before it reaches you." };
+  if (id === "aeolus") return { ...b, id, perfectPasses: 0, y: 200, vy: 0, gates: [], spawn: 1200, wave: 0, blessings: 0, gust: 0, gustClock: 0, liftHistory: [], lastCenter: 200, feedback: "Tap Lift in short bursts. Sail through the clear water between the rocks.", rivalLine: "Aeolus sends a gentle breeze. Read the next opening." };
+  return { ...b, id: "calypso", duration: practice ? 60000 : 150000, x: 3.5, row: 0, progress: 0, rows: newRows(b), moveClock: 0, crossing: 1, stormClock: 5000, lightning: null, wood: 0, gatheredRows: [], feedback: "Hop onto a timber. Cross seven currents, then rest on the far shore.", rivalLine: "The current carries every timber. Choose your landing before you jump." };
 }
 function checkLotus(s: LotusState) {
+  const relic = s.relics.findIndex(p => same(p, s.player));
+  if (relic >= 0) { s.relics.splice(relic, 1); s.relicsFound++; reward(s, 125); s.feedback = `Laurel relic ${s.relicsFound}/3 recovered. +125 points. The crew still needs you.`; }
   const sailor = s.sailors.findIndex(p => same(p, s.player));
   if (!s.carrying && sailor >= 0) { s.sailors.splice(sailor, 1); s.carrying = true; s.feedback = "A sailor follows you. Bring them to the ship at the bottom left."; }
   const pickup = s.pickups.findIndex(p => same(p, s.player));
@@ -87,12 +89,17 @@ export function adventureAction(state: AdventureState, action: AdventureAction):
   else if (s.id === "calypso" && action.type === "move" && s.moveClock <= 0) {
     if (Math.abs(action.dx) + Math.abs(action.dy) !== 1) return state;
     s.x = clamp(s.x + action.dx, 0.3, 6.7); s.row = clamp(s.row - action.dy, 0, 8); s.moveClock = 210;
-    if (action.dy < 0 && s.row > 0 && onTimber(s)) s.wood++;
+    const timber = s.rows[s.row - 1];
+    if (timber && onTimber(s) && !s.gatheredRows.includes(s.row)) {
+      const phase = ((s.x - timber.offset) % 5.5 + 5.5) % 5.5;
+      if (Math.abs(phase - timber.width / 2) < .65) { s.gatheredRows.push(s.row); s.wood++; reward(s, 75); s.feedback = `Driftwood secured. ${s.wood}/3 pieces for a repair at the next shore.`; }
+    }
     if (!onTimber(s)) raftFall(s);
     else if (s.row === 8) {
       reward(s, 600); s.progress++; s.feedback = "A safe shore! Catch your breath before the next crossing.";
+      if (s.wood >= 3 && s.hits > 0) { s.wood -= 3; s.hits--; s.feedback = "Three driftwood pieces repair the raft. One life restored at the safe shore."; }
       if (s.progress >= (s.practice ? 1 : 5)) end(s, true, "The storm breaks. Odysseus reaches the shore of Scheria.");
-      else { s.crossing++; s.row = 0; s.rows = newRows(s); s.invulnerable = 0; s.lightning = null; }
+      else { s.crossing++; s.row = 0; s.rows = newRows(s); s.gatheredRows = []; s.invulnerable = 0; s.lightning = null; }
     }
   }
   return s;
@@ -128,16 +135,18 @@ export function tickAdventure(state: AdventureState, delta: number): AdventureSt
       const lane = adaptive ? predicting ? likely : s.lane : s.wave % 3;
       const kind = (["rock", "crate", "beam", "gap", "sheep"] as const)[s.wave % 5];
       s.obstacles.push({ lane, kind, remaining: 3100, warning: 3100 }); s.wave++; s.spawn = [2400, 2100, 1800][t];
+      if (s.wave % 2 === 0) s.obstacles.push({ lane: (lane + 1) % 3, kind: "coin", remaining: 3100, warning: 3100 });
       s.rivalLine = kind === "sheep" ? "A sheep leads the way. Catch it to recover one life." : `${adaptive ? t === 2 ? "Prediction" : "Lane pursuit" : "Pattern patrol"} · ${kind} in lane ${lane + 1}. The attack is now locked.`;
       s.debug = { algorithm: t === 2 ? "Lane history prediction" : adaptive ? "Current-lane targeting" : "Patrol sequence", state: "Attack locked", target: `Lane ${lane + 1}`, prediction: `Lane ${likely + 1}`, confidence: s.history.filter(n => n === likely).length / s.history.length, pathLength: 0, decision: `${kind}; two lanes remain clear; 3100 ms warning` };
     }
     for (const obstacle of s.obstacles) {
       obstacle.remaining -= dt;
       if (obstacle.remaining > 0) continue;
-      if (obstacle.kind === "sheep") { if (s.lane === obstacle.lane) { s.hits = Math.max(0, s.hits - 1); s.gap = Math.min(100, s.gap + 12); reward(s, 75); s.feedback = "The sheep finds a safe path. One life restored."; } }
+      if (obstacle.kind === "coin") { if (s.lane === obstacle.lane) { s.coins++; reward(s, 50); s.feedback = "Laurel coin collected. +50 points. Watch the next warning."; } }
+      else if (obstacle.kind === "sheep") { if (s.lane === obstacle.lane) { s.hits = Math.max(0, s.hits - 1); s.gap = Math.min(100, s.gap + 12); reward(s, 75); s.feedback = "The sheep finds a safe path. One life restored."; } }
       else {
         const safe = s.lane !== obstacle.lane || (obstacle.kind === "crate" || obstacle.kind === "gap") && s.jump > 0 || obstacle.kind === "beam" && s.slide > 0;
-        if (safe) reward(s);
+        if (safe) { const precise = s.lane === obstacle.lane; reward(s, precise ? 200 : 100); if (precise) { s.precision++; s.feedback = "Precision escape! +200 points for a timed jump or slide."; } }
         else if (damage(s, "An obstacle catches you. Watch the warning and give yourself room to react.")) s.gap -= 30;
       }
     }
@@ -161,9 +170,9 @@ export function tickAdventure(state: AdventureState, delta: number): AdventureSt
     }
     for (const gate of s.gates) {
       gate.x -= [135, 150, 165][t] * dt / 1000;
-      if (Math.abs(gate.x - 155) < 38 && Math.abs(s.y - gate.center) > gate.gap / 2 - 15) damage(s, "Rock and storm strike the hull. Aim for the center of the next opening.");
+      if (Math.abs(gate.x - 155) < 38 && Math.abs(s.y - gate.center) > gate.gap / 2 - 15) { gate.hit = true; damage(s, "Rock and storm strike the hull. Aim for the center of the next opening."); }
       if (!gate.collected && Math.abs(gate.x - 155) < 30 && Math.abs(s.y - gate.center) < 35) { gate.collected = true; s.blessings++; reward(s, 125); if (gate.pickup === "repair") s.hits = Math.max(0, s.hits - 1); s.feedback = gate.pickup === "repair" ? "Shipwright’s blessing. One hull point restored." : "A wind blessing! Keep the sail steady."; }
-      if (!gate.passed && gate.x < 110) { gate.passed = true; reward(s, 50); }
+      if (!gate.passed && gate.x < 110) { gate.passed = true; const perfect = !gate.hit && gate.collected; reward(s, perfect ? 125 : 50); if (perfect) { s.perfectPasses++; s.feedback = "Perfect passage! Blessing collected, hull untouched. +125 points."; } }
     }
     s.gates = s.gates.filter(g => g.x > -60);
   } else {
@@ -205,5 +214,5 @@ export function adventureStatus(s: AdventureState) {
   if (s.id === "lotus") return `${s.rescued}/${s.practice ? 1 : 3} crew aboard${s.carrying ? " · Sailor following" : ""}${s.protection ? ` · Protection ${Math.ceil(s.protection / 1000)}s` : ""}`;
   if (s.id === "cyclops") return `${Math.min(100, Math.floor(s.elapsed / s.duration * 100))}% to daylight · Chase gap ${Math.round(s.gap)}m`;
   if (s.id === "aeolus") return `${s.blessings} wind blessings · ${Math.floor(s.elapsed / s.duration * 100)}% to open sea`;
-  return `Crossing ${s.crossing}/5 · ${s.progress}/5 shores reached`;
+  return `Crossing ${s.crossing}/${s.practice ? 1 : 5} · ${s.progress}/${s.practice ? 1 : 5} shores reached · ${s.wood} driftwood`;
 }

@@ -36,6 +36,10 @@ Prompt:
 
 The October 8 arcade revision uses original code-native SVG scenes in `src/components/arcade-scenes.tsx`: Polyphemus and his throwing arm, projectile arcs, a detailed galley and rowing crew, Sirens and song waves, and an Ithaca hall with twelve axes, a bow, sight, and flying arrows. Water lines, lane telegraphs, impacts and hit feedback use the game clock. No new raster assets or third-party sprites were downloaded. These scenes reuse the included scenery atlas beneath the interactive layers.
 
+## Detailed encounter items
+
+The October 19 encounter detail pass adds the original transparent sprite atlas `public/art/farshore/trial-items-v2.png`, produced with the built-in Image Generation tool. Its full prompt, contents, and engine integration are recorded in [FARSHORE-DETAIL-PASS.md](FARSHORE-DETAIL-PASS.md).
+
 ## Music and sound
 
 The four voyage themes and matching cues are original procedural compositions for Farshore, defined in `src/lib/voyage-audio.ts`. Plucked and flute-like synthesized voices, bass, a soft drum, and filtered sea noise are generated locally with Web Audio. No external recordings, samples, or third-party music are bundled. Scene changes crossfade between themes.

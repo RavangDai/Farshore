@@ -13,7 +13,8 @@ import {
   type GameState,
 } from "../lib/arcade-runtime";
 import { adventureStatus } from "../lib/odyssey-games";
-import { caveStatus } from "../lib/encounters/cave-runner";
+import { caveStatus, START_GAP } from "../lib/encounters/cave-runner";
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
 import { CaveGame } from "./cave-game";
@@ -50,11 +51,18 @@ type Props = {
   modelPrepared?: boolean;
   originalCave?: boolean;
   demo?: boolean;
+  /**
+   * Forces the world-space prediction and history overlays on, regardless of
+   * the player's own inspector mode choice — the AI Lab's presenter toggles.
+   */
+  labOverlay?: { showPrediction: boolean; showHistory: boolean };
   onSettings: () => void;
   onFinish: (round: GameState) => void;
   onLeave: () => void;
   onFeedback: (good: boolean) => void;
   onNote: (lane: number) => void;
+  /** 0..1 chase tension, pushed every tick for encounters that have one (Cyclops' chase gap). */
+  onIntensity?: (level: number) => void;
 };
 
 export function ArcadeRound({
@@ -69,11 +77,13 @@ export function ArcadeRound({
   modelPrepared,
   originalCave,
   demo,
+  labOverlay,
   onSettings,
   onFinish,
   onLeave,
   onFeedback,
   onNote,
+  onIntensity,
 }: Props) {
   const [round, setRound] = useState(() => createGame(id, difficulty, plan, practice, seed, originalCave));
   const current = useRef(round), finished = useRef(false), held = useRef(new Set<string>());
@@ -83,8 +93,8 @@ export function ArcadeRound({
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [inspector, setInspector] = useState<InspectorMode>("insights");
   const arena = useRef<HTMLDivElement>(null), overlay = useRef<HTMLDivElement>(null);
-  const callbacks = useRef({ onFinish, onFeedback, onNote }), lastSung = useRef("");
-  callbacks.current = { onFinish, onFeedback, onNote };
+  const callbacks = useRef({ onFinish, onFeedback, onNote, onIntensity }), lastSung = useRef("");
+  callbacks.current = { onFinish, onFeedback, onNote, onIntensity };
 
   const perspective = isCave(round);
   const trial = originalCave
@@ -98,7 +108,9 @@ export function ArcadeRound({
     : trialFor(id);
   const strategy = originalCave ? planNames[plan.planId] : planLabel(id, plan);
 
-  useEffect(() => setInspector(loadInspectorMode()), []);
+  // A lab run opens straight into the expanded panel — that is the point of
+  // the demonstration — rather than the player's own remembered preference.
+  useEffect(() => setInspector(labOverlay ? "lab" : loadInspectorMode()), [labOverlay]);
   function chooseInspector(mode: InspectorMode) {
     setInspector(mode);
     try {
@@ -122,6 +134,9 @@ export function ArcadeRound({
     }
     if (next.score > old.score || next.hits > old.hits || next.misses > old.misses)
       callbacks.current.onFeedback(next.score > old.score);
+    // The chase gap is real simulation state, read fresh every commit — never a
+    // scripted ramp. START_GAP bounds it to a stable 0..1 before it reaches audio.
+    if (isCave(next)) callbacks.current.onIntensity?.(clamp01(1 - (next.cyclops.gap - 8) / (START_GAP - 8)));
     if (next.done && !finished.current) {
       finished.current = true;
       callbacks.current.onFinish(next);
@@ -433,8 +448,8 @@ export function ArcadeRound({
             effectStrength={effects}
             overlay={{
               showTarget: true,
-              showPrediction: inspector === "lab",
-              showHistory: inspector === "lab",
+              showPrediction: labOverlay ? labOverlay.showPrediction : inspector === "lab",
+              showHistory: labOverlay ? labOverlay.showHistory : inspector === "lab",
             }}
             onAction={act}
           />

@@ -4,7 +4,7 @@ import { ARCADE_PREFS, ARCADE_SAVE, adaptivePlan, assistTrial, challengeObjectiv
 import { gameSummary, type GameState } from "./lib/arcade-runtime";
 import { OdysseyPreferences } from "./components/odyssey-preferences";
 import { TrialGlyph } from "./components/odyssey-map";
-import { ArrowRight, ArrowLeft, Play, Map, BookOpen, Settings, Info, Compass, Trophy, Volume2, VolumeX, Ship, Sparkles, RotateCcw } from "lucide-react";
+import { ArrowRight, ArrowLeft, Play, Map, BookOpen, Settings, Info, Compass, Trophy, Volume2, VolumeX, Ship, Sparkles, RotateCcw, FlaskConical } from "lucide-react";
 import { VoyageAudio } from "./lib/voyage-audio";
 import "./arcade.css";
 import "./mythic.css";
@@ -16,9 +16,11 @@ import { PerformanceSeals, ResultFrieze } from "./components/encounter-intel";
 import "./farshore-detail.css";
 import "./farshore-stage.css";
 import { TrialSelection } from "./components/trial-selection";
+import { AILabMode, labRunFrom, type LabRun, type LabSettings } from "./components/ai-lab-mode";
+import { aiRuntimeOf } from "./lib/arcade-runtime";
 import { defaultPreferences, preferencesSchema, type OnlineGame, type OnlinePreferences } from "./lib/online";
 
-type Screen = "splash" | "howto" | "credits" | "title" | "intro" | "map" | "brief" | "play" | "result" | "ending";
+type Screen = "splash" | "howto" | "credits" | "title" | "intro" | "map" | "brief" | "play" | "result" | "ending" | "lab";
 type Prefs = OnlinePreferences;
 type AiState = "idle" | "loading" | "ready" | "error" | "uncertain";
 function loadPrefs(): Prefs {
@@ -41,7 +43,12 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
   const [storageError, setStorageError] = useState(""), [audioError, setAudioError] = useState("");
   const [aiState, setAiState] = useState<AiState>("idle"), [aiError, setAiError] = useState(""), [aiPlan, setAiPlan] = useState<OpponentPlan | null>(null);
   const [modelStatus, setModelStatus] = useState("Optional model connection not checked yet."), [elapsed, setElapsed] = useState(0);
-  const [run, setRun] = useState<{ plan: OpponentPlan; practice: boolean; key: number; modelPrepared: boolean; originalCave?: boolean; demo?: boolean } | null>(null), [result, setResult] = useState<GameState | null>(null);
+  const [run, setRun] = useState<{ plan: OpponentPlan; practice: boolean; key: number; modelPrepared: boolean; originalCave?: boolean; demo?: boolean; lab?: boolean; seed?: number } | null>(null), [result, setResult] = useState<GameState | null>(null);
+  // AI Lab state. Lab runs never touch the campaign save: they launch as
+  // practice attempts, and their results are kept only in this table.
+  const [lab, setLab] = useState<LabSettings>({ trial: "cyclops", difficulty: "hard", seeded: true, seed: 20250, showPrediction: true, showHistory: true });
+  const [labRuns, setLabRuns] = useState<LabRun[]>([]);
+  const labRunId = useRef(0);
   const request = useRef<AbortController | null>(null), generation = useRef(0), runKey = useRef(0), audio = useRef<VoyageAudio | null>(null), heading = useRef<HTMLElement>(null);
   const trial = trialFor(selected), completed = clearedCount(save);
 
@@ -91,7 +98,7 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
     } finally { if (token === generation.current) request.current = null; }
   }
   function wakeAudio() { if (prefs.sound) void audio.current?.unlock().catch(() => setAudioError("Audio could not start. Every cue is also visible.")); }
-  function navigate(next: Screen) { wakeAudio(); cancelAi(); setAssistance(false); setRestart(false); setScreen(next); }
+  function navigate(next: Screen) { wakeAudio(); cancelAi(); if (screen === "play") audio.current?.setIntensity(0); setAssistance(false); setRestart(false); setScreen(next); }
   function openTrial(id: TrialId) { if (!unlocked(save, id)) return; cancelAi(); setSelected(id); setAssistance(false); setResult(null); setScreen("brief"); }
   function launch(practice = false, standard = false, originalCave = false) {
     const plan = practice || standard || prefs.mode === "standard" ? standardPlan(selected) : aiPlan || adaptivePlan(selected);
@@ -100,6 +107,17 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
   }
   function finish(round: GameState) {
     if (!round.done || round.id !== selected) return;
+    audio.current?.setIntensity(0);
+    if (run?.lab) {
+      // A lab run records a comparison row and returns to the lab, leaving the
+      // campaign save, medals and unlocks untouched.
+      const runtime = aiRuntimeOf(round);
+      if (runtime) setLabRuns(old => [...old, labRunFrom(round, runtime, run.seed ?? 0, ++labRunId.current)].slice(-24));
+      setResult(round);
+      setScreen("lab");
+      audio.current?.cue(round.won ? "sail" : "costly");
+      return;
+    }
     if (!round.practice) {
       const summary = gameSummary(round);
       setSave(old => finishAttempt(old, selected, summary));
@@ -124,6 +142,19 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
     // rather than asking openTrial to check the previous render's locked route.
     if (index === trials.length - 1) setScreen("ending");
     else if (unlocked(updated, trials[index + 1].id)) { setSelected(trials[index + 1].id); setScreen("brief"); }
+  }
+  function launchLab(difficulty: Difficulty) {
+    wakeAudio();
+    cancelAi();
+    // A seeded comparison holds one layout across the three difficulties, so a
+    // presenter can show that only the opponent changed.
+    const seed = lab.seeded ? lab.seed : 4200 + ++runKey.current * 19;
+    setSelected(lab.trial);
+    setPrefs(old => ({ ...old, difficulty }));
+    setResult(null);
+    setRun({ plan: standardPlan(lab.trial), practice: false, modelPrepared: false, lab: true, seed, key: ++runKey.current });
+    setScreen("play");
+    audio.current?.cue("sail");
   }
   function launchDemo() { wakeAudio(); cancelAi(); setSelected("lotus"); setRun({ plan: standardPlan("lotus"), practice: true, modelPrepared: false, demo: true, key: ++runKey.current }); setScreen("play"); }
   const primaryLabel = prefs.mode === "ai" ? aiState === "ready" ? "Start model-planned duel" : "Start local AI duel" : "Start encounter";
@@ -160,6 +191,7 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
           {!save.started && <button disabled><Play size={17}/><span>CONTINUE JOURNEY</span><small>NO SAVE YET</small></button>}
           <button onClick={() => navigate("map")}><Map size={17}/><span>SELECT TRIAL</span><small>08 TRIALS</small></button>
           <button onClick={() => navigate("howto")}><BookOpen size={17}/><span>HOW TO PLAY</span><ArrowRight size={16}/></button>
+          <button onClick={() => navigate("lab")}><FlaskConical size={17}/><span>AI LAB</span><small>PROFESSOR MODE</small></button>
           <button onClick={() => setSettings(true)}><Settings size={17}/><span>SETTINGS</span><ArrowRight size={16}/></button>
           <button onClick={() => navigate("credits")}><Info size={17}/><span>CREDITS</span><ArrowRight size={16}/></button>
         </nav><p className="od-menu-save">{save.started ? `${String(completed).padStart(2, "0")} / 08 encounters completed · Your voyage is saved` : "No account needed. Your voyage saves as you play."}</p>
@@ -174,11 +206,12 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
         {screen === "play" && run && <p className="a-caption od-stage-note">The encounter is running in the full-screen stage. Press Escape to pause.</p>}
         {screen === "result" && result && <section className={`a-result a-paper od-result fs-rich-result ${result.won ? "won" : "lost"}`}><ResultFrieze state={result}/><span className="a-eyebrow">ENCOUNTER 0{trials.findIndex(t => t.id === selected) + 1} · {trial.title.toUpperCase()}</span><div className={`od-medal ${result.practice ? "practice" : result.won ? medalFor(gameSummary(result)) : "failed"}`}><Trophy size={49} strokeWidth={1}/><span>{result.practice ? "PRACTICE" : result.won ? `${medalFor(gameSummary(result)).toUpperCase()} MEDAL` : "TRY AGAIN"}</span></div><h1>{result.practice ? run?.demo ? "A lesson in cunning." : "Practice complete." : result.won ? "VICTORY" : "TRIAL FAILED"}</h1><p>{result.practice ? "No progress was changed. Take what you've learned into the encounter." : result.won ? trial.success : result.feedback}</p><div className="a-result-stats"><span><strong>{result.score.toLocaleString()}</strong>{selected === "bow" ? "rings" : selected === "circe" ? "brew points" : "final score"}</span><span><strong>{Math.floor(result.elapsed / 60000)}:{String(Math.floor(result.elapsed / 1000) % 60).padStart(2, "0")}</strong>completion time</span><span><strong>{difficultyNames[result.difficulty]}</strong>difficulty</span></div><PerformanceSeals state={result}/><p className="a-caption">{selected === "bow" || selected === "circe" ? `Odysseus ${result.score} · ${trial.character} ${result.rivalScore}` : `${gameSummary(result).hits} hits · Best streak ${result.bestCombo} · ${result.misses} misses`}{!result.practice && ` · Personal best ${save.records[selected].bests[result.difficulty]?.score ?? "—"}`}</p><div className="a-actions">{!result.practice && result.won && <button className="a-btn a-primary" onClick={() => completed === trials.length ? navigate("ending") : continueVoyage()}>{completed === trials.length ? "Return to Ithaca" : "Next encounter"}<ArrowRight size={17}/></button>}<button className={`a-btn ${!result.won || result.practice ? "a-primary" : ""}`} onClick={() => save.started ? launch() : newVoyage()}><RotateCcw size={16}/>{!save.started ? "Begin voyage" : result.won ? "Replay encounter" : "Retry"}</button><button className="a-btn a-ghost" onClick={() => navigate("brief")}>Change difficulty</button><button className="a-btn a-ghost" onClick={() => navigate("map")}>World map</button></div>{!result.practice && !result.won && <details className="od-accessibility-passage"><summary>Accessibility: request Athena's help</summary><p>An assisted passage is recorded separately and earns no medal.</p><button className="a-text-btn" onClick={() => setAssistance(true)}>Request an assisted passage</button></details>}</section>}
         {screen === "ending" && <section className="a-ending a-paper"><span className="a-eyebrow">ITHACA / AT LAST</span><div className="a-family"><Portrait tile={0} label="Odysseus" large/><Portrait tile={3} label="Penelope" large/><Portrait tile={4} label="Telemachus" large/></div><h1>Home is more than a shore.</h1><p>The long crossing is behind you. Penelope recognizes the man who returned, and Telemachus stands beside his father. For this moment, the sea can wait.</p><div className="a-ending-report">{trials.map(t => <div key={t.id}><span>{t.title}</span><strong>{save.records[t.id].cleared === "assisted" ? "Assisted" : save.records[t.id].bests[prefs.difficulty]?.medal || "Cleared"}</strong></div>)}</div><div className="a-actions"><button className="a-btn a-primary" onClick={() => navigate("map")}>Revisit the voyage</button><button className="a-btn" onClick={() => setRestart(true)}>New game</button></div><p className="a-caption">An original epilogue condensing the Odyssey's homecoming.</p></section>}
-        {screen === "howto" && <section className="od-guide"><span className="a-eyebrow">A CAPTAIN'S HANDBOOK</span><h1>Every island has its own rules.</h1><p className="a-lead">Eight encounters. Three difficulties. As many attempts as you need.</p><div className="od-guide-basics"><div><Compass size={26}/><h2>Follow the voyage</h2><p>Win an encounter to unlock the next island. Continue returns you to the first unfinished trial. Completed islands can be replayed for better medals.</p></div><div><Trophy size={26}/><h2>Earn your legend</h2><p>Win with no hits or misses for gold, up to two for silver, or finish for bronze. Best scores, times, and medals are saved for each difficulty.</p></div><div><Play size={26}/><h2>Take your time</h2><p>Escape pauses the simulation. Resume, restart, check controls, or change settings there. Switching tabs also pauses the action.</p></div></div><div className="od-control-list">{trials.map((t, i) => <article key={t.id}><span className="od-guide-number">0{i + 1}</span><TrialGlyph id={t.id}/><div><h2>{t.title}<small>{t.kind}</small></h2><p>{t.controls}</p></div></article>)}</div><div className="a-actions"><button className="a-btn a-primary" onClick={launchDemo}><Play size={17}/> Watch AI rescue demonstration</button><button className="a-btn a-ghost" onClick={() => navigate("title")}><ArrowLeft size={17}/> Main menu</button></div><p className="a-caption">The demonstration uses local A* pathfinding to rescue a sailor. No model connection or account is needed, and no progress is saved.</p></section>}
+        {screen === "lab" && <AILabMode settings={lab} runs={labRuns} onSettings={setLab} onLaunch={launchLab} onClearRuns={() => setLabRuns([])} onBack={() => navigate("title")}/>}
+        {screen === "howto" && <section className="od-guide"><span className="a-eyebrow">A CAPTAIN'S HANDBOOK</span><h1>Every island has its own rules.</h1><p className="a-lead">Eight encounters. Three difficulties. As many attempts as you need.</p><div className="od-guide-basics"><div><Compass size={26}/><h2>Follow the voyage</h2><p>Win an encounter to unlock the next island. Continue returns you to the first unfinished trial. Completed islands can be replayed for better medals.</p></div><div><Trophy size={26}/><h2>Earn your legend</h2><p>Win with no hits or misses for gold, up to two for silver, or finish for bronze. Best scores, times, and medals are saved for each difficulty.</p></div><div><Play size={26}/><h2>Take your time</h2><p>Escape pauses the simulation. Resume, restart, check controls, or change settings there. Switching tabs also pauses the action.</p></div></div><div className="od-control-list">{trials.map((t, i) => <article key={t.id}><span className="od-guide-number">0{i + 1}</span><TrialGlyph id={t.id}/><div><h2>{t.title}<small>{t.kind}</small></h2><p>{t.controls}</p></div></article>)}</div><div className="a-actions"><button className="a-btn a-primary" onClick={launchDemo}><Play size={17}/> Watch AI rescue demonstration</button><button className="a-btn" onClick={() => navigate("lab")}><FlaskConical size={17}/> Open the AI Lab</button><button className="a-btn a-ghost" onClick={() => navigate("title")}><ArrowLeft size={17}/> Main menu</button></div><p className="a-caption">The demonstration uses local A* pathfinding to rescue a sailor. No model connection or account is needed, and no progress is saved.</p></section>}
         {screen === "credits" && <section className="a-paper od-credits"><span className="a-eyebrow">THE PEOPLE & THE POEM</span><Compass size={50} strokeWidth={1}/><h1>A story three thousand years in the making.</h1><p>Inspired by Homer's <em>The Odyssey</em>. An independent FARSHORE arcade adaptation with original rules and imaginative mythological settings.</p><dl><div><dt>PROJECT</dt><dd>FARSHORE / Bibek Pathak</dd></div><div><dt>ART & SOUND</dt><dd>Original generated landscape and portrait art / Locally synthesized maritime music</dd></div><div><dt>TYPE & ICONS</dt><dd>Press Start 2P by CodeMan38 (SIL OFL) / Georgia / Lucide (ISC)</dd></div><div><dt>BUILT WITH</dt><dd>React / TypeScript / Next.js / Canvas & SVG</dd></div></dl><p className="a-caption">Lotus Guardians, competitive potion brewing, wind gates, and repeated arcade contests are fictional game devices. The earlier advice voyage and Circe mystery remain in Settings.</p><div className="a-actions"><a className="a-btn" href="/story-sources.md" target="_blank" rel="noreferrer">Story & sources</a><button className="a-btn a-primary" onClick={() => navigate("title")}>Main menu</button></div></section>}
       </main><footer className="a-footer" inert={blocked}><span>{String(completed).padStart(2, "0")} / 08 ENCOUNTERS COMPLETE</span><span>THE SEA REMEMBERS EVERY JOURNEY.</span></footer>
     </>}
-    {screen === "play" && run && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} onSettings={() => setSettings(true)} onNote={lane => audio.current?.arcadeNote(lane)} onFinish={finish} onLeave={() => navigate("map")} onFeedback={good => audio.current?.cue(good ? "select" : "costly")}/>}
+    {screen === "play" && run && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} onSettings={() => setSettings(true)} onNote={lane => audio.current?.arcadeNote(lane)} onIntensity={level => audio.current?.setIntensity(level)} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "map")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined} onFeedback={good => audio.current?.cue(good ? "select" : "costly")}/>}
     {(storageError || audioError) && <div className="a-notice" role="status">{storageError || audioError}</div>}
     {settings && <div className="a-modal-backdrop"><section className="a-settings a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-settings-title"><div className="a-modal-head"><span className="a-eyebrow">MAKE YOURSELF AT HOME</span><button className="a-btn a-small" onClick={() => setSettings(false)}>Close</button></div><h2 id="a-settings-title">Voyage settings</h2><button className="a-setting-toggle" aria-pressed={prefs.sound} onClick={() => void toggleSound()}><span>Music & sounds<small>Original maritime music. Every cue is also visible.</small></span><strong>{prefs.sound ? "On" : "Off"}</strong></button><OdysseyPreferences preferences={prefs} onChange={setPrefs}/><button className="a-setting-toggle" aria-pressed={prefs.still} onClick={() => setPrefs(p => ({ ...p, still: !p.still }))}><span>Reduced motion<small>Stops decorative scenery, particles, and transitions.</small></span><strong>{prefs.still ? "On" : "Off"}</strong></button><p className="a-caption">Difficulty and opponent behavior can be changed before each encounter. Game movement remains visible when reduced motion is enabled.</p><div className="a-connection"><strong>Optional model connection</strong><p role="status">{modelStatus}</p><button className="a-btn a-small" onClick={() => void checkModel()}>Check connection again</button><p className="a-caption">Every encounter and the AI demonstration work without a model.</p></div><details><summary>Earlier Farshore modes</summary><div className="a-legacy"><a href="/?mystery">Circe's mystery</a><a href="/?voyage">Original advice voyage</a></div><p className="a-caption">Each mode has its own saved progress. Original cave tactics are available in the Cyclops briefing.</p></details></section></div>}
     {restart && <div className="a-modal-backdrop"><section className="a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-restart-title"><span className="a-eyebrow">A FRESH HORIZON</span><h2 id="a-restart-title">Begin a new voyage?</h2><p>This resets your eight-trial voyage, best scores, and medals.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setRestart(false)}>Keep this voyage</button><button className="a-btn a-primary" onClick={newVoyage}>Begin anew</button></div></section></div>}

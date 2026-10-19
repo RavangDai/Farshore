@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Compass, LockKeyhole, Ship, Trophy } from "lucide-react";
+import { ArrowRight, Brain, Compass, LockKeyhole, Ship, Trophy } from "lucide-react";
 import {
   clearedCount,
   difficultyNames,
@@ -394,6 +394,13 @@ export function VoyageChart({ save, selected, difficulty, still, onSelect, onOpe
           <Compass size={13} /> {previewTrial.kind} · {previewTrial.character}
         </p>
         <p className="fs-chart-objective">{previewTrial.objective}</p>
+        <div className="fs-chart-ai">
+          <Brain size={13} />
+          <div>
+            <span>AI TECHNIQUE (HARD)</span>
+            <p>{previewTrial.adaptive}</p>
+          </div>
+        </div>
         <div className="fs-chart-keys">
           {fieldNotes[preview].keys.map(k => (
             <kbd key={k}>{k}</kbd>

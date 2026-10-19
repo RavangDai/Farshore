@@ -38,6 +38,9 @@ export class VoyageAudio {
   private sources = new Set<AudioScheduledSourceNode>();
   private disposed = false;
   private settings: AudioSettings = { enabled: false, music: .35, effects: .55, ducked: false, quiet: false, mood: "title" };
+  /** Continuous chase tension, 0 (safe) to 1 (about to be caught). See setIntensity. */
+  private intensity = 0;
+  private nextFootfall = 0;
 
   async unlock() {
     if (this.disposed) return;
@@ -201,6 +204,48 @@ export class VoyageAudio {
       }
       return true;
     });
+    // Footfalls run on their own clock, independent of which music layer is
+    // active, so the chase keeps tightening through a mood crossfade.
+    if (this.settings.enabled && !this.settings.quiet && this.intensity > .03) {
+      if (this.nextFootfall < ctx.currentTime - .3) this.nextFootfall = ctx.currentTime + .05;
+      const interval = .55 - this.intensity * .34;
+      while (this.nextFootfall < ctx.currentTime + .22) {
+        this.footfall(this.nextFootfall);
+        this.nextFootfall += interval;
+      }
+    }
+  }
+
+  /**
+   * Continuous chase tension, driven by real distance to a pursuing enemy —
+   * never a scripted ramp.
+   *
+   * The caller passes a fresh 0..1 value every frame from the live simulation
+   * state (e.g. the Cyclops' chase gap); this just stores it, so the call is
+   * cheap even at 60fps. The actual heavy-footfall sound is scheduled on the
+   * existing 100ms tick in `schedule()`, alongside the music, so closing the
+   * gap genuinely makes the footsteps both louder and more frequent.
+   */
+  setIntensity(level: number) {
+    this.intensity = Math.max(0, Math.min(1, Number.isFinite(level) ? level : 0));
+  }
+
+  private footfall(at: number) {
+    const ctx = this.context!, oscillator = ctx.createOscillator(), gain = ctx.createGain();
+    const weight = this.intensity;
+    // A heavier, lower thud as the chase tightens — distinct from the music's
+    // own frame-drum hits, which stay fixed to the beat regardless of danger.
+    oscillator.frequency.setValueAtTime(72 - weight * 22, at);
+    oscillator.frequency.exponentialRampToValueAtTime(30, at + .22 + weight * .08);
+    const peak = (.03 + weight * .085) * this.settings.effects;
+    gain.gain.setValueAtTime(.0001, at);
+    gain.gain.exponentialRampToValueAtTime(Math.max(.0001, peak), at + .012);
+    gain.gain.exponentialRampToValueAtTime(.0001, at + .3 + weight * .1);
+    oscillator.connect(gain);
+    gain.connect(this.effects!);
+    this.track(oscillator, () => gain.disconnect());
+    oscillator.start(at);
+    oscillator.stop(at + .45);
   }
 
   arcadeNote(lane: number) {

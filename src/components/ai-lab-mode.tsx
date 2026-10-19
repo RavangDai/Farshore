@@ -2,69 +2,14 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Brain, FlaskConical, GitCompare, Play, Trash2 } from "lucide-react";
 import { difficultyNames, trials, type Difficulty, type TrialId } from "../lib/arcade";
-import { averageInterval, predictionAccuracy, attackSuccessRate, type AIRuntime } from "../lib/ai/types";
 import { TrialArtwork } from "./farshore-art";
 import { TrialGlyph } from "./odyssey-map";
-import type { GameState } from "../lib/arcade-runtime";
+import { DIFFICULTIES, labRunFrom, type LabRun, type LabSettings } from "../lib/ai/lab";
 
-/**
- * One finished AI Lab run, kept for side-by-side comparison.
- *
- * Only values the opponent genuinely recorded are stored. A controller that
- * makes no probabilistic forecast leaves `accuracy` null, and the table says so
- * rather than printing a zero.
- */
-export type LabRun = {
-  id: number;
-  trial: TrialId;
-  difficulty: Difficulty;
-  seed: number;
-  algorithm: string;
-  agent: string;
-  decisions: number;
-  intervalMs: number;
-  accuracy: number | null;
-  attackRate: number | null;
-  attacks: number;
-  nodesExplored: number;
-  coordinationEvents: number;
-  score: number;
-  elapsedMs: number;
-  won: boolean;
-};
-
-export function labRunFrom(state: GameState, runtime: AIRuntime, seed: number, id: number): LabRun {
-  return {
-    id,
-    trial: state.id as TrialId,
-    difficulty: state.difficulty,
-    seed,
-    algorithm: runtime.algorithm,
-    agent: runtime.agentName,
-    decisions: runtime.stats.decisions,
-    intervalMs: Math.round(averageInterval(runtime)),
-    accuracy: predictionAccuracy(runtime),
-    attackRate: attackSuccessRate(runtime),
-    attacks: runtime.stats.attacks,
-    nodesExplored: runtime.stats.nodesExplored,
-    coordinationEvents: runtime.stats.coordinationEvents,
-    score: Math.round(state.score),
-    elapsedMs: Math.round(state.elapsed),
-    won: state.done && state.won,
-  };
-}
-
-const DIFFICULTIES: Difficulty[] = ["easy", "normal", "hard"];
-
-export type LabSettings = {
-  trial: TrialId;
-  difficulty: Difficulty;
-  /** Hold the seed across difficulties so the comparison is like-for-like. */
-  seeded: boolean;
-  seed: number;
-  showPrediction: boolean;
-  showHistory: boolean;
-};
+// LabRun, labRunFrom and LabSettings are pure data shapes and projections,
+// defined in src/lib/ai/lab.ts so they can be unit-tested without a JSX-aware
+// runtime. Re-exported here so existing imports of this component keep working.
+export { labRunFrom, type LabRun, type LabSettings };
 
 export function AILabMode({
   settings,

@@ -2,6 +2,10 @@
 
 **FARSHORE** is the game's official name; Homer's *The Odyssey* is its story inspiration. The illustrated arcade interface follows the supplied FARSHORE concept, with an interactive eight-trial selector, temple menus, matching character art, and a shared arcade HUD. See [visual design and asset prompts](FARSHORE-VISUAL-DESIGN.md).
 
+## Immersive gameplay stage and explainable AI
+
+Gameplay now opens in a full-viewport, fixed-16:9 stage (`F` for fullscreen, `Escape` to pause) instead of a small canvas embedded in the page — see [UI_DESIGN.md](UI_DESIGN.md). Cyclops' Cave was rebuilt as a true perspective three-lane runner with a real explainable-AI opponent: every decision Polyphemus makes is recorded with the actual candidates it scored, the one it chose, a grounded reason, and a fairness guarantee that it withholds any attack it can't prove is survivable. Press **F3** during any encounter to cycle Immersive → AI Insights → AI Lab and watch that reasoning live. A dedicated **AI Lab** (Professor mode, from the main menu) lets you run any encounter at any difficulty, side by side, with no effect on your campaign save. Full detail in [AI_ARCHITECTURE.md](AI_ARCHITECTURE.md), [GAMEPLAY_DESIGN.md](GAMEPLAY_DESIGN.md), and [UI_DESIGN.md](UI_DESIGN.md) — including an honest accounting of which of the eight encounters have their next-generation AI controller wired in versus authored-and-reviewed-but-pending.
+
 The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](ONLINE-SETUP.md).
 
 The paragraphs below describe gameplay and the earlier local setup. For the current online build and security boundary, use the setup guide and [SECURITY.md](SECURITY.md).

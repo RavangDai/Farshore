@@ -120,3 +120,49 @@ test("mood changes crossfade, volume input is bounded, and cleanup cannot restar
   await audio.unlock();
   assert.equal(Context.instances.length, 1);
 });
+
+test("chase intensity is bounded and silent at zero, and grows real footfall sound as it rises", async (t) => {
+  t.mock.method(globalThis, "setInterval", () => 1);
+  t.mock.method(globalThis, "clearInterval", () => {});
+  const original = globalThis.AudioContext;
+  globalThis.AudioContext = Context;
+  t.after(() => { globalThis.AudioContext = original; });
+
+  // setIntensity must be safe to call before the audio context exists at
+  // all — the cave's render loop starts ticking well before a player has
+  // necessarily opted into sound.
+  const early = new VoyageAudio();
+  t.after(() => early.dispose());
+  assert.doesNotThrow(() => early.setIntensity(0.5));
+
+  Context.instances = [];
+  const quiet = new VoyageAudio();
+  t.after(() => quiet.dispose());
+  quiet.setIntensity(-5); // clamps to 0 before any context exists
+  await quiet.unlock();
+  quiet.update(defaults);
+  const quietOscillators = Context.instances[0].oscillators.length;
+
+  Context.instances = [];
+  const tense = new VoyageAudio();
+  t.after(() => tense.dispose());
+  tense.setIntensity(50); // clamps to 1
+  await tense.unlock();
+  tense.update(defaults);
+  const tenseOscillators = Context.instances[0].oscillators.length;
+
+  assert.ok(
+    tenseOscillators > quietOscillators,
+    `full chase tension should schedule audible footfalls (quiet=${quietOscillators}, tense=${tenseOscillators})`,
+  );
+
+  // A value just under the threshold stays silent — there is a real cutoff,
+  // not a value that merely approaches zero.
+  Context.instances = [];
+  const barely = new VoyageAudio();
+  t.after(() => barely.dispose());
+  barely.setIntensity(0.02);
+  await barely.unlock();
+  barely.update(defaults);
+  assert.equal(Context.instances[0].oscillators.length, quietOscillators, "below the threshold, no footfalls");
+});

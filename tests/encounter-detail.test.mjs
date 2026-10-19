@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, tickGame, gameAction, gameSummary } from '../src/lib/arcade-runtime.ts';
 import { standardPlan } from '../src/lib/arcade.ts';
-import { mazePath, LOTUS_SHIP } from '../src/lib/odyssey-games.ts';
+import { mazePath, LOTUS_SHIP, newAdventure, tickAdventure, adventureAction } from '../src/lib/odyssey-games.ts';
 
 const create = id => createGame(id, 'normal', standardPlan(id), false, 17);
 const advance = (s, ms = 250) => { for (let i = 0; i < ms; i += 50) s = tickGame(s, 50); return s; };
@@ -20,17 +20,20 @@ test('optional lotus relics are reachable, score once, and do not substitute for
   assert.equal(s.score, score); assert.equal(s.relicsFound, 1);
 });
 
-test('runner skill rewards require the correct action; coins never cause damage or repeat', () => {
-  const initial = create('cyclops');
+// The live Cyclops encounter is the perspective runner; its equivalents live in
+// tests/cave-runner.test.mjs. This keeps the preserved lane engine honest.
+test('the preserved lane engine rewards the correct action and never repeats a coin', () => {
+  const initial = newAdventure('cyclops', 'normal', standardPlan('cyclops'), false, 17);
   const incoming = kind => ({ ...initial, obstacles: [{ lane: 1, kind, remaining: 1, warning: 3100 }] });
-  const precise = tickGame(gameAction(incoming('crate'), { type: 'jump' }), 50);
+  const laneAdvance = (s, ms = 250) => { for (let i = 0; i < ms; i += 50) s = tickAdventure(s, 50); return s; };
+  const precise = tickAdventure(adventureAction(incoming('crate'), { type: 'jump' }), 50);
   assert.equal(precise.precision, 1); assert.equal(precise.score, 200); assert.equal(precise.hits, 0);
-  const dodge = tickGame(gameAction(incoming('crate'), { type: 'move', dx: 1, dy: 0 }), 50);
+  const dodge = tickAdventure(adventureAction(incoming('crate'), { type: 'move', dx: 1, dy: 0 }), 50);
   assert.equal(dodge.precision, 0); assert.equal(dodge.score, 100);
-  const missed = tickGame(incoming('crate'), 50); assert.equal(missed.hits, 1); assert.equal(missed.precision, 0);
-  const coin = tickGame(incoming('coin'), 50); assert.equal(coin.coins, 1); assert.equal(coin.score, 50); assert.equal(coin.hits, 0);
-  assert.equal(advance(coin).score, 50);
-  const bypass = tickGame({ ...incoming('coin'), lane: 0 }, 50); assert.equal(bypass.coins, 0); assert.equal(bypass.hits, 0);
+  const missed = tickAdventure(incoming('crate'), 50); assert.equal(missed.hits, 1); assert.equal(missed.precision, 0);
+  const coin = tickAdventure(incoming('coin'), 50); assert.equal(coin.coins, 1); assert.equal(coin.score, 50); assert.equal(coin.hits, 0);
+  assert.equal(laneAdvance(coin).score, 50);
+  const bypass = tickAdventure({ ...incoming('coin'), lane: 0 }, 50); assert.equal(bypass.coins, 0); assert.equal(bypass.hits, 0);
 });
 
 test('perfect wind passages require a collected blessing and an untouched gate', () => {

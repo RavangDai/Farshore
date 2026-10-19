@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { trials, newArcade, standardPlan, adaptivePlan, finishAttempt, readArcade, unlocked, medalFor, totalScore } from '../src/lib/arcade.ts';
 import { createGame, tickGame, gameAction, gameSummary, isAdventure, demonstrate } from '../src/lib/arcade-runtime.ts';
-import { mazePath, LOTUS_SHIP, walkable, onTimber } from '../src/lib/odyssey-games.ts';
+import { mazePath, LOTUS_SHIP, walkable, onTimber, newAdventure, tickAdventure, adventureAction, adventureSummary } from '../src/lib/odyssey-games.ts';
 
 const difficulties = ['easy', 'normal', 'hard'];
 const advance = (state, ms) => { for (let time = 0; time < ms && !state.done; time += 50) state = tickGame(state, Math.min(50, ms - time)); return state; };
@@ -66,20 +66,24 @@ test('lotus rescue, time expiry, damage defeat and completed input are distinct'
   const caught = gameAction({ ...initial, hits: 2, guardians: [{ x: 2, y: 9 }] }, { type: 'move', dx: 1, dy: 0 });
   assert.equal(caught.done, true); assert.equal(caught.won, false);
 });
-test('responsive cave play can escape every difficulty and failed camping loses', () => {
+// The preserved lane engine. The live Cyclops encounter is the perspective
+// runner in encounters/cave-runner.ts, covered by tests/cave-runner.test.mjs.
+test('the preserved lane engine is escapable at every difficulty and failed camping loses', () => {
+  const laneAdvance = (state, ms) => { for (let time = 0; time < ms && !state.done; time += 50) state = tickAdventure(state, Math.min(50, ms - time)); return state; };
   for (const difficulty of difficulties) for (const seed of [19, 4200, 999]) {
-    let game = createGame('cyclops', difficulty, adaptivePlan('cyclops'), false, seed);
+    let game = newAdventure('cyclops', difficulty, adaptivePlan('cyclops'), false, seed);
     while (!game.done) {
       const incoming = game.obstacles.filter(o => o.kind !== 'sheep' && o.remaining < 1100);
       const safe = [0, 1, 2].find(lane => !incoming.some(o => o.lane === lane));
-      if (safe !== undefined) while (game.lane !== safe) game = gameAction(game, { type: 'move', dx: game.lane < safe ? 1 : -1, dy: 0 });
-      game = tickGame(game, 50);
+      if (safe !== undefined) while (game.lane !== safe) game = adventureAction(game, { type: 'move', dx: game.lane < safe ? 1 : -1, dy: 0 });
+      game = tickAdventure(game, 50);
     }
     assert.equal(game.won, true, `${difficulty}, seed ${seed}`);
     assert.equal(game.hits, 0);
   }
-  const idle = advance(createGame('cyclops', 'easy', standardPlan('cyclops'), false, 19), 75000);
+  const idle = laneAdvance(newAdventure('cyclops', 'easy', standardPlan('cyclops'), false, 19), 75000);
   assert.equal(idle.won, false);
+  assert.equal(adventureSummary(idle).won, false);
 });
 test('wind gates are traversable by a bounded feedback controller', () => {
   for (const difficulty of difficulties) {
@@ -104,17 +108,17 @@ test('raft rows have legal timbers and standing still eventually fails', () => {
   }
 });
 
-test('runner jumping, sliding, healing and lifetime damage follow the collision rules', () => {
-  const initial = createGame('cyclops', 'normal', standardPlan('cyclops'), false, 17);
+test('the preserved lane engine keeps its jump, slide, heal and damage rules', () => {
+  const initial = newAdventure('cyclops', 'normal', standardPlan('cyclops'), false, 17);
   const obstacle = kind => ({ ...initial, obstacles: [{ lane: 1, kind, remaining: 1, warning: 3100 }] });
-  assert.equal(tickGame(gameAction(obstacle('crate'), { type: 'jump' }), 50).hits, 0);
-  assert.equal(tickGame(gameAction(obstacle('beam'), { type: 'slide' }), 50).hits, 0);
-  assert.equal(tickGame(gameAction(obstacle('gap'), { type: 'jump' }), 50).hits, 0);
-  const hit = tickGame(obstacle('rock'), 50);
+  assert.equal(tickAdventure(adventureAction(obstacle('crate'), { type: 'jump' }), 50).hits, 0);
+  assert.equal(tickAdventure(adventureAction(obstacle('beam'), { type: 'slide' }), 50).hits, 0);
+  assert.equal(tickAdventure(adventureAction(obstacle('gap'), { type: 'jump' }), 50).hits, 0);
+  const hit = tickAdventure(obstacle('rock'), 50);
   assert.equal(hit.hits, 1); assert.equal(hit.damageTaken, 1);
-  const healed = tickGame({ ...hit, obstacles: [{ lane: 1, kind: 'sheep', remaining: 1, warning: 3100 }] }, 50);
-  assert.equal(healed.hits, 0); assert.equal(gameSummary(healed).hits, 1);
-  assert.equal(gameSummary({ ...initial, won: true }).won, false);
+  const healed = tickAdventure({ ...hit, obstacles: [{ lane: 1, kind: 'sheep', remaining: 1, warning: 3100 }] }, 50);
+  assert.equal(healed.hits, 0); assert.equal(adventureSummary(healed).hits, 1);
+  assert.equal(adventureSummary({ ...initial, won: true }).won, false);
 });
 
 test('raft crossings are winnable through visible timber landings at every difficulty', () => {

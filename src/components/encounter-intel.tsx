@@ -1,6 +1,6 @@
 import { Compass, Sparkles, AlertTriangle, Star, Trophy } from "lucide-react";
 import type { GameState } from "../lib/arcade-runtime";
-import { gameSummary, isAdventure } from "../lib/arcade-runtime";
+import { gameSummary, isAdventure, isCave } from "../lib/arcade-runtime";
 import { medalFor } from "../lib/arcade";
 import { encounterCue, fieldNotes } from "../lib/field-notes";
 import { TrialArtwork } from "./farshore-art";
@@ -20,8 +20,12 @@ export function FieldNotes({ id }: { id: GameState["id"] }) {
 }
 
 export function PerformanceSeals({ state: s }: { state: GameState }) {
-  const bonus = isAdventure(s) ? s.id === "lotus" ? [s.relicsFound, "relics found"] : s.id === "cyclops" ? [s.precision, "precise escapes"] : s.id === "aeolus" ? [s.perfectPasses, "perfect gates"] : [s.progress, "safe shores"] : s.id === "circe" ? [s.chains, "chain reactions"] : s.id === "sirens" ? [s.successes, "melodies echoed"] : s.id === "bow" ? [s.shots.filter(n => n === 12).length, "perfect shots"] : [s.successes, "deflections"];
-  const damage = isAdventure(s) || s.id === "scylla" || s.id === "cyclops";
+  const bonus: [number, string] = isCave(s)
+    ? [s.precision, "precise escapes"]
+    : isAdventure(s)
+      ? s.id === "lotus" ? [s.relicsFound, "relics found"] : s.id === "cyclops" ? [s.precision, "precise escapes"] : s.id === "aeolus" ? [s.perfectPasses, "perfect gates"] : [s.progress, "safe shores"]
+      : s.id === "circe" ? [s.chains, "chain reactions"] : s.id === "sirens" ? [s.successes, "melodies echoed"] : s.id === "bow" ? [s.shots.filter(n => n === 12).length, "perfect shots"] : [s.successes, "deflections"];
+  const damage = isCave(s) || isAdventure(s) || s.id === "scylla" || s.id === "cyclops";
   return <div className="fs-performance-seals" aria-label="Encounter performance"><span><Star size={15}/><strong>{s.bestCombo}</strong> best streak</span><span><Compass size={15}/><strong>{bonus[0]}</strong> {bonus[1]}</span><span><Sparkles size={15}/><strong>{damage ? gameSummary(s).hits : s.misses}</strong> {damage ? "damage taken" : "misses"}</span></div>;
 }
 

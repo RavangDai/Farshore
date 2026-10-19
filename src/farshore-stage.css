@@ -526,7 +526,8 @@ body.fs-stage-open {
 .ai-insights {
   position: absolute;
   right: 14px;
-  top: 92px;
+  /* Clear of the HUD's score block and the inspector mode switch above it. */
+  top: 152px;
   z-index: 5;
   width: min(312px, 42vw);
   max-height: calc(100% - 200px);
@@ -1167,4 +1168,128 @@ body.fs-stage-open {
   .fs-hud-track > i,
   .fs-chase-bar > i,
   .ai-distribution i > b { transition: none; }
+}
+
+/* ---------------------------------------------------------------- arena -- */
+
+.fs-arena {
+  position: absolute;
+  inset: 0;
+  outline: 0;
+}
+
+.fs-arena:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--fs-cyan);
+}
+
+.fs-arena-perspective {
+  display: block;
+}
+
+/* Encounters still rendering at their own fixed canvas size are centred and
+   contained inside the frame, so the viewport is immersive for all eight while
+   each one's own renderer is upgraded. */
+.fs-legacy-scene {
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 72px 16px 104px;
+  scrollbar-width: thin;
+}
+
+.fs-legacy-inner {
+  width: 100%;
+  max-width: 1040px;
+  display: grid;
+  gap: 10px;
+}
+
+.fs-legacy-inner canvas,
+.fs-legacy-inner .od-canvas,
+.fs-legacy-inner .m-canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid #b18b4e55;
+  border-radius: 4px;
+}
+
+.fs-legacy-inner .od-touch-controls,
+.fs-legacy-inner .m-controls,
+.fs-legacy-inner .m-button-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.fs-legacy-inner .m-help,
+.fs-legacy-inner .m-board-heading {
+  font: 11px/1.5 Arial, sans-serif;
+  color: #93afc0;
+  text-align: center;
+}
+
+.fs-arena-status {
+  position: absolute;
+  /* Under the HUD banner, clear of both the runner and the cue strip. */
+  inset: 124px 0 auto 0;
+  z-index: 3;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0 16px;
+  font: 11px/1.5 Georgia, serif;
+  color: #9fb6c6;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 1px 4px #000a;
+}
+
+.fs-arena-status > span:first-child {
+  color: var(--fs-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-legacy-support {
+  position: absolute;
+  inset: 78px 14px auto auto;
+  z-index: 3;
+  width: min(250px, 34vw);
+  max-height: calc(100% - 190px);
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid #b18b4e44;
+  border-radius: 5px;
+  background: #04121de0;
+  backdrop-filter: blur(6px);
+  scrollbar-width: thin;
+}
+
+.fs-legacy-support .fs-field-notes,
+.fs-legacy-support .m-rival-speech {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .fs-legacy-support { display: none; }
+  .fs-legacy-scene { padding: 64px 10px 92px; }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }

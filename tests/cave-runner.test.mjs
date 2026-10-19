@@ -23,7 +23,7 @@ import {
   cleanEscapeLanes,
   decideCave,
   LANE_CHANGE_MS,
-  ESCAPE_MARGIN_S,
+  CONFLICT_WINDOW_S,
   laneName,
 } from "../src/lib/ai/cyclops.ts";
 import {
@@ -70,6 +70,41 @@ function step(state, ms) {
     left -= slice;
   }
   return s;
+}
+
+/**
+ * Build a perception fixture.
+ *
+ * `laneHazards` is derived from the simpler `blocked` / `clear` distances the
+ * fixtures already state: a lane whose nearest hazard is also its nearest
+ * blocker holds an un-answerable one, otherwise an answerable one.
+ */
+function view(overrides = {}) {
+  const blocked = overrides.laneBlocked ?? [Infinity, Infinity, Infinity];
+  const clear = overrides.laneClear ?? blocked;
+  const laneHazards = [0, 1, 2].map(lane => {
+    const items = [];
+    if (Number.isFinite(clear[lane])) items.push({ z: clear[lane], answerable: clear[lane] !== blocked[lane] });
+    if (Number.isFinite(blocked[lane]) && blocked[lane] !== clear[lane]) items.push({ z: blocked[lane], answerable: false });
+    return items.sort((a, b) => a.z - b.z);
+  });
+  return {
+    at: 1000,
+    lane: 1,
+    laneProgress: 0,
+    airborne: false,
+    sliding: false,
+    gap: 50,
+    speed: 20,
+    lives: 3,
+    laneBlocked: blocked,
+    laneClear: clear,
+    laneHazards,
+    laneTargeted: [false, false, false],
+    zone: "cave",
+    remainingMs: 40000,
+    ...overrides,
+  };
 }
 
 test("a new cave run starts centred, grounded and unthreatened", () => {
@@ -324,68 +359,38 @@ test("harder difficulties warn less but never below the reaction floor", () => {
   assert.ok(hard.telegraphMs >= 1200, "but still leaves over a second to react");
 });
 
-test("escapeLanes reports only lanes that are reachable and open", () => {
-  const view = {
-    at: 0,
-    lane: 1,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 60,
-    speed: 20,
-    lives: 3,
-    laneBlocked: [Infinity, Infinity, 4],
-    laneTargeted: [false, false, false],
-    zone: "cave",
-    remainingMs: 50000,
-  };
-  const escapes = escapeLanes(view, 1, 1800, 20);
-  assert.deepEqual(escapes, [0], "the right lane is blocked within the window");
+test("escapeLanes excludes a lane whose blocker shares the boulder's arrival", () => {
+  // At 20 m/s a 1800 ms commitment lands 36 m ahead, so a blocker at 36 m in
+  // the right lane arrives at the same moment and rules that lane out.
+  const escapes = escapeLanes(view({ laneBlocked: [Infinity, Infinity, 36] }), 1, 1800, 20);
+  assert.deepEqual(escapes, [0], "the right lane is contested at the moment of impact");
+});
+
+test("escapeLanes keeps a lane whose blocker arrives at a different moment", () => {
+  // The same blocker 8 m out is long passed by the time the boulder lands, and
+  // one 80 m out has not arrived yet. Neither is this throw's problem.
+  assert.deepEqual(escapeLanes(view({ laneBlocked: [Infinity, Infinity, 8] }), 1, 1800, 20), [0, 2]);
+  assert.deepEqual(escapeLanes(view({ laneBlocked: [Infinity, Infinity, 80] }), 1, 1800, 20), [0, 2]);
 });
 
 test("a lane already carrying a boulder is not counted as an escape", () => {
-  const view = {
-    at: 0,
-    lane: 1,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 60,
-    speed: 20,
-    lives: 3,
-    laneBlocked: [Infinity, Infinity, Infinity],
-    laneTargeted: [true, false, false],
-    zone: "cave",
-    remainingMs: 50000,
-  };
-  assert.deepEqual(escapeLanes(view, 1, 1800, 20), [2]);
+  assert.deepEqual(escapeLanes(view({ laneTargeted: [true, false, false] }), 1, 1800, 20), [2]);
 });
 
 test("Polyphemus withholds a throw when it would leave no escape", () => {
   const ai = newRuntime("polyphemus", "Polyphemus", "test");
   const model = newPlayerModel(3, 1);
-  const view = {
-    at: 5000,
-    lane: 1,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 50,
-    speed: 20,
-    lives: 3,
-    // Every lane is closed by un-answerable hazards, so no throw can be fair.
-    // `patternIsFair` stops the spawner producing this, but the guard still holds.
-    laneBlocked: [3, 3, 3],
-    laneTargeted: [false, false, false],
-    zone: "collapse",
-    remainingMs: 40000,
-  };
-  const action = decideCave(ai, model, view, "hard", true, 4, () => 0.5);
+  // Hard commits 1250 + 700 ms ahead, which at 20 m/s lands 39 m out. An
+  // un-answerable hazard in every lane at that depth leaves nowhere to stand.
+  // `patternIsFair` stops the spawner producing this; the guard still holds.
+  const fixture = view({ at: 5000, laneBlocked: [39, 39, 39], zone: "collapse" });
+  const action = decideCave(ai, model, fixture, "hard", true, 4, () => 0.5);
   assert.notEqual(action.kind, "boulder", "a throw here would be unavoidable");
   const decision = ai.decisions.at(-1);
   const scoredOut = decision.candidates.filter(c => c.score <= -1000);
   assert.equal(scoredOut.length, 3, "all three lanes must be scored out, not hidden");
-  for (const candidate of scoredOut) assert.match(candidate.note, /no escape/i);
+  // Each withheld lane must say why in its own note, whichever rule caught it.
+  for (const candidate of scoredOut) assert.match(candidate.note, /withheld/i);
   // Whatever wins instead, the stated reason has to mention the withholding
   // rather than claiming the throws simply lost on score.
   assert.match(decision.reason, /withheld/i);
@@ -451,24 +456,11 @@ test("each difficulty names a different algorithm", () => {
 });
 
 test("easy ignores the player's position; normal tracks it", () => {
-  const view = lane => ({
-    at: 9000,
-    lane,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 55,
-    speed: 20,
-    lives: 3,
-    laneBlocked: [Infinity, Infinity, Infinity],
-    laneTargeted: [false, false, false],
-    zone: "cave",
-    remainingMs: 40000,
-  });
+  const at = lane => view({ at: 9000, lane, gap: 55 });
   // Normal tracks: whichever lane the player occupies is the target.
   for (const lane of [0, 1, 2]) {
     const ai = newRuntime("p", "P", "t");
-    const action = decideCave(ai, newPlayerModel(3, lane), view(lane), "normal", false, 0, () => 0.5);
+    const action = decideCave(ai, newPlayerModel(3, lane), at(lane), "normal", false, 0, () => 0.5);
     assert.equal(action.kind, "boulder");
     assert.equal(action.lane, lane, "normal should target the occupied lane");
   }
@@ -476,29 +468,16 @@ test("easy ignores the player's position; normal tracks it", () => {
   const targets = new Set();
   for (let wave = 0; wave < 3; wave++) {
     const ai = newRuntime("p", "P", "t");
-    const action = decideCave(ai, newPlayerModel(3, 1), view(1), "easy", false, wave, () => 0.5);
+    const action = decideCave(ai, newPlayerModel(3, 1), at(1), "easy", false, wave, () => 0.5);
     if (action.kind === "boulder") targets.add(action.lane);
   }
   assert.ok(targets.size > 1, "easy must not simply follow the player");
 });
 
 test("only the predictive policy reports a confidence value", () => {
-  const view = {
-    at: 9000,
-    lane: 1,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 55,
-    speed: 20,
-    lives: 3,
-    laneBlocked: [Infinity, Infinity, Infinity],
-    laneTargeted: [false, false, false],
-    zone: "cave",
-    remainingMs: 40000,
-  };
+  const fixture = view({ at: 9000, gap: 55 });
   const easyAi = newRuntime("p", "P", "t");
-  decideCave(easyAi, newPlayerModel(3, 1), view, "easy", false, 0, () => 0.5);
+  decideCave(easyAi, newPlayerModel(3, 1), fixture, "easy", false, 0, () => 0.5);
   assert.equal(easyAi.decisions.at(-1).confidence, undefined, "no probability model, no percentage");
 
   const hardAi = newRuntime("p", "P", "t");
@@ -508,7 +487,7 @@ test("only the predictive policy reports a confidence value", () => {
     observeChoice(model, 0);
     observeChoice(model, 1);
   }
-  decideCave(hardAi, model, view, "hard", true, 0, () => 0.5);
+  decideCave(hardAi, model, fixture, "hard", true, 0, () => 0.5);
   const confidence = hardAi.decisions.at(-1).confidence;
   assert.equal(typeof confidence, "number");
   assert.ok(confidence > 0 && confidence <= 1, `confidence out of range: ${confidence}`);
@@ -526,28 +505,7 @@ test("the hard policy follows the observed lane habit", () => {
   observeReaction(model, 300);
   observeReaction(model, 340);
   const ai = newRuntime("p", "P", "t");
-  const action = decideCave(
-    ai,
-    model,
-    {
-      at: 20000,
-      lane: 1,
-      laneProgress: 0,
-      airborne: false,
-      sliding: false,
-      gap: 50,
-      speed: 20,
-      lives: 3,
-      laneBlocked: [Infinity, Infinity, Infinity],
-      laneTargeted: [false, false, false],
-      zone: "collapse",
-      remainingMs: 30000,
-    },
-    "hard",
-    true,
-    0,
-    () => 0.5,
-  );
+  const action = decideCave(ai, model, view({ at: 20000, zone: "collapse" }), "hard", true, 0, () => 0.5);
   assert.equal(action.kind, "boulder");
   assert.equal(action.lane, 0, "the forecast should follow the left-lane habit");
   assert.match(ai.decisions.at(-1).reason, /probability/i);
@@ -986,8 +944,15 @@ test("the summary clamps into the shared attempt record's valid range", () => {
 
 /** Look-ahead, in metres, at which a wave's avoidance prompt is on screen. */
 const VISIBLE_Z = 50;
-/** Two threats closer together than this in time must be answered as one. */
-const CONFLICT_MS = LANE_CHANGE_MS + 260;
+/**
+ * A brisk but human reaction, in ms.
+ *
+ * Answering a threat costs one lane change plus one reaction; a jump or a slide
+ * can be pressed as the hazard arrives and so costs no extra time. Two threats
+ * arriving closer together than that must be treated as one problem.
+ */
+const REACTION_MS = 220;
+const CONFLICT_MS = LANE_CHANGE_MS + REACTION_MS;
 
 /** Lanes a boulder claims, each with the time until it lands. */
 function boulderClaims(s) {
@@ -1085,13 +1050,14 @@ test("a committed boulder always leaves an action-free lane to stand in", () => 
     let verified = 0;
     for (let t = 0; t < 70000 && !s.done; t += 32) {
       const before = s.cyclops.state;
-      const view = perceive(s);
+      const snapshot = perceive(s);
       s = tickCave(s, 32);
       if (before !== "winding" && s.cyclops.state === "winding") {
-        const clean = cleanEscapeLanes(view, s.cyclops.windLane, s.cyclops.windTotal + 900, view.speed);
+        const policy = cavePolicy(difficulty, true);
+        const clean = cleanEscapeLanes(snapshot, s.cyclops.windLane, policy.telegraphMs + policy.flightMs, snapshot.speed);
         assert.ok(
           clean.length > 0,
-          `${difficulty}: a throw at ${laneName(s.cyclops.windLane)} left no action-free lane (blocked ${JSON.stringify(view.laneBlocked)}, nearest ${JSON.stringify(view.laneClear)})`,
+          `${difficulty}: a throw at ${laneName(s.cyclops.windLane)} left no action-free lane (hazards ${JSON.stringify(snapshot.laneHazards)})`,
         );
         verified++;
       }
@@ -1102,48 +1068,21 @@ test("a committed boulder always leaves an action-free lane to stand in", () => 
   }
 });
 
-test("the escape margin looks past the boulder's own impact", () => {
-  // A lane that closes shortly after the boulder lands is not an escape: a
-  // player cannot be asked to dodge in and straight back out again.
-  const view = {
-    at: 1000,
-    lane: 1,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 50,
-    speed: 20,
-    lives: 3,
-    // Lane 0 closes just after the 1.95 s impact; lane 2 stays open.
-    laneBlocked: [42, Infinity, Infinity],
-    laneClear: [42, Infinity, Infinity],
-    laneTargeted: [false, false, false],
-    zone: "cave",
-    remainingMs: 40000,
-  };
+test("a lane that closes just after the boulder lands is not an escape", () => {
+  // A 1950 ms commitment at 20 m/s lands 39 m out. A blocker 8 m past that is
+  // inside the conflict window, so dodging in and straight back out again is
+  // not something the player can be asked for.
   const horizon = 1950;
-  assert.ok(!escapeLanes(view, 1, horizon, 20).includes(0), "lane 0 closes inside the margin");
-  assert.ok(escapeLanes(view, 1, horizon, 20).includes(2), "lane 2 is a genuine escape");
-  assert.ok(ESCAPE_MARGIN_S >= 1, "the margin must cover a lane change plus a reaction");
+  assert.ok(!escapeLanes(view({ laneBlocked: [47, Infinity, Infinity] }), 1, horizon, 20).includes(0));
+  assert.ok(escapeLanes(view({ laneBlocked: [47, Infinity, Infinity] }), 1, horizon, 20).includes(2));
+  assert.ok(CONFLICT_WINDOW_S >= 0.4, "the window must cover a lane change plus a reaction");
+  // Well clear of the impact, the same blocker is a separate problem.
+  assert.ok(escapeLanes(view({ laneBlocked: [70, Infinity, Infinity] }), 1, horizon, 20).includes(0));
 });
 
 test("a lane needing a jump is an escape but not an action-free one", () => {
-  const view = {
-    at: 1000,
-    lane: 1,
-    laneProgress: 0,
-    airborne: false,
-    sliding: false,
-    gap: 50,
-    speed: 20,
-    lives: 3,
-    // Lane 0 holds something jumpable; lane 2 is empty.
-    laneBlocked: [Infinity, Infinity, Infinity],
-    laneClear: [12, Infinity, Infinity],
-    laneTargeted: [false, false, false],
-    zone: "cave",
-    remainingMs: 40000,
-  };
-  assert.deepEqual(escapeLanes(view, 1, 1950, 20), [0, 2]);
-  assert.deepEqual(cleanEscapeLanes(view, 1, 1950, 20), [2]);
+  // Lane 0 holds something jumpable arriving with the boulder; lane 2 is empty.
+  const fixture = view({ laneBlocked: [Infinity, Infinity, Infinity], laneClear: [39, Infinity, Infinity] });
+  assert.deepEqual(escapeLanes(fixture, 1, 1950, 20), [0, 2], "a jumpable hazard still leaves the lane survivable");
+  assert.deepEqual(cleanEscapeLanes(fixture, 1, 1950, 20), [2], "but it is not action-free");
 });

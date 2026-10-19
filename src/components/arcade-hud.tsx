@@ -49,7 +49,10 @@ export function ArcadeHUD({
   const cave = isCave(state);
   const lives = cave ? 3 - state.hits : null;
   const progress = cave ? caveProgress(state) : 0;
-  const seconds = Math.ceil(Math.max(0, state.duration - state.elapsed) / 1000);
+  // Not every engine runs to a clock: the grid and puzzle encounters end on a
+  // turn or score condition instead.
+  const timed = "duration" in state ? state.duration : null;
+  const seconds = timed === null ? null : Math.ceil(Math.max(0, timed - state.elapsed) / 1000);
 
   return (
     <>
@@ -132,7 +135,9 @@ export function ArcadeHUD({
                 <Trophy size={9} /> {difficultyNames[difficulty].toUpperCase()}
               </span>
               <strong>
-                {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+                {seconds === null
+                  ? "—"
+                  : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`}
               </strong>
             </div>
             <button className="fs-hud-pause" onClick={onPause} aria-label="Pause the encounter">

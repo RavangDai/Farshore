@@ -46,7 +46,7 @@ const GROUND_Y = 806;
 /** Metres the camera sits behind Odysseus. Also the normalising depth. */
 const CAM_Z = 11.5;
 /** Half-width of the corridor at the player's plane, in logical pixels. */
-const LANE_PX = 232;
+const LANE_PX = 292;
 const CENTRE_X = VIEW_W / 2;
 
 export type Projected = { x: number; y: number; scale: number };
@@ -97,9 +97,9 @@ function zoneTint(s: CaveState, progress: number): ZoneTint {
     };
   }
   if (s.zone === "collapse") {
-    return { top: "#1b1322", mid: "#2d2130", floor: "#241d26", rock: "#352938", haze: "rgba(255,170,96,0.10)", light: 0.5 };
+    return { top: "#2a1c30", mid: "#44303d", floor: "#3b2f36", rock: "#4d3b48", haze: "rgba(255,170,96,0.13)", light: 0.78 };
   }
-  return { top: "#0d1020", mid: "#161a2c", floor: "#191a26", rock: "#242636", haze: "rgba(120,170,220,0.06)", light: 0.42 };
+  return { top: "#131a2f", mid: "#27304a", floor: "#2e2f3d", rock: "#3a3d52", haze: "rgba(140,185,230,0.08)", light: 0.7 };
 }
 
 // ---------------------------------------------------------------------------
@@ -367,13 +367,23 @@ export class CaveScene {
    * walks him down the frame. The numeric gap is also on the HUD, so the
    * staging never has to carry the information on its own.
    */
+  /**
+   * Polyphemus.
+   *
+   * He is nine metres tall and the corridor arches behind the runner, so his
+   * head and shoulders stay in frame although his feet are behind the camera.
+   * On-screen size maps the chase gap directly: closing the gap grows him and
+   * walks him down the frame until he fills the passage. The numeric gap is
+   * also on the HUD, so the staging never has to carry the information alone.
+   */
   private drawPolyphemus(c: CanvasRenderingContext2D, s: CaveState, now: number, options: CaveSceneOptions) {
     const cy = s.cyclops;
     const near = clamp01(1 - (cy.gap - 8) / (START_GAP - 8));
-    const scale = lerp(0.52, 1.55, near);
-    const baseY = HORIZON_Y + lerp(-34, 236, near);
-    const sway = options.still ? 0 : Math.sin(cy.stride / 1000 * Math.PI * 2) * 22 * scale;
-    const lurch = options.still ? 0 : Math.abs(Math.sin(cy.stride / 1000 * Math.PI)) * 14 * scale;
+    const scale = lerp(0.72, 2.1, near * near);
+    const baseY = HORIZON_Y + lerp(26, 330, near);
+    const stridePhase = (cy.stride / 1000) * Math.PI * 2;
+    const sway = options.still ? 0 : Math.sin(stridePhase) * 26 * scale;
+    const lurch = options.still ? 0 : Math.abs(Math.sin(stridePhase)) * 20 * scale;
     const x = CENTRE_X + sway;
     const y = baseY - lurch;
     const winding = cy.state === "winding";
@@ -384,98 +394,147 @@ export class CaveScene {
     c.translate(x, y);
     c.scale(scale, scale);
 
-    // Backlight: he blocks the passage behind, so light pools around him.
-    glow(c, 0, -40, 400, `rgba(255,150,70,${0.1 + near * 0.16})`, "rgba(255,150,70,0)");
+    // He blocks the passage, so light pools behind and around him.
+    glow(c, 0, -170, 520, `rgba(255,138,60,${0.12 + near * 0.22})`, "rgba(255,138,60,0)");
 
-    const body = c.createLinearGradient(0, -300, 0, 120);
-    body.addColorStop(0, "#2d2334");
-    body.addColorStop(0.6, "#1d1724");
-    body.addColorStop(1, "#0d0a14");
+    const body = c.createLinearGradient(0, -470, 0, 150);
+    body.addColorStop(0, "#453450");
+    body.addColorStop(0.45, "#2b2135");
+    body.addColorStop(1, "#120d1a");
 
-    // Torso and shoulders.
+    // Legs, planted wide, reaching below the frame.
+    c.fillStyle = "#171120";
+    for (const side of [-1, 1]) {
+      const kick = options.still ? 0 : Math.sin(stridePhase + (side > 0 ? Math.PI : 0)) * 34;
+      c.beginPath();
+      c.moveTo(side * 40, -40);
+      c.lineTo(side * 150, -30);
+      c.lineTo(side * 168 + kick, 320);
+      c.lineTo(side * 58 + kick, 320);
+      c.closePath();
+      c.fill();
+    }
+
+    // Torso: tall, hunched, square-shouldered. Height over width is what makes
+    // him read as a giant stooping under a low roof rather than as a boulder.
     c.fillStyle = body;
     c.beginPath();
-    c.moveTo(-210, 150);
-    c.bezierCurveTo(-240, -40, -170, -150, -92, -176);
-    c.bezierCurveTo(-40, -230, 40, -230, 92, -176);
-    c.bezierCurveTo(170, -150, 240, -40, 210, 150);
+    c.moveTo(-168, 60);
+    c.lineTo(-196, -168);
+    c.lineTo(-174, -300);
+    c.lineTo(-104, -366);
+    c.lineTo(-38, -392);
+    c.lineTo(52, -388);
+    c.lineTo(126, -352);
+    c.lineTo(186, -282);
+    c.lineTo(202, -150);
+    c.lineTo(178, 60);
     c.closePath();
     c.fill();
 
-    // Head.
-    c.fillStyle = "#332739";
+    // A lit rim down one side picks the silhouette off the cave wall.
+    c.strokeStyle = `rgba(255,164,86,${0.26 + near * 0.3})`;
+    c.lineWidth = 7;
     c.beginPath();
-    c.ellipse(0, -214, 96, 104, 0, 0, Math.PI * 2);
+    c.moveTo(-174, -300);
+    c.lineTo(-104, -366);
+    c.lineTo(-38, -392);
+    c.stroke();
+
+    // Neck and head, set forward of the shoulders.
+    c.fillStyle = "#3a2c44";
+    c.beginPath();
+    c.moveTo(-62, -372);
+    c.lineTo(-78, -452);
+    c.lineTo(-30, -512);
+    c.lineTo(44, -508);
+    c.lineTo(86, -450);
+    c.lineTo(74, -368);
+    c.closePath();
     c.fill();
-    // Matted hair.
-    c.fillStyle = "#1a1420";
+    // Matted hair across the crown, and a heavy brow ridge.
+    c.fillStyle = "#1b1424";
     c.beginPath();
-    c.ellipse(0, -268, 100, 62, 0, Math.PI, Math.PI * 2);
+    c.moveTo(-80, -448);
+    c.lineTo(-34, -518);
+    c.lineTo(48, -514);
+    c.lineTo(90, -446);
+    c.lineTo(46, -470);
+    c.lineTo(-10, -482);
+    c.lineTo(-52, -466);
+    c.closePath();
+    c.fill();
+    c.fillStyle = "#281e32";
+    c.beginPath();
+    c.moveTo(-78, -440);
+    c.lineTo(86, -436);
+    c.lineTo(72, -404);
+    c.lineTo(-66, -408);
+    c.closePath();
     c.fill();
 
-    // The blinded eye: a scarred socket that still catches torchlight. It
-    // flares while he commits to a throw, which is the readable telegraph.
-    const eyeGlow = winding ? 0.55 + wind * 0.45 : roaring ? 0.8 : 0.3 + near * 0.2;
-    glow(c, 0, -222, 96, `rgba(255,${winding ? 110 : 170},70,${eyeGlow})`, "rgba(255,120,60,0)");
+    // The blinded eye: a scarred socket that still catches torchlight, and
+    // flares as he commits to a throw. That flare is the readable telegraph.
+    const eyeGlow = winding ? 0.6 + wind * 0.4 : roaring ? 0.85 : 0.3 + near * 0.25;
+    glow(c, 4, -398, 130, `rgba(255,${winding ? 104 : 164},64,${eyeGlow})`, "rgba(255,120,60,0)");
     c.fillStyle = winding ? "#ff8a4a" : "#c9643a";
     c.beginPath();
-    c.ellipse(0, -222, 34, 26, 0, 0, Math.PI * 2);
+    c.ellipse(4, -398, 40, 29, 0, 0, Math.PI * 2);
     c.fill();
     c.fillStyle = "#2a1016";
     c.beginPath();
-    c.ellipse(0, -222, 13, 20, 0, 0, Math.PI * 2);
+    c.ellipse(4, -398, 15, 23, 0, 0, Math.PI * 2);
     c.fill();
-    // Scar across the socket.
     c.strokeStyle = "#5e3326";
-    c.lineWidth = 7;
+    c.lineWidth = 9;
     c.beginPath();
-    c.moveTo(-52, -258);
-    c.lineTo(46, -192);
+    c.moveTo(-62, -440);
+    c.lineTo(62, -358);
     c.stroke();
 
-    // Roaring mouth.
+    // Mouth.
     if (roaring) {
       c.fillStyle = "#3a1218";
       c.beginPath();
-      c.ellipse(0, -142, 40, 30 + Math.sin(now * 0.03) * 7, 0, 0, Math.PI * 2);
+      c.ellipse(4, -336, 46, 32 + Math.sin(now * 0.03) * 8, 0, 0, Math.PI * 2);
       c.fill();
       c.fillStyle = "#e8d7b2";
-      for (let i = -2; i <= 2; i++) c.fillRect(i * 13 - 4, -168, 8, 13);
+      for (let i = -2; i <= 2; i++) c.fillRect(i * 15 - 4, -364, 9, 14);
     } else {
-      c.strokeStyle = "#1a1018";
-      c.lineWidth = 8;
+      c.strokeStyle = "#140c18";
+      c.lineWidth = 9;
       c.beginPath();
-      c.moveTo(-32, -148);
-      c.quadraticCurveTo(0, -136, 32, -148);
+      c.moveTo(-34, -340);
+      c.quadraticCurveTo(4, -326, 42, -342);
       c.stroke();
     }
 
-    // Throwing arm: rises across the telegraph, holding a boulder.
-    const armAngle = winding ? lerp(0.5, -1.05, wind) : -0.1;
-    const side = cy.windLane >= 0 ? (cy.windLane === 2 ? 1 : -1) : -1;
+    // Throwing arm: rises across the telegraph with a boulder in the fist.
+    const armSide = cy.windLane >= 0 ? (cy.windLane === 2 ? 1 : -1) : -1;
+    const armAngle = winding ? lerp(0.55, -1.1, wind) : -0.12;
     c.save();
-    c.translate(side * 150, -92);
-    c.rotate(side * armAngle);
-    c.fillStyle = "#241c2c";
-    roundedRect(c, -34, -16, 150, 62, 28);
+    c.translate(armSide * 172, -268);
+    c.rotate(armSide * armAngle);
+    c.fillStyle = "#2b2135";
+    roundedRect(c, -30, -22, 128, 66, 30);
     c.fill();
     if (winding) {
-      const rockR = 46;
+      const rockR = 52;
       c.save();
-      c.translate(126, 12);
-      glow(c, 0, 0, 110, `rgba(255,140,60,${0.25 + wind * 0.4})`, "rgba(255,140,60,0)");
+      c.translate(108, 12);
+      glow(c, 0, 0, 140, `rgba(255,140,60,${0.3 + wind * 0.45})`, "rgba(255,140,60,0)");
       c.fillStyle = "#5c5363";
       c.beginPath();
-      c.moveTo(-rockR, 10);
+      c.moveTo(-rockR, 12);
       c.lineTo(-rockR * 0.7, -rockR * 0.8);
       c.lineTo(rockR * 0.2, -rockR);
       c.lineTo(rockR, -rockR * 0.3);
       c.lineTo(rockR * 0.6, rockR * 0.7);
-      c.lineTo(-rockR * 0.3, rockR * 0.8);
+      c.lineTo(-rockR * 0.3, rockR * 0.85);
       c.closePath();
       c.fill();
       c.strokeStyle = "#8a7f93";
-      c.lineWidth = 3;
+      c.lineWidth = 4;
       c.stroke();
       c.restore();
     }
@@ -483,10 +542,10 @@ export class CaveScene {
 
     // Trailing arm, groping along the wall.
     c.save();
-    c.translate(-side * 158, -70);
-    c.rotate(-side * (0.35 + (options.still ? 0 : Math.sin(cy.stride / 1000 * Math.PI * 2 + 1) * 0.2)));
-    c.fillStyle = "#1e1726";
-    roundedRect(c, -side * 120, -14, side * 150, 56, 26);
+    c.translate(-armSide * 180, -238);
+    c.rotate(-armSide * (0.42 + (options.still ? 0 : Math.sin(stridePhase + 1) * 0.18)));
+    c.fillStyle = "#231a2d";
+    roundedRect(c, -armSide * 112, -20, armSide * 134, 60, 27);
     c.fill();
     c.restore();
 
@@ -546,18 +605,23 @@ export class CaveScene {
 
     // Torches at fixed world positions. Each flickers on its own phase and
     // throws light onto the floor, which is the cave's main light source.
-    const torchSpacing = 22;
+    const torchSpacing = 14;
     const torchPhase = s.distance % torchSpacing;
-    for (let i = 0; i < 6; i++) {
-      const z = i * torchSpacing - torchPhase + 6;
+    for (let i = 0; i < 9; i++) {
+      const z = i * torchSpacing - torchPhase + 4;
       if (z <= 0.5 || z > SPAWN_Z) continue;
-      const side = (Math.floor((s.distance + z) / torchSpacing) + i) % 2 === 0 ? -1 : 1;
+      // Alternate sides by the torch's own index in world space, so a given
+      // torch keeps its wall as it approaches instead of flipping.
+      const index = Math.round((s.distance + z) / torchSpacing);
+      const side = index % 2 === 0 ? -1 : 1;
       const p = project(z, side * 1.78);
       const scale = p.scale;
       const flicker = options.still ? 1 : 0.78 + Math.sin(now * 0.013 + i * 2.1) * 0.12 + Math.sin(now * 0.041 + i) * 0.1;
       const y = p.y - 250 * scale;
-      glow(c, p.x, y, 300 * scale * flicker, `rgba(255,168,74,${0.4 * tint.light * flicker})`, "rgba(255,150,60,0)");
-      glow(c, p.x, p.y, 220 * scale * flicker, `rgba(255,150,70,${0.22 * flicker})`, "rgba(255,150,70,0)");
+      glow(c, p.x, y, 420 * scale * flicker, `rgba(255,172,80,${0.5 * tint.light * flicker})`, "rgba(255,150,60,0)");
+      // A pool of light on the floor beneath each torch: the main reason the
+      // lanes are readable at all.
+      glow(c, p.x * 0.72 + CENTRE_X * 0.28, p.y, 360 * scale * flicker, `rgba(255,154,72,${0.34 * flicker})`, "rgba(255,150,70,0)");
       // Bracket and flame.
       c.fillStyle = "#4a3521";
       c.fillRect(p.x - 5 * scale, y, 10 * scale, 64 * scale);
@@ -588,13 +652,13 @@ export class CaveScene {
     c.lineTo(far.x, far.y);
     c.closePath();
     const g = c.createLinearGradient(0, far.y, 0, VIEW_H);
-    g.addColorStop(0, "#14151f");
-    g.addColorStop(0.45, tint.floor);
-    g.addColorStop(1, "#2a2530");
+    g.addColorStop(0, "#1d2232");
+    g.addColorStop(0.42, tint.floor);
+    g.addColorStop(1, "#4a3f42");
     c.fillStyle = g;
     c.fill();
     // Bottom skirt so the floor reaches the frame edge at the player's plane.
-    c.fillStyle = "#2a2530";
+    c.fillStyle = "#4a3f42";
     c.beginPath();
     c.moveTo(0, VIEW_H);
     c.lineTo(near.x, near.y);
@@ -612,8 +676,8 @@ export class CaveScene {
       if (z < -0.4 || z > SPAWN_Z) continue;
       const l = project(z, -2.05);
       const r = project(z, 2.05);
-      c.globalAlpha = clamp01(l.scale * 1.6) * 0.5;
-      c.strokeStyle = i % 2 === 0 ? "#3f3a45" : "#2b2732";
+      c.globalAlpha = clamp01(l.scale * 1.6) * 0.62;
+      c.strokeStyle = i % 2 === 0 ? "#6d6274" : "#4a4352";
       c.lineWidth = Math.max(1, 5 * l.scale);
       c.beginPath();
       c.moveTo(l.x, l.y);
@@ -622,15 +686,29 @@ export class CaveScene {
     }
     c.globalAlpha = 1;
 
-    // Lane dividers.
+    // Lane dividers, plus a lit rim where the floor meets the walls.
     for (const offset of [-0.5, 0.5]) {
-      const a = project(0.2, offset * 2);
+      const a = project(-1, offset * 2);
       const b = project(SPAWN_Z, offset * 2);
       const grad = c.createLinearGradient(a.x, a.y, b.x, b.y);
-      grad.addColorStop(0, "rgba(233,184,92,0.4)");
+      grad.addColorStop(0, "rgba(243,206,132,0.62)");
+      grad.addColorStop(0.55, "rgba(233,184,92,0.26)");
       grad.addColorStop(1, "rgba(233,184,92,0)");
       c.strokeStyle = grad;
-      c.lineWidth = 4;
+      c.lineWidth = 5;
+      c.beginPath();
+      c.moveTo(a.x, a.y);
+      c.lineTo(b.x, b.y);
+      c.stroke();
+    }
+    for (const edge of [-2.05, 2.05]) {
+      const a = project(-1, edge);
+      const b = project(SPAWN_Z, edge);
+      const grad = c.createLinearGradient(a.x, a.y, b.x, b.y);
+      grad.addColorStop(0, "rgba(255,186,110,0.5)");
+      grad.addColorStop(1, "rgba(255,186,110,0)");
+      c.strokeStyle = grad;
+      c.lineWidth = 7;
       c.beginPath();
       c.moveTo(a.x, a.y);
       c.lineTo(b.x, b.y);
@@ -648,43 +726,54 @@ export class CaveScene {
     if (cy.state === "winding" && cy.windLane >= 0) {
       const t = 1 - cy.timer / Math.max(1, cy.windTotal);
       const pulse = 0.3 + Math.abs(Math.sin(t * Math.PI * 5)) * 0.4;
-      const nearL = laneAt(cy.windLane, 0.3);
+      const nearL = laneAt(cy.windLane, -1.2);
       const farL = laneAt(cy.windLane, 46);
+      // The warning is a stripe painted on the floor of the lane, a touch
+      // narrower than the lane itself and faint enough to read Odysseus
+      // through. It is the fair telegraph, not a curtain.
+      const halfNear = LANE_PX * 0.86;
+      const halfFar = LANE_PX * 0.86 * farL.scale;
       c.save();
       c.beginPath();
-      c.moveTo(nearL.x - LANE_PX * 0.48, nearL.y + 8);
-      c.lineTo(nearL.x + LANE_PX * 0.48, nearL.y + 8);
-      c.lineTo(farL.x + LANE_PX * 0.48 * farL.scale, farL.y);
-      c.lineTo(farL.x - LANE_PX * 0.48 * farL.scale, farL.y);
+      c.moveTo(nearL.x - halfNear, nearL.y);
+      c.lineTo(nearL.x + halfNear, nearL.y);
+      c.lineTo(farL.x + halfFar, farL.y);
+      c.lineTo(farL.x - halfFar, farL.y);
       c.closePath();
       const g = c.createLinearGradient(0, farL.y, 0, nearL.y);
-      g.addColorStop(0, `rgba(244,96,79,0)`);
-      g.addColorStop(1, `rgba(244,96,79,${0.16 + pulse * 0.2})`);
+      g.addColorStop(0, "rgba(244,96,79,0)");
+      g.addColorStop(0.72, `rgba(244,96,79,${0.07 + pulse * 0.07})`);
+      g.addColorStop(1, `rgba(244,96,79,${0.13 + pulse * 0.12})`);
       c.fillStyle = g;
       c.fill();
-      c.strokeStyle = `rgba(255,150,120,${0.4 + pulse * 0.4})`;
+      c.strokeStyle = `rgba(255,150,120,${0.3 + pulse * 0.35})`;
       c.lineWidth = 3;
       c.stroke();
       c.restore();
 
-      // Impact marker and countdown on the floor.
-      const mark = laneAt(cy.windLane, 1.4);
+      // Impact marker and countdown, set a little ahead of the runner so the
+      // ring reads as the ground he must not be standing on.
+      const mark = laneAt(cy.windLane, 5.5);
       c.save();
       c.translate(mark.x, mark.y + 10);
       c.globalAlpha = 0.55 + pulse * 0.45;
       c.strokeStyle = DANGER;
       c.lineWidth = 5;
+      const radius = (150 - t * 44) * mark.scale;
       c.beginPath();
-      c.ellipse(0, 0, 118 - t * 34, 34 - t * 10, 0, 0, Math.PI * 2);
+      c.ellipse(0, 0, radius, radius * 0.3, 0, 0, Math.PI * 2);
       c.stroke();
       c.beginPath();
-      c.ellipse(0, 0, (118 - t * 34) * 0.55, (34 - t * 10) * 0.55, 0, 0, Math.PI * 2);
+      c.ellipse(0, 0, radius * 0.55, radius * 0.165, 0, 0, Math.PI * 2);
       c.stroke();
       c.globalAlpha = 1;
       c.fillStyle = "#ffe4d4";
-      c.font = "700 40px Georgia, serif";
+      c.font = `700 ${Math.round(46 * mark.scale)}px Georgia, serif`;
       c.textAlign = "center";
-      c.fillText(`${(cy.timer / 1000).toFixed(1)}s`, 0, -46);
+      c.lineWidth = 5;
+      c.strokeStyle = "#2a0b08";
+      c.strokeText(`${(cy.timer / 1000).toFixed(1)}s`, 0, -radius * 0.5);
+      c.fillText(`${(cy.timer / 1000).toFixed(1)}s`, 0, -radius * 0.5);
       c.restore();
     }
 
@@ -1103,14 +1192,15 @@ export class CaveScene {
     const lean = clamp(s.laneX - (s.lane - 1) * LANE_SPAN, -1, 1) * -16 + (s.changing > 0 ? 0 : 0);
     const x = p.x;
     const y = p.y - lift - bob;
-    const height = 300;
-    // Flicker while invulnerable, so a hit is unmistakable.
-    const hidden = s.invulnerable > 0 && Math.floor(now / 90) % 2 === 1;
+    const height = 262;
+    // A ghosted flicker while invulnerable: unmistakable, but he never
+    // disappears outright, which would read as a rendering fault.
+    const flicker = s.invulnerable > 0 ? (Math.floor(now / 90) % 2 === 1 ? 0.28 : 0.85) : 1;
 
-    ellipseShadow(c, p.x, p.y + 6, 92 * (1 - lift / 700), 26 * (1 - lift / 900), 0.5);
-    if (hidden) return;
+    ellipseShadow(c, p.x, p.y + 6, 80 * (1 - lift / 700), 23 * (1 - lift / 900), 0.5);
 
     c.save();
+    c.globalAlpha = flicker;
     c.translate(x, y);
     c.rotate((lean * Math.PI) / 180);
     if (sliding) {
@@ -1119,6 +1209,27 @@ export class CaveScene {
       c.translate(0, 120);
     }
     if (s.jump > 0) c.rotate(Math.sin(jumpT * Math.PI) * -0.1);
+
+    // The cape streams behind him, so it is drawn first and kept inside his
+    // own silhouette width — otherwise it reads as a slab across the lane.
+    const flap = options.still ? 0 : Math.sin(run * Math.PI * 2) * 0.05;
+    c.save();
+    c.globalAlpha = 0.82;
+    const capeTop = -height * 0.72;
+    const capeBottom = -height * 0.22;
+    const capeHalf = height * 0.115;
+    const cape = c.createLinearGradient(0, capeTop, 0, capeBottom);
+    cape.addColorStop(0, "#7e3330");
+    cape.addColorStop(1, "#40181a");
+    c.fillStyle = cape;
+    c.beginPath();
+    c.moveTo(-capeHalf * 0.8, capeTop);
+    c.quadraticCurveTo(-capeHalf * (1.5 + flap) - lean, (capeTop + capeBottom) / 2, -capeHalf * (0.9 + flap), capeBottom);
+    c.lineTo(capeHalf * (0.9 - flap), capeBottom);
+    c.quadraticCurveTo(capeHalf * (1.5 - flap) - lean, (capeTop + capeBottom) / 2, capeHalf * 0.8, capeTop);
+    c.closePath();
+    c.fill();
+    c.restore();
 
     const sprite = options.sprites.hero;
     if (sprite?.complete && sprite.naturalWidth) {
@@ -1131,20 +1242,6 @@ export class CaveScene {
     } else {
       this.drawHeroFallback(c, height, run);
     }
-
-    // Cape, driven by lane change and speed.
-    c.save();
-    c.globalAlpha = 0.92;
-    c.fillStyle = "#8f3a35";
-    const flap = options.still ? 0 : Math.sin(run * Math.PI * 2) * 16;
-    c.beginPath();
-    c.moveTo(-54, -height * 0.78);
-    c.quadraticCurveTo(-110 - flap - lean * 2, -height * 0.34, -70 - lean * 3, -height * 0.02);
-    c.lineTo(62 - lean * 3, -height * 0.04);
-    c.quadraticCurveTo(108 - flap - lean * 2, -height * 0.36, 52, -height * 0.78);
-    c.closePath();
-    c.fill();
-    c.restore();
     c.restore();
 
     // Running dust, placed after the hero so it reads in front of his heels.
@@ -1204,23 +1301,24 @@ export class CaveScene {
   ) {
     // Near wall edges, to frame the action and sell the corridor width.
     for (const side of [-1, 1]) {
-      const g = c.createLinearGradient(side < 0 ? 0 : VIEW_W, 0, side < 0 ? 300 : VIEW_W - 300, 0);
-      g.addColorStop(0, "rgba(6,8,16,0.9)");
+      const g = c.createLinearGradient(side < 0 ? 0 : VIEW_W, 0, side < 0 ? 210 : VIEW_W - 210, 0);
+      g.addColorStop(0, "rgba(6,8,16,0.82)");
       g.addColorStop(1, "rgba(6,8,16,0)");
       c.fillStyle = g;
-      c.fillRect(side < 0 ? 0 : VIEW_W - 300, 0, 300, VIEW_H);
+      c.fillRect(side < 0 ? 0 : VIEW_W - 210, 0, 210, VIEW_H);
     }
     // Lane labels, kept low-contrast so they inform without competing.
     c.save();
     c.globalAlpha = 0.5;
     c.fillStyle = "#9fb0c4";
-    c.font = "600 22px Arial, sans-serif";
     c.textAlign = "center";
-    c.letterSpacing = "4px";
+    c.letterSpacing = "3px";
     for (let lane = 0; lane < 3; lane++) {
-      const p = laneAt(lane, 0);
-      c.fillStyle = lane === s.lane ? GOLD : "#7f8fa3";
-      c.fillText(["LEFT", "CENTRE", "RIGHT"][lane], p.x, VIEW_H - 22);
+      const p = laneAt(lane, 26);
+      c.font = `600 ${Math.round(34 * p.scale)}px Arial, sans-serif`;
+      c.fillStyle = lane === s.lane ? GOLD : "#5f6f83";
+      c.globalAlpha = lane === s.lane ? 0.5 : 0.26;
+      c.fillText(["LEFT", "CENTRE", "RIGHT"][lane], p.x, p.y + 30 * p.scale);
     }
     c.restore();
     void tint;
@@ -1230,28 +1328,30 @@ export class CaveScene {
 
   /** Floating score and health callouts, anchored over the lane that earned them. */
   private drawCallouts(c: CanvasRenderingContext2D, s: CaveState) {
-    for (const popped of s.pops) {
-      const age = clamp01((s.elapsed - popped.at) / 1100);
-      if (age >= 1) continue;
-      const p = laneAt(popped.lane, 1.5);
+    // Newest last, and each one offset a little further up, so a quick run of
+    // pickups reads as a stack rather than as one illegible overlap.
+    s.pops.forEach((popped, index) => {
+      const age = clamp01((s.elapsed - popped.at) / 1000);
+      if (age >= 1) return;
+      const p = laneAt(popped.lane, 3);
       c.save();
-      c.globalAlpha = (1 - age) * (age < 0.15 ? age / 0.15 : 1);
-      c.font = "700 54px Georgia, serif";
+      c.globalAlpha = (1 - age) * (age < 0.12 ? age / 0.12 : 1);
+      c.font = "700 32px Georgia, serif";
       c.textAlign = "center";
-      c.lineWidth = 6;
+      c.lineWidth = 5;
       c.strokeStyle = "#07101c";
       c.fillStyle = popped.good ? "#ffe9a8" : "#ffb0a0";
-      const y = p.y - 300 - age * 150;
+      const y = p.y - 330 - age * 96 - (s.pops.length - 1 - index) * 40;
       c.strokeText(popped.text, p.x, y);
       c.fillText(popped.text, p.x, y);
       c.restore();
-    }
+    });
   }
 
   private drawVignette(c: CanvasRenderingContext2D, s: CaveState) {
     const g = c.createRadialGradient(CENTRE_X, VIEW_H * 0.54, VIEW_W * 0.26, CENTRE_X, VIEW_H * 0.54, VIEW_W * 0.72);
     g.addColorStop(0, "rgba(2,6,14,0)");
-    g.addColorStop(1, "rgba(2,6,14,0.62)");
+    g.addColorStop(1, "rgba(2,6,14,0.46)");
     c.fillStyle = g;
     c.fillRect(0, 0, VIEW_W, VIEW_H);
     // A danger rim as Polyphemus closes, instead of a flashing full-screen tint.

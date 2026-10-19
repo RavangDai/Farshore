@@ -6,9 +6,12 @@ export const preferencesSchema = z.object({
   sound: z.boolean(), still: z.boolean(), mode: z.enum(["standard", "ai"]),
   music: z.number().min(0).max(1).default(.24), effects: z.number().min(0).max(1).default(.45),
   contrast: z.boolean().default(false), shake: z.boolean().default(true),
+  // Decorative particle and lighting strength. Defaulted, so preferences saved
+  // before this setting existed still parse.
+  visuals: z.number().min(0).max(1).default(1),
 }).strict();
 export type OnlinePreferences = z.infer<typeof preferencesSchema>;
-export const defaultPreferences = (): OnlinePreferences => ({ revision: 2, difficulty: "normal", sound: false, still: false, mode: "standard", music: .24, effects: .45, contrast: false, shake: true });
+export const defaultPreferences = (): OnlinePreferences => ({ revision: 2, difficulty: "normal", sound: false, still: false, mode: "standard", music: .24, effects: .45, contrast: false, shake: true, visuals: 1 });
 const trialId = z.enum(["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"]);
 const summarySchema = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), score: z.number().int().min(0).max(1000000).optional(), timeMs: z.number().int().min(0).max(3600000).optional(), difficulty: z.enum(["easy", "normal", "hard"]).optional(), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
 const saveSchema = z.unknown().transform((input, ctx) => {

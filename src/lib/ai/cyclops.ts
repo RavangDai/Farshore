@@ -70,10 +70,19 @@ export type CavePerception = {
   laneBlocked: number[];
   /**
    * Metres to the nearest obstacle of any kind in each lane, including the ones
-   * a jump or slide clears. Used to find a lane where Odysseus needs to do
-   * nothing at all, which is what the fairness rule requires.
+   * a jump or slide clears. Reported for legibility; the fairness rule uses
+   * `laneHazards`, which keeps each hazard's own distance.
    */
   laneClear: number[];
+  /**
+   * Every hazard ahead in each lane, nearest first.
+   *
+   * Distances are kept per hazard rather than collapsed to a minimum, because
+   * whether a hazard conflicts with a boulder depends on whether the two arrive
+   * at the same moment — a hazard Odysseus passes well before the boulder lands
+   * is not a conflict, and nor is one that arrives long afterwards.
+   */
+  laneHazards: { z: number; answerable: boolean }[][];
   /** Lanes with a boulder already locked in. */
   laneTargeted: boolean[];
   zone: CaveZone;
@@ -129,46 +138,96 @@ export function cavePolicy(difficulty: Difficulty, adaptive: boolean): CavePolic
 }
 
 /**
- * The safety margin, in seconds of running, added beyond a boulder's impact
- * before a lane is accepted as an escape.
+ * How close in time two threats must be before they count as one problem.
  *
- * Without it the opponent could lock onto a lane whose neighbours close moments
- * after the boulder lands, which is survivable only with frame-perfect play.
- * One lane change plus one reaction is the honest allowance.
+ * A lane change plus a reaction, in seconds. A hazard arriving this close to a
+ * boulder's impact cannot be treated as a separate obstacle: answering both
+ * would need two correct inputs inside one window.
  */
-export const ESCAPE_MARGIN_S = 1.1;
+export const CONFLICT_WINDOW_S = 0.55;
+
+/**
+ * How long after a boulder lands, in seconds of running, a wave still counts as
+ * part of the same problem.
+ *
+ * Past this the runner has had time to reposition, so the wave is a separate
+ * obstacle rather than a continuation of the throw.
+ */
+export const AFTERMATH_S = 0.95;
+
+/**
+ * Lanes that stay open through a boulder's impact and its immediate aftermath.
+ *
+ * Only hazards arriving in a band around the impact are considered: one the
+ * runner passes well before the boulder lands is already behind him, and one
+ * arriving well after is a problem he will have time to solve. A wave that
+ * blocks two lanes outright inside that band leaves exactly one place to be,
+ * and a boulder is never thrown there — the runner would have to vacate the
+ * lane for the boulder and be back for the wave inside a single window.
+ */
+export function openLanes(view: CavePerception, horizonMs: number, speed: number): number[] {
+  const impactMetres = (speed * horizonMs) / 1000;
+  const from = impactMetres - speed * CONFLICT_WINDOW_S;
+  const to = impactMetres + speed * AFTERMATH_S;
+  const open: number[] = [];
+  for (let lane = 0; lane < 3; lane++) {
+    const hazards = view.laneHazards[lane] ?? [];
+    if (!hazards.some(hazard => !hazard.answerable && hazard.z >= from && hazard.z <= to)) open.push(lane);
+  }
+  return open;
+}
+
+/** Whether any hazard in `lane` arrives close enough to a boulder to conflict. */
+function conflicts(
+  view: CavePerception,
+  lane: number,
+  impactMetres: number,
+  conflictMetres: number,
+  includeAnswerable: boolean,
+): boolean {
+  const hazards = view.laneHazards[lane] ?? [];
+  return hazards.some(hazard => {
+    if (!includeAnswerable && hazard.answerable) return false;
+    return Math.abs(hazard.z - impactMetres) < conflictMetres;
+  });
+}
 
 /**
  * Lanes Odysseus can reach and survive if a boulder is thrown at `targetLane`.
  *
  * A lane qualifies when it is not the target, carries no boulder of its own, is
- * close enough to reach inside the telegraph, and stays free of un-answerable
- * hazards until a margin past the moment of impact.
+ * close enough to reach inside the telegraph, and has no un-answerable hazard
+ * arriving at the same moment as the boulder.
  */
 export function escapeLanes(view: CavePerception, targetLane: number, horizonMs: number, speed: number): number[] {
-  const horizonMetres = (speed * horizonMs) / 1000 + speed * ESCAPE_MARGIN_S;
+  const impactMetres = (speed * horizonMs) / 1000;
+  const conflictMetres = speed * CONFLICT_WINDOW_S;
   const reach = Math.max(1, Math.floor(horizonMs / LANE_CHANGE_MS));
   const escapes: number[] = [];
   for (let lane = 0; lane < 3; lane++) {
     if (lane === targetLane) continue;
     if (Math.abs(lane - view.lane) > reach) continue;
     if (view.laneTargeted[lane]) continue;
-    if (view.laneBlocked[lane] <= horizonMetres) continue;
+    if (conflicts(view, lane, impactMetres, conflictMetres, false)) continue;
     escapes.push(lane);
   }
   return escapes;
 }
 
 /**
- * Escape lanes where Odysseus needs no jump or slide — he only has to be there.
+ * Escape lanes where Odysseus needs no jump or slide at the moment of impact —
+ * he only has to be there.
  *
  * The fairness rule is stated in terms of these: a boulder is only ever thrown
  * when at least one such lane exists, so answering a committed attack never
- * demands two correct inputs in the same window.
+ * demands two correct inputs inside the same window.
  */
 export function cleanEscapeLanes(view: CavePerception, targetLane: number, horizonMs: number, speed: number): number[] {
-  const horizonMetres = (speed * horizonMs) / 1000 + speed * ESCAPE_MARGIN_S;
-  return escapeLanes(view, targetLane, horizonMs, speed).filter(lane => view.laneClear[lane] > horizonMetres);
+  const impactMetres = (speed * horizonMs) / 1000;
+  const conflictMetres = speed * CONFLICT_WINDOW_S;
+  return escapeLanes(view, targetLane, horizonMs, speed).filter(
+    lane => !conflicts(view, lane, impactMetres, conflictMetres, true),
+  );
 }
 
 function perceptionReadings(view: CavePerception): Reading[] {
@@ -263,6 +322,9 @@ export function decideCave(
   // ---- Stage 3: evaluate -------------------------------------------------
   const candidates: Candidate[] = [];
   const weakest = weakestOption(model);
+  // The lanes an upcoming wave still leaves open. If only one survives, it is
+  // not available as a target.
+  const open = openLanes(view, horizonMs, view.speed);
 
   // Throwing at each lane. Scores are utilities in the same arbitrary unit,
   // reported verbatim so the inspector shows the real comparison.
@@ -270,13 +332,26 @@ export function decideCave(
   for (let lane = 0; lane < 3; lane++) {
     const escapes = escapeLanes(view, lane, horizonMs, view.speed);
     const clean = cleanEscapeLanes(view, lane, horizonMs, view.speed);
+    const soleOpen = open.length === 1 && open[0] === lane;
+    // A congested stretch where no lane stays open through the impact and its
+    // aftermath cannot be shown to be answerable, so nothing is thrown into it.
+    // Holding is the conservative choice, and the one the player can trust.
+    const congested = open.length === 0;
     let score: number;
     let note: string;
-    if (clean.length === 0) {
+    if (clean.length === 0 || soleOpen || congested) {
       // Fairness: a throw is only ever made when Odysseus has somewhere to
-      // stand that asks nothing more of him than being there.
+      // stand that asks nothing more of him than being there, never into the
+      // one lane an upcoming wave has left him, and never at all when no lane
+      // can be shown to stay open.
       score = -1000;
-      note = escapes.length === 0 ? "no escape lane would remain — withheld" : "no action-free escape lane — withheld";
+      note = congested
+        ? "no lane stays open through the impact — withheld"
+        : soleOpen
+          ? "the only lane the next wave leaves open — withheld"
+          : escapes.length === 0
+            ? "no escape lane would remain — withheld"
+            : "no action-free escape lane — withheld";
     } else if (policy.predictive) {
       const p = forecast.distribution[lane] ?? 0;
       score = p * 100;

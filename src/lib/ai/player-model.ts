@@ -95,11 +95,25 @@ export function favouriteOption(model: PlayerModel): number {
   return best;
 }
 
-/** Occupancy as a distribution. Uniform while nothing has been observed. */
+/**
+ * Observation needed, in ms of decayed dwell, before the prior is trusted on
+ * its own. Below this it is blended toward uniform.
+ */
+export const PRIOR_EVIDENCE_MS = 7000;
+
+/**
+ * Occupancy as a distribution, weighted by how much has been observed.
+ *
+ * Standing in one lane for two seconds is not evidence that the player always
+ * uses it, so an early prior stays close to uniform. Without this the opponent
+ * would report a 100% forecast from its first few seconds of watching.
+ */
 export function occupancyPrior(model: PlayerModel): number[] {
+  const uniform = 1 / model.options;
   const total = model.occupancy.reduce((a, b) => a + b, 0);
-  if (total <= 0) return Array(model.options).fill(1 / model.options);
-  return model.occupancy.map(n => n / total);
+  if (total <= 0) return Array(model.options).fill(uniform);
+  const evidence = clamp01(total / PRIOR_EVIDENCE_MS);
+  return model.occupancy.map(n => (n / total) * evidence + uniform * (1 - evidence));
 }
 
 /**

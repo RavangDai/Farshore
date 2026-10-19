@@ -54,6 +54,8 @@ export const BUFFER_MS = 130;
 export const HIT_DEPTH = 1.6;
 /** Starting chase distance in metres. */
 export const START_GAP = 74;
+/** Waves at the mouth of the cave that carry a single hazard, to teach. */
+export const OPENING_WAVES = 2;
 export const MAX_GAP = 108;
 
 export type ObstacleKind =
@@ -286,7 +288,9 @@ export function newCave(
     pops: [],
     ai: newRuntime("polyphemus", "Polyphemus", tier === 2 ? "Markov lane forecast + utility choice" : tier === 1 ? "Lane tracking (current position)" : "Reactive rotation (fixed sequence)"),
     model: newPlayerModel(3, 1),
-    think: 1400,
+    // Nothing is thrown until the runner has met a hazard or two. The grace is
+    // longer on the gentler difficulties.
+    think: byTier(difficulty, 7000, 5400, 4200),
     lockedAt: -1,
     answered: true,
   };
@@ -345,6 +349,15 @@ type Pattern = { lanes: { lane: number; kind: ObstacleKind }[]; sheepLane?: numb
 function buildPattern(s: CaveState, tier: number): Pattern {
   const r = random(s);
   const base = Math.floor(random(s) * 3);
+  // The first waves teach one idea at a time: a single hazard, two lanes open,
+  // and a sheep alongside so the pickup is learnt before it is needed.
+  if (s.wave < OPENING_WAVES) {
+    return {
+      lanes: [{ lane: base, kind: s.wave === 0 ? "crate" : "pillar" }],
+      sheepLane: (base + 1) % 3,
+      coinLane: (base + 2) % 3,
+    };
+  }
   const jumpKinds: ObstacleKind[] = ["crate", "lowrock", "crack", "fire"];
   const jumpKind = jumpKinds[Math.floor(random(s) * jumpKinds.length)];
   const blockKinds: ObstacleKind[] = ["pillar", "boulder", "debris"];
@@ -534,6 +547,24 @@ export function laneClearDistances(s: CaveState): number[] {
   return out;
 }
 
+/**
+ * Every hazard ahead, grouped by lane and ordered nearest first.
+ *
+ * The opponent needs each hazard's own distance, not just the nearest, so it
+ * can tell a hazard that shares a boulder's arrival from one the runner passes
+ * long before or long after.
+ */
+export function laneHazardList(s: CaveState): { z: number; answerable: boolean }[][] {
+  const out: { z: number; answerable: boolean }[][] = [[], [], []];
+  for (const o of s.obstacles) {
+    if (o.resolved || o.z < 0) continue;
+    const rule = AVOIDANCE[o.kind];
+    out[o.lane].push({ z: o.z, answerable: rule.jump || rule.slide });
+  }
+  for (const lane of out) lane.sort((a, b) => a.z - b.z);
+  return out;
+}
+
 export function perceive(s: CaveState): CavePerception {
   const targeted = [false, false, false];
   for (const b of s.boulders) if (!b.resolved) targeted[b.lane] = true;
@@ -549,6 +580,7 @@ export function perceive(s: CaveState): CavePerception {
     lives: Math.max(0, 3 - s.hits),
     laneBlocked: laneBlockedDistances(s),
     laneClear: laneClearDistances(s),
+    laneHazards: laneHazardList(s),
     laneTargeted: targeted,
     zone: s.zone,
     remainingMs: Math.max(0, s.duration - s.elapsed),

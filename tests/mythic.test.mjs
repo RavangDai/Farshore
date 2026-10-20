@@ -129,6 +129,12 @@ test("save migration retains old clears, introduces new shores, and enforces the
   let save = readArcade(JSON.stringify(old)); assert.equal(save.version, 3); assert.equal(save.records.bow.cleared, "cleared"); assert.equal(save.records.circe.cleared, "pending"); assert.equal(unlocked(save, "bow"), true);
   assert.deepEqual(readArcade(JSON.stringify(save)), save);
   save = assistTrial(save, "lotus"); save = assistTrial(save, "aeolus"); save = assistTrial(save, "circe"); assert.equal(unlocked(save, "scylla"), true); save = assistTrial(save, "scylla"); assert.equal(unlocked(save, "bow"), true);
-  const fresh = { ...newArcade(), started: true }; assert.equal(finishAttempt(fresh, "bow", mythicSummary(newMythic("bow", "normal", standardPlan("bow")))), fresh);
+  // Every trial is open from the start, so attempting "bow" on a brand-new
+  // voyage is a real attempt, not a no-op — it just has not been won yet.
+  const fresh = { ...newArcade(), started: true };
+  const attempted = finishAttempt(fresh, "bow", mythicSummary(newMythic("bow", "normal", standardPlan("bow"))));
+  assert.notEqual(attempted, fresh);
+  assert.equal(attempted.records.bow.attempts, 1);
+  assert.equal(attempted.records.bow.cleared, "pending");
   assert.equal(readArcade('null'), null);
 });

@@ -19,15 +19,17 @@ test('eight encounter engines initialize deterministically and own their clocks'
     assert.equal(gameSummary(game).won, false);
   }
 });
-test('campaign unlocks exactly the next shore and keeps medals through failed replays', () => {
+test('every shore is open from the start of a voyage, and progress keeps medals through failed replays', () => {
   let save = { ...newArcade(), started: true };
   const summary = { won: true, source: 'standard', hits: 0, successes: 3, early: 0, late: 0, misses: 0, laneMs: [0, 0, 0], score: 1200, timeMs: 75000, difficulty: 'normal' };
   for (let i = 0; i < trials.length; i++) {
     const id = trials[i].id;
+    // No completion chain gates any trial: every one is open the whole time,
+    // whether or not earlier ones, or later ones, have been touched yet.
     assert.equal(unlocked(save, id), true);
-    if (i + 1 < trials.length) assert.equal(unlocked(save, trials[i + 1].id), false);
+    if (i + 1 < trials.length) assert.equal(unlocked(save, trials[i + 1].id), true);
     const failed = finishAttempt(save, id, { ...summary, won: false });
-    if (i + 1 < trials.length) assert.equal(unlocked(failed, trials[i + 1].id), false);
+    if (i + 1 < trials.length) assert.equal(unlocked(failed, trials[i + 1].id), true);
     save = finishAttempt(failed, id, summary);
     assert.deepEqual(readArcade(JSON.stringify(save)), save);
     const replay = finishAttempt(save, id, { ...summary, won: false, score: 20 });
@@ -150,5 +152,12 @@ test('five-stop saves migrate without losing clears or awarding medals to new is
   assert.equal(save.version, 3); assert.equal(save.legacy, true);
   for (const id of ['cyclops', 'circe', 'sirens', 'scylla', 'bow']) { assert.equal(save.records[id].cleared, 'cleared'); assert.equal(unlocked(save, id), true); }
   for (const id of ['lotus', 'aeolus', 'calypso']) { assert.equal(save.records[id].cleared, 'pending'); assert.deepEqual(save.records[id].bests, {}); }
-  old.records.circe.cleared = 'pending'; assert.equal(readArcade(JSON.stringify(old)), null);
+  // circe reverting to pending while later trials stay cleared is now a
+  // legitimate shape — every trial is independently open, so there is no
+  // "impossible" ordering left to detect.
+  old.records.circe.cleared = 'pending';
+  const reordered = readArcade(JSON.stringify(old));
+  assert.notEqual(reordered, null);
+  assert.equal(reordered.records.circe.cleared, 'pending');
+  assert.equal(reordered.records.bow.cleared, 'cleared');
 });

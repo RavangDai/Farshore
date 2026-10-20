@@ -13,10 +13,14 @@ function playTiming(id, good = true, practice = false) {
 const started = () => ({ ...newArcade(), started: true });
 const win = () => roundSummary(playTiming("sirens"));
 
-test("campaign completes in order, saves round trips, and failures never remove clears", () => {
+test("every trial is open in any order once a voyage has started, saves round trip, and failures never remove clears", () => {
   let s = started();
-  assert.equal(unlocked(s, "lotus"), true); assert.equal(unlocked(s, "cyclops"), false); assert.equal(unlocked(s, "sirens"), false);
-  assert.equal(finishAttempt(s, "bow", win()), s);
+  // No completion chain gates any trial: every one is playable from the start.
+  assert.equal(unlocked(s, "lotus"), true); assert.equal(unlocked(s, "cyclops"), true); assert.equal(unlocked(s, "sirens"), true);
+  // Finishing a later trial first is a legitimate move, not a no-op.
+  s = finishAttempt(s, "bow", win());
+  assert.equal(s.records.bow.cleared, "cleared");
+  assert.deepEqual(readArcade(JSON.stringify(s)), s, "a save with only a later trial cleared must still round-trip");
   s = assistTrial(s, "lotus"); s = assistTrial(s, "cyclops"); s = assistTrial(s, "aeolus"); s = assistTrial(s, "circe"); s = finishAttempt(s, "sirens", win()); s = assistTrial(s, "scylla"); s = assistTrial(s, "calypso"); s = finishAttempt(s, "bow", roundSummary(playTiming("bow")));
   assert.equal(clearedCount(s), 8); assert.deepEqual(readArcade(JSON.stringify(s)), s);
   const failed = { ...win(), won: false };
@@ -29,12 +33,16 @@ test("assisted trials can be replayed and upgraded to cleared", () => {
   for (let i = 0; i < 5; i++) s = finishAttempt(s, "cyclops", win());
   assert.equal(s.records.cyclops.recent.length, 2); assert.equal(s.records.cyclops.attempts, 6);
 });
-test("malformed, impossible, and out-of-order saves are rejected", () => {
+test("malformed and impossible saves are rejected; out-of-order progress is legitimate", () => {
   assert.equal(readArcade("bad"), null); assert.equal(readArcade("null"), null);
   const s = newArcade(); s.records.bow.cleared = "cleared";
-  assert.equal(readArcade(JSON.stringify(s)), null);
-  const s2 = started(); s2.records.sirens.attempts = 1; assert.equal(readArcade(JSON.stringify(s2)), null);
-  const s3 = started(); s3.records.cyclops.recent = [{ ...win(), laneMs: [-1, 0, 0] }]; s3.records.cyclops.attempts = 1; assert.equal(readArcade(JSON.stringify(s3)), null);
+  assert.equal(readArcade(JSON.stringify(s)), null, "progress on an un-started voyage is still invalid");
+  // A later trial attempted (or cleared) while an earlier one is still pending
+  // is now an intended, legitimate save shape — every trial is open from the
+  // start, so there is no "locked encounter" left to skip.
+  const s2 = started(); s2.records.sirens.attempts = 1;
+  assert.deepEqual(readArcade(JSON.stringify(s2)), s2);
+  const s3 = started(); s3.records.cyclops.recent = [{ ...win(), laneMs: [-1, 0, 0] }]; s3.records.cyclops.attempts = 1; assert.equal(readArcade(JSON.stringify(s3)), null, "a genuinely malformed summary is still rejected");
 });
 test("all Cyclops policies leave a reachable escape lane and separated warnings", () => {
   for (const difficulty of ["easy", "normal", "hard"]) for (const planId of trialFor("cyclops").plans) for (const focus of trialFor("cyclops").focuses) {

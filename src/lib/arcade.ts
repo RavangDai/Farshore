@@ -97,14 +97,14 @@ export function readArcade(raw: string | null): ArcadeSave | null {
       }
       result.records[t.id] = { cleared: r.cleared, attempts: r.attempts, recent: r.recent.map((a: AttemptSummary) => ({ ...a, laneMs: [...a.laneMs] })), bests };
     }
-    // A save cannot skip a locked encounter.
-    if (!v.legacy || v.version === 1) for (let i = 1; i < route.length; i++) if ((v.records[route[i].id].cleared !== "pending" || v.records[route[i].id].attempts > 0) && v.records[route[i - 1].id].cleared === "pending") return null;
     return result;
   } catch { return null; }
 }
+// Every trial is open as soon as a voyage has started — play them in any
+// order, any number of times. `id` is still checked against the real trial
+// list so an unknown id never slips through as "open".
 export function unlocked(save: ArcadeSave, id: TrialId) {
-  const i = trials.findIndex(t => t.id === id);
-  return i >= 0 && save.started && (save.records[id].cleared !== "pending" || trials.slice(0, i).every(t => save.records[t.id].cleared !== "pending"));
+  return save.started && trials.some(t => t.id === id);
 }
 export function medalFor(summary: Pick<AttemptSummary, "hits" | "misses">): Medal { return summary.hits === 0 && summary.misses === 0 ? "gold" : summary.hits + summary.misses <= 2 ? "silver" : "bronze"; }
 export function finishAttempt(save: ArcadeSave, id: TrialId, summary: AttemptSummary): ArcadeSave {

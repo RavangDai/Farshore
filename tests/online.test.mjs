@@ -69,12 +69,14 @@ test('cross-origin writes, unsupported content types and large bodies are reject
   const large=new Request('https://game.test/api/account',{method:'POST',headers:{origin:'https://game.test','content-type':'application/json'},body:' '.repeat(24001)});
   assert.equal((await api(large)).status,413);
 });
-test('locked encounters cannot grant account progress and malformed summaries cannot be saved', async () => {
+test('any encounter can grant account progress once a voyage has started, but malformed summaries cannot be saved', async () => {
   const db=store(), api=createProgressApi(db.repository('alice'),actor('alice'));
   await api(mutation({type:'start'}));
-  assert.equal((await api(mutation({type:'complete',trialId:'bow',summary},1))).status,422);
-  assert.equal((await api(mutation({type:'complete',trialId:'lotus',summary:{...summary,hits:-1}},1))).status,400);
-  assert.equal(db.records.get('alice').revision,1);
+  // Every trial is open from the start — completing "bow" first is legitimate.
+  assert.equal((await api(mutation({type:'complete',trialId:'bow',summary},1))).status,200);
+  assert.equal(db.records.get('alice').save.records.bow.cleared,'cleared');
+  assert.equal((await api(mutation({type:'complete',trialId:'lotus',summary:{...summary,hits:-1}},2))).status,400);
+  assert.equal(db.records.get('alice').revision,2);
 });
 test('network retries are idempotent and reusing a request ID for different content fails', async () => {
   const db=store(),api=createProgressApi(db.repository('alice'),actor('alice'));await api(mutation({type:'start'}));

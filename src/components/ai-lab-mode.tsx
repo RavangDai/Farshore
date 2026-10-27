@@ -18,6 +18,7 @@ export function AILabMode({
   onLaunch,
   onClearRuns,
   onBack,
+  locked,
 }: {
   settings: LabSettings;
   runs: LabRun[];
@@ -25,6 +26,8 @@ export function AILabMode({
   onLaunch: (difficulty: Difficulty) => void;
   onClearRuns: () => void;
   onBack: () => void;
+  /** Why runs cannot start right now (no AI rival connected), if they cannot. */
+  locked?: string;
 }) {
   const [compare, setCompare] = useState(true);
   const trial = trials.find(t => t.id === settings.trial)!;
@@ -136,7 +139,8 @@ export function AILabMode({
           </div>
 
           <div className="fs-lab-launch">
-            <button className="a-btn a-primary" onClick={() => onLaunch(settings.difficulty)}>
+            {locked && <p className="fs-rival-locked" role="status">{locked}</p>}
+            <button className="a-btn a-primary" disabled={!!locked} onClick={() => onLaunch(settings.difficulty)}>
               <Play size={16} /> Run {trial.title} on {difficultyNames[settings.difficulty]}
               <ArrowRight size={16} />
             </button>

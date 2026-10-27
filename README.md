@@ -16,7 +16,7 @@ Choose **New Game** after the cinematic opening, follow the connected island map
 
 The existing arcade engines, audio, local/account saves, optional model preparation, and earlier modes are preserved. Three- and five-stop saves migrate without losing clears. The original Cyclops grid game remains available as practice in its briefing. Details of the adaptation and save behavior are in [ODYSSEY-ADAPTATION.md](ODYSSEY-ADAPTATION.md).
 
-**Arcade Solo** uses learnable game AI. **Adaptive AI** reacts during play. **Prepare with connected model** optionally asks your configured provider to select a constrained local strategy before the encounter. Game code owns scoring, collisions, warnings, and progress.
+Every encounter is played against an **AI rival planned by a connected model**; there is no model-free mode. When a briefing opens, the model reads your recent attempts and picks the rival's strategy and opening taunt. During play that strategy runs locally every frame, while the model writes live commentary from a Homeric bard and from the rival, spoken aloud. Game code owns scoring, collisions, warnings, and progress. Without a reachable model, menus and briefings still open, but encounters cannot start. See [Connect the AI rival](#connect-the-ai-rival-required-to-play).
 
 Guests save on the device; signed-in players synchronize through MongoDB. New Game confirms before resetting a voyage. Failed attempts do not unlock islands. Practice and demonstrations do not advance progress. The retained accessibility passage is explicitly confirmed, marked Assisted, and earns no medal. Unfinished encounters restart after a reload.
 
@@ -109,7 +109,26 @@ No PowerShell security policy change is needed. If npm is not recognized, instal
 
 Changes appear while `npm run dev` is running. In VS Code, **Terminal > Run Task > Run Farshore** is also available after installation.
 
-## Optional local AI
+## Connect the AI rival (required to play)
+
+Any OpenAI-compatible chat server works. The recommended model is **`qwen3:4b-instruct`** (Qwen3-4B-Instruct-2507, Apache 2.0): it scores 69.6 on MMLU-Pro against 22.2 for Llama 3.2 3B, follows JSON schemas reliably, and has no slow thinking phase, which matters for live commentary.
+
+**On this computer.** Install Ollama from https://ollama.com/, run `ollama pull qwen3:4b-instruct`, then set in `.env` and restart the game server:
+
+```env
+FARSHORE_MODEL_URL=http://127.0.0.1:11434/v1/chat/completions
+FARSHORE_MODEL_NAME=qwen3:4b-instruct
+```
+
+On a CPU-only laptop, a rival strategy takes about 15 seconds (shown with progress on the briefing) and a commentary line about 3 to 7 seconds. The bard's opening line is written while you read the briefing, which also warms the model's prompt cache for the encounter. Setting `OLLAMA_NUM_PARALLEL=2` for Ollama keeps both the strategy and commentary prompts cached.
+
+**On Google Colab (free GPU).** Open [`colab/farshore_model_server.ipynb`](colab/farshore_model_server.ipynb) in Colab, choose a T4 GPU runtime and run every cell. It serves the same model plus the Kokoro-82M neural voice behind an API key and a Cloudflare tunnel, then prints the `FARSHORE_*` lines to paste into `.env`. Lines come back in well under a second. Keep the Colab tab open while you play; the address changes each session.
+
+**Online accounts.** Signed-in players add an OpenAI, Groq or OpenRouter connection under Account.
+
+Optional settings: `FARSHORE_COMMENTARY_MODEL` uses a different (smaller, faster) model for commentary than for strategy. `FARSHORE_TTS_URL` points at any OpenAI-compatible `/v1/audio/speech` server (the Colab notebook provides one) for neural voices; without it the browser's built-in speech reads the lines. Voice, commentary and volume can be switched off in Settings.
+
+## Earlier advice voyage: optional local AI
 
 The default **Story mode** uses authored scenes and simple wording rules, not a trained AI model. AI is optional and not installed with this project.
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { difficultyNames, planLabel, planNames, trialFor, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
+import { Keyboard, LogOut, Play, RotateCcw, Settings as SettingsIcon } from "lucide-react";
+import { difficultyNames, planLabel, planNames, trialFor, trials, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
 import { songBeat, statusLabel } from "../lib/mythic";
 import {
   createGame,
@@ -14,6 +15,8 @@ import {
 } from "../lib/arcade-runtime";
 import { adventureStatus } from "../lib/odyssey-games";
 import { caveStatus, START_GAP } from "../lib/encounters/cave-runner";
+import { CommentaryDirector, detectMoment, moment, type CommentaryLine } from "../lib/commentary";
+import type { VoiceId } from "../lib/rivals";
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
@@ -22,8 +25,8 @@ import { GameStage } from "./game-stage";
 import { ArcadeHUD } from "./arcade-hud";
 import { AIInspector, nextMode, type InspectorMode } from "./ai-inspector";
 import { caveFeed } from "../lib/ai/feeds";
-import { CharacterPortrait } from "./farshore-art";
-import { FieldNotes } from "./encounter-intel";
+import { CharacterPortrait, TrialArtwork } from "./farshore-art";
+import { CommentarySubtitle, EncounterCodex } from "./encounter-codex";
 
 const INSPECTOR_KEY = "farshore-ai-inspector-mode";
 
@@ -36,6 +39,8 @@ function loadInspectorMode(): InspectorMode {
   }
   return "insights";
 }
+
+const statusOf = (s: GameState) => (isCave(s) ? caveStatus(s) : isAdventure(s) ? adventureStatus(s) : statusLabel(s));
 
 type Props = {
   id: TrialId;
@@ -63,6 +68,14 @@ type Props = {
   onNote: (lane: number) => void;
   /** 0..1 chase tension, pushed every tick for encounters that have one (Cyclops' chase gap). */
   onIntensity?: (level: number) => void;
+  /** The rival's opening line from the model, spoken over the title card. */
+  taunt?: string;
+  /** The bard's opening line, written while the player read the briefing. */
+  opening?: Promise<string>;
+  /** Live model commentary during play. */
+  commentary?: boolean;
+  onSpeak?: (text: string, voice: VoiceId) => void;
+  onSilence?: () => void;
 };
 
 export function ArcadeRound({
@@ -84,6 +97,11 @@ export function ArcadeRound({
   onFeedback,
   onNote,
   onIntensity,
+  taunt,
+  opening: openingLine,
+  commentary = false,
+  onSpeak,
+  onSilence,
 }: Props) {
   const [round, setRound] = useState(() => createGame(id, difficulty, plan, practice, seed, originalCave));
   const current = useRef(round), finished = useRef(false), held = useRef(new Set<string>());
@@ -92,9 +110,16 @@ export function ArcadeRound({
   const countdown = useRef(3000);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [inspector, setInspector] = useState<InspectorMode>("insights");
+  // The opening countdown doubles as the encounter's title card; a resume
+  // countdown after a pause is just a countdown.
+  const [opening, setOpening] = useState(true);
+  const [log, setLog] = useState<CommentaryLine[]>([]);
   const arena = useRef<HTMLDivElement>(null), overlay = useRef<HTMLDivElement>(null);
-  const callbacks = useRef({ onFinish, onFeedback, onNote, onIntensity }), lastSung = useRef("");
-  callbacks.current = { onFinish, onFeedback, onNote, onIntensity };
+  const callbacks = useRef({ onFinish, onFeedback, onNote, onIntensity, onSpeak, onSilence }), lastSung = useRef("");
+  callbacks.current = { onFinish, onFeedback, onNote, onIntensity, onSpeak, onSilence };
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  const director = useRef<CommentaryDirector | null>(null);
 
   const perspective = isCave(round);
   const trial = originalCave
@@ -107,6 +132,7 @@ export function ArcadeRound({
       }
     : trialFor(id);
   const strategy = originalCave ? planNames[plan.planId] : planLabel(id, plan);
+  const chapter = trials.findIndex(t => t.id === id) + 1;
 
   // A lab run opens straight into the expanded panel — that is the point of
   // the demonstration — rather than the player's own remembered preference.
@@ -118,6 +144,44 @@ export function ArcadeRound({
     } catch {
       /* Storage is optional. */
     }
+  }
+
+  useEffect(() => {
+    if (!commentary) return;
+    const d = new CommentaryDirector({
+      trialId: id,
+      difficulty,
+      onLine: line => {
+        setLog(old => [...old, line].slice(-8));
+        callbacks.current.onSpeak?.(line.text, line.speaker === "bard" ? "bard" : id);
+      },
+    });
+    director.current = d;
+    return () => {
+      d.dispose();
+      director.current = null;
+    };
+  }, [commentary, id, difficulty]);
+
+  // The rival's taunt opens the encounter, once, over the title card.
+  useEffect(() => {
+    if (taunt) callbacks.current.onSpeak?.(taunt, id);
+    return () => callbacks.current.onSilence?.();
+  }, []);
+
+  // The prefetched opening line is used when it is ready in time; otherwise the
+  // director asks for one live.
+  function beginCommentary() {
+    if (!commentary) return;
+    const begun = performance.now();
+    if (!openingLine) { director.current?.offer(moment("start"), current.current, statusOf(current.current)); return; }
+    void openingLine.then(text => {
+      if (!text) { director.current?.offer(moment("start"), current.current, statusOf(current.current)); return; }
+      if (finished.current || performance.now() - begun > 12000) return;
+      director.current?.remember(text);
+      setLog(old => [...old, { id: -1, speaker: "bard" as const, text, moment: "start" as const }].slice(-8));
+      callbacks.current.onSpeak?.(text, "bard");
+    });
   }
 
   function commit(next: GameState) {
@@ -134,6 +198,10 @@ export function ArcadeRound({
     }
     if (next.score > old.score || next.hits > old.hits || next.misses > old.misses)
       callbacks.current.onFeedback(next.score > old.score);
+    // Commentary is derived from what just changed in the engine. The final
+    // word on a round belongs to the results screen.
+    const m = detectMoment(old, next);
+    if (m && m.priority < 3 && phaseRef.current === "active") director.current?.offer(m, next, statusOf(next));
     // The chase gap is real simulation state, read fresh every commit — never a
     // scripted ramp. START_GAP bounds it to a stable 0..1 before it reaches audio.
     if (isCave(next)) callbacks.current.onIntensity?.(clamp01(1 - (next.cyclops.gap - 8) / (START_GAP - 8)));
@@ -156,6 +224,8 @@ export function ArcadeRound({
   }
   function pause() {
     release();
+    director.current?.hold();
+    callbacks.current.onSilence?.();
     setPhase("paused");
   }
   function restartRound() {
@@ -165,6 +235,7 @@ export function ArcadeRound({
     lastSung.current = "";
     held.current.clear();
     setRound(next);
+    setLog([]);
     resume();
   }
   function resume() {
@@ -196,7 +267,11 @@ export function ArcadeRound({
         countdown.current -= delta;
         setCount(Math.max(1, Math.ceil(countdown.current / 1000)));
         if (countdown.current <= 0) {
+          // The bard sets the scene as play begins. On a local model this first
+          // line also warms the prompt cache for the rest of the encounter.
+          if (opening) beginCommentary();
           setPhase("active");
+          setOpening(false);
           return;
         }
       } else {
@@ -347,62 +422,106 @@ export function ArcadeRound({
   }, [phase, inspector]);
 
   const feed = isCave(round) ? caveFeed(round) : null;
-  const status = isCave(round) ? caveStatus(round) : isAdventure(round) ? adventureStatus(round) : statusLabel(round);
+  const status = statusOf(round);
+  const latest = log.at(-1) ?? null;
+  const note = demo
+    ? "AI demonstration · no progress is saved."
+    : practice
+      ? "Practice leaves your voyage progress untouched."
+      : modelPrepared
+        ? "Your AI rival chose this strategy before the round and acts on it live. The game owns every collision, score and unlock."
+        : "Rival logic reacts to you during play.";
 
   const veil =
     phase !== "active" ? (
       <div
         ref={overlay}
-        className="fs-stage-veil"
+        className={`fs-stage-veil${phase === "countdown" && opening ? " fs-title-veil" : ""}`}
         role={phase === "paused" ? "dialog" : "status"}
         aria-modal={phase === "paused" ? true : undefined}
-        aria-label={phase === "paused" ? "Encounter paused" : "Get ready"}
+        aria-label={phase === "paused" ? "Encounter paused" : `${trial.title}. Get ready`}
       >
-        <div className="fs-veil-panel">
-          {phase === "countdown" ? (
-            <>
-              <span className="a-eyebrow">{trial.kind.toUpperCase()}</span>
-              <strong className="fs-veil-count">{count}</strong>
-              <p>{trial.controls}</p>
-            </>
-          ) : (
-            <>
-              <span className="a-eyebrow">TAKE A BREATH</span>
-              <h2>PAUSED</h2>
-              <p>Both rivals and every clock are stopped.</p>
-              {confirmLeave ? (
-                <>
-                  <p>Leave this attempt? Completed encounters stay saved.</p>
-                  <button className="a-btn a-primary" onClick={onLeave}>
-                    Leave attempt
-                  </button>
-                  <button className="a-btn" onClick={() => setConfirmLeave(false)}>
-                    Keep playing
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="a-btn a-primary" onClick={resume}>
-                    Resume with countdown
-                  </button>
-                  <button className="a-btn" onClick={restartRound}>
-                    Restart encounter
-                  </button>
-                  <details className="od-pause-controls">
-                    <summary>Controls</summary>
-                    <p>{trial.controls}</p>
-                  </details>
-                  <button className="a-btn" onClick={onSettings}>
-                    Settings
-                  </button>
-                  <button className="a-btn" onClick={() => setConfirmLeave(true)}>
-                    Return to map
-                  </button>
-                </>
-              )}
-            </>
-          )}
-        </div>
+        {phase === "countdown" && opening ? (
+          <div className="fs-title-card">
+            <TrialArtwork id={id} className="fs-title-art" />
+            <span className="fs-title-bars" aria-hidden="true" />
+            <div className="fs-title-copy">
+              <span className="fs-title-chapter">
+                {demo ? "Demonstration" : practice ? "Practice" : `Encounter ${chapter} of ${trials.length}`} · {trial.kind}
+              </span>
+              <h2>{trial.title}</h2>
+              <div className="fs-title-rival">
+                <CharacterPortrait tile={trial.portrait} label={trial.character} />
+                <div>
+                  <strong>{trial.character}</strong>
+                  <small>{strategy} · {difficultyNames[difficulty]}</small>
+                </div>
+              </div>
+              {taunt && <p className="fs-title-taunt">{taunt}</p>}
+            </div>
+            <div className="fs-title-count" aria-live="assertive">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="44" />
+                <circle key={count} className="fs-count-sweep" cx="50" cy="50" r="44" />
+              </svg>
+              <strong key={count}>{count}</strong>
+            </div>
+            <p className="fs-title-controls">{trial.controls}</p>
+          </div>
+        ) : (
+          <div className="fs-veil-panel">
+            {phase === "countdown" ? (
+              <>
+                <span className="a-eyebrow">BACK TO THE ACTION</span>
+                <strong className="fs-veil-count" key={count}>{count}</strong>
+                <p>{trial.controls}</p>
+              </>
+            ) : (
+              <>
+                <span className="a-eyebrow">TAKE A BREATH</span>
+                <h2>Paused</h2>
+                <p>{trial.title} · {difficultyNames[difficulty]} · Score {round.score.toLocaleString()}. Both rivals and every clock are stopped.</p>
+                {confirmLeave ? (
+                  <>
+                    <p>Leave this attempt? It will not be recorded. Completed encounters stay saved.</p>
+                    <button className="a-btn a-primary fs-rich" onClick={onLeave}>
+                      <LogOut size={17} />
+                      <span><b>Leave attempt</b><small>Return to the voyage map</small></span>
+                    </button>
+                    <button className="a-btn fs-rich" onClick={() => setConfirmLeave(false)}>
+                      <Play size={17} />
+                      <span><b>Keep playing</b><small>Back to the pause menu</small></span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="a-btn a-primary fs-rich" onClick={resume}>
+                      <Play size={17} />
+                      <span><b>Resume</b><small>A 3-second countdown first</small></span>
+                      <kbd>Esc</kbd>
+                    </button>
+                    <button className="a-btn fs-rich" onClick={restartRound}>
+                      <RotateCcw size={17} />
+                      <span><b>Restart encounter</b><small>Same rival strategy, fresh attempt</small></span>
+                    </button>
+                    <details className="od-pause-controls">
+                      <summary><Keyboard size={15} /> Controls</summary>
+                      <p>{trial.controls}</p>
+                    </details>
+                    <button className="a-btn fs-rich" onClick={onSettings}>
+                      <SettingsIcon size={17} />
+                      <span><b>Settings</b><small>Sound, voice, commentary, motion</small></span>
+                    </button>
+                    <button className="a-btn fs-rich" onClick={() => setConfirmLeave(true)}>
+                      <LogOut size={17} />
+                      <span><b>Return to map</b><small>This attempt will not be saved</small></span>
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     ) : null;
 
@@ -423,6 +542,7 @@ export function ArcadeRound({
       overlay={
         <>
           {veil}
+          {phase === "active" && <CommentarySubtitle line={latest} id={id} />}
           {inspector === "insights" && feed && <AIInspector mode="insights" feed={feed} onMode={chooseInspector} />}
         </>
       }
@@ -468,28 +588,17 @@ export function ArcadeRound({
         <span>{round.feedback}</span>
       </p>
       {!perspective && (
-        <aside className="fs-legacy-support">
-          <FieldNotes id={id} />
-          <div className="m-rival-speech">
-            <CharacterPortrait tile={trial.portrait} label={trial.character} />
-            <div>
-              <span>
-                {trial.character} · {strategy}
-              </span>
-              <p aria-live="polite">{round.rivalLine}</p>
-            </div>
-          </div>
-          <p className="m-help">
-            {demo
-              ? "AI demonstration · no progress is saved."
-              : practice
-                ? "Practice leaves your voyage progress untouched."
-                : modelPrepared
-                  ? "The model chose the strategy. The rival takes actions locally during play."
-                  : plan.source === "ai"
-                    ? "Adaptive rival logic reacts during play."
-                    : "Solo rivals use learnable strategies."}
-          </p>
+        <aside className="fs-legacy-support fs-codex" aria-label="Encounter details">
+          <EncounterCodex
+            state={round}
+            character={trial.character}
+            portrait={trial.portrait}
+            strategy={strategy}
+            objective={trial.objective}
+            log={log}
+            note={note}
+            feedback={round.feedback}
+          />
         </aside>
       )}
       <span className="sr-only">

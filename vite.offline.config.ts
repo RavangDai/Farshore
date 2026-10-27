@@ -4,15 +4,17 @@ import { fileURLToPath, URL } from "node:url";
 import { GET, POST } from "./server/turn";
 import { GET as mysteryGET, POST as mysteryPOST } from "./server/mystery";
 import { GET as arcadeGET, POST as arcadePOST } from "./server/arcade";
+import { POST as commentaryPOST } from "./server/commentary";
+import { GET as voiceGET, POST as voicePOST } from "./server/voice";
 
 // Keep FARSHORE_ variables on the server. Never rename them to VITE_.
 function gameApi(): Plugin {
   const handler: Connect.NextHandleFunction = async (req, res, next) => {
     const path = req.url?.split("?")[0];
     if (path === "/") { req.url = "/offline.html" + (req.url?.includes("?") ? "?" + req.url.split("?")[1] : ""); return next(); }
-    if (!["/api/turn", "/api/mystery", "/api/arcade"].includes(path || "")) return next();
-    const get = path === "/api/arcade" ? arcadeGET : path === "/api/mystery" ? mysteryGET : GET;
-    const post = path === "/api/arcade" ? arcadePOST : path === "/api/mystery" ? mysteryPOST : POST;
+    if (!["/api/turn", "/api/mystery", "/api/arcade", "/api/commentary", "/api/voice"].includes(path || "")) return next();
+    const get = path === "/api/arcade" || path === "/api/commentary" ? arcadeGET : path === "/api/voice" ? voiceGET : path === "/api/mystery" ? mysteryGET : GET;
+    const post = path === "/api/arcade" ? arcadePOST : path === "/api/commentary" ? commentaryPOST : path === "/api/voice" ? voicePOST : path === "/api/mystery" ? mysteryPOST : POST;
     const controller = new AbortController();
     res.on("close", () => { if (!res.writableEnded) controller.abort(); });
     try {
@@ -54,7 +56,8 @@ function gameApi(): Plugin {
         );
       res.statusCode = response.status;
       response.headers.forEach((value, key) => res.setHeader(key, value));
-      res.end(await response.text());
+      // Binary-safe: the voice route returns audio.
+      res.end(Buffer.from(await response.arrayBuffer()));
     } catch {
       res.statusCode = 500;
       res.setHeader("Content-Type", "application/json");

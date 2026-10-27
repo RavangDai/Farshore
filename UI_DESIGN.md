@@ -67,3 +67,16 @@ Replaces the previous abstract island-and-route map with eight hand-drawn SVG la
 - Every colour-coded state (locked/unlocked/cleared islands, danger cues, candidate table rows) is paired with an icon, text label, or pattern, not colour alone.
 - Keyboard navigation is complete: arrow-key trial grid navigation, full pause-menu focus trapping, `Escape` to pause/resume, `F3` to cycle the inspector without losing focus context.
 - All interactive SVG/canvas regions carry `role`, `aria-label` and (for the voyage chart's island targets) `aria-pressed`/keyboard activation, not mouse-only hit targets.
+
+## The cinematic layer (`src/farshore-cinema.css`)
+
+Loaded after every other sheet and extending, not replacing, the language above.
+
+- **One orchestrated transition.** Every screen change fades up from night with a gold horizon line drawn across the dark (`.fs-curtain`), instead of per-section entrance effects. Pages inside the chrome rise out of it over 0.75 s.
+- **Opening titles.** The splash opens with anamorphic shutter bars, a slow Ken Burns push on the art, sea mist, the wordmark resolving out of a blur with a band of light crossing the gold, then the tagline and start prompt in sequence.
+- **Prologue.** A full-bleed two-part scene: chapter line, a two-line headline that rises line by line, the cast, then the eight trials as a numbered route of portrait cards. The bard reads it aloud when voice is on.
+- **Encounter title card.** The opening countdown is a title card: chapter, trial name, the rival with the model-chosen strategy, the rival's taunt as a subtitle, and a countdown ring. A resume after a pause is a plain countdown.
+- **Buttons say what they do.** Menu, briefing, pause and result buttons carry a second line with the consequence or context ("Next: Cyclops' Cave · 1 of 8 cleared", "Same rival strategy · nothing is saved", "This attempt will not be saved").
+- **The codex.** Beside every board, a real column (never overlapping the board) holds the objective with live per-encounter trackers read from engine state, the rival card with its strategy and live line, the commentary log, and the bonus challenge. Commentary also appears as a broadcast subtitle over the action.
+- **Phones.** In portrait, the stage stops letterboxing to 16:9 and becomes a scrolling column: sticky HUD, the board at full width, its controls, the cue strip, then the inspector or codex.
+- **Reduced motion** (system setting or the in-game toggle) removes the curtain, mist, shutters, reveals and pulses; information stays in place.

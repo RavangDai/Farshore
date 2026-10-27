@@ -144,7 +144,8 @@ export function ArcadeHUD({
               <Pause size={18} fill="currentColor" strokeWidth={1} />
             </button>
           </div>
-          <InspectorModeSwitch mode={mode} onMode={onMode} />
+          {/* Only the runner publishes an inspector feed; elsewhere the switch would do nothing. */}
+          {cave && <InspectorModeSwitch mode={mode} onMode={onMode} />}
         </div>
       </header>
 
@@ -163,7 +164,7 @@ export function ArcadeHUD({
             <kbd key={key}>{key}</kbd>
           ))}
           <kbd>ESC PAUSE</kbd>
-          <kbd>F3 AI</kbd>
+          {cave && <kbd>F3 AI</kbd>}
         </div>
       </footer>
     </>

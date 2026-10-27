@@ -200,12 +200,21 @@ test("opponent API validates model IDs and preserves fixed game-owned descriptio
     const response = await POST(request(sample)); assert.equal(response.status, 200);
     const body = await response.json(); assert.equal(body.plan.source, "ai"); assert.equal(body.plan.planId, "focused"); assert.match(body.description, /Lane pursuit/);
     assert.equal("score" in body, false);
+    // The taunt travels beside the plan, never inside it.
+    assert.deepEqual(Object.keys(body.plan).sort(), ["focus", "planId", "source"]); assert.equal(body.taunt, "You cannot hide in the left lane, Nobody.");
   }, async (_url, options) => {
-    const body = JSON.parse(options.body); assert.equal(body.response_format.type, "json_schema"); assert.equal(body.max_tokens, 100);
+    const body = JSON.parse(options.body); assert.equal(body.response_format.type, "json_schema"); assert.equal(body.max_tokens, 160);
+    assert.deepEqual(body.response_format.json_schema.schema.required, ["planId", "focus", "taunt"]);
     assert.deepEqual(body.response_format.json_schema.schema.properties.focus.enum, ["left"]);
     assert.deepEqual(body.response_format.json_schema.schema.properties.planId.enum, ["focused", "sweep"]);
-    return providerReply({ planId: "focused", focus: "left" });
+    return providerReply({ planId: "focused", focus: "left", taunt: "“You cannot hide in the left lane, Nobody.”" });
   });
+});
+test("reasoning models' think blocks are ignored and a missing taunt falls back to the rival's quote", async () => {
+  await mockedProvider(async () => {
+    const r = await POST(request(sample)); assert.equal(r.status, 200);
+    const body = await r.json(); assert.equal(body.plan.planId, "sweep"); assert.match(body.taunt, /Nobody/);
+  }, async () => Response.json({ choices: [{ message: { content: "<think>left lane habit</think>" + JSON.stringify({ planId: "sweep", focus: "left" }) } }] }));
 });
 test("hard preparation accepts first-time and timing histories with a single game-derived focus", async () => {
   for (const [trialId, recent, expected, planId] of [
@@ -243,7 +252,7 @@ test("invalid opponent results are uncertain, never silently replaced", async ()
   }
 });
 test("provider failures and rate limits expose recovery without awarding progress", async () => {
-  for (const status of [404, 429, 500]) await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 502); assert.match((await r.json()).error, /standard/); }, async () => Response.json({ error: "test" }, { status }));
+  for (const status of [404, 429, 500]) await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 502); const error = (await r.json()).error; assert.match(error, /retry/i); assert.doesNotMatch(error, /standard/); }, async () => Response.json({ error: "test" }, { status }));
   await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 503); }, async () => { throw new TypeError("offline"); });
   await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 504); }, async () => { throw new DOMException("deadline", "TimeoutError"); });
 });

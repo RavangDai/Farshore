@@ -7,7 +7,8 @@ import { canonicalRequest, checkWriteRequest, json, readJson } from "../server/h
 import type { ModelConnection } from "../server/turn";
 type Get = (connection?: ModelConnection) => Promise<Response>;
 type Post = (request: Request, connection?: ModelConnection) => Promise<Response>;
-export function modelApi(get: Get, post: Post) {
+/** Live commentary asks far more often than strategy preparation, so it has its own budget. */
+export function modelApi(get: Get, post: Post, limits: { bucket: string; perMinute: number } = { bucket: "model", perMinute: 6 }) {
   return async (request: Request) => {
     request = canonicalRequest(request);
     if (request.method === "POST") {
@@ -23,12 +24,12 @@ export function modelApi(get: Get, post: Post) {
           const connection = { url: config.localModelUrl, model: config.localModelName, key: config.localModelKey };
           return request.method === "GET" ? get(connection) : post(request, connection);
         }
-        return request.method === "GET" ? json({ aiConfigured: false, aiAvailable: false, message: "Local rivals are ready. Sign in and add your AI connection in Account to use a model." }) : json({ error: "Sign in and add an AI connection in Account. Local rivals are ready without it." }, 401);
+        return request.method === "GET" ? json({ aiConfigured: false, aiAvailable: false, message: "No AI rival is connected. Sign in and add your AI connection in Account to play." }) : json({ error: "Sign in and add an AI connection in Account to play." }, 401);
       }
       const connection = await database(); if (!connection) throw new Error("Missing database.");
-      if (!await progressRepository(connection.db, connection.client, player.id).limit(request.method === "GET" ? "model-check" : "model", request.method === "GET" ? 8 : 6)) return json({ error: "Too many model requests. Wait a minute and retry." }, 429, { "Retry-After": "60" });
+      if (!await progressRepository(connection.db, connection.client, player.id).limit(request.method === "GET" ? "model-check" : limits.bucket, request.method === "GET" ? 8 : limits.perMinute)) return json({ error: "Too many model requests. Wait a minute and retry." }, 429, { "Retry-After": "60" });
       const model = await modelConnection(connection.db, player.id);
       return request.method === "GET" ? get(model) : post(request, model);
-    } catch { return json({ error: "The AI connection is unavailable. Check your account settings or play with a local rival." }, 503); }
+    } catch { return json({ error: "The AI connection is unavailable. Check your account settings and try again." }, 503); }
   };
 }

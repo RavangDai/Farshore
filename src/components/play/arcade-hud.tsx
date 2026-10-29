@@ -1,11 +1,11 @@
 "use client";
 import { AlertTriangle, Compass, Footprints, Heart, Pause, Sparkles, Trophy } from "lucide-react";
-import { difficultyNames, trialFor, type Difficulty, type TrialId } from "../lib/arcade";
-import { isCave, type GameState } from "../lib/arcade-runtime";
-import { caveProgress, START_GAP } from "../lib/encounters/cave-runner";
-import { encounterCue, fieldNotes } from "../lib/field-notes";
-import { FARSHORE_ATLAS, artPosition } from "./farshore-art";
-import { InspectorModeSwitch, type InspectorMode } from "./ai-inspector";
+import { difficultyNames, trialFor, type Difficulty, type TrialId } from "../../lib/arcade/arcade";
+import { isCave, type GameState } from "../../lib/arcade/arcade-runtime";
+import { caveProgress, START_GAP } from "../../lib/encounters/cave-runner";
+import { encounterCue, fieldNotes } from "../../lib/story/field-notes";
+import { FARSHORE_ATLAS, artPosition } from "../farshore-art";
+import { InspectorModeSwitch, type InspectorMode } from "../ai/ai-inspector";
 
 /** Odysseus' own portrait cell in the cast atlas. */
 const ODYSSEUS_TILE = 8;

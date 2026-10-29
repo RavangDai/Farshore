@@ -23,7 +23,7 @@ The original Vite edition runs with `npm.cmd run dev:offline` on port 5173. `npm
 
 1. Create a MongoDB Atlas cluster or use another MongoDB replica set. A standalone MongoDB process does not support the transactions this app requires. Atlas provides replica sets.
 2. Create a dedicated database user with `readWrite` access to the Farshore database. Limit network access to the app host or development machine.
-3. Copy [.env.example](.env.example) to an ignored `.env.local`. Add `MONGODB_URI`, `MONGODB_DATABASE`, and `BETTER_AUTH_URL`. For a hosted app, the URL must use HTTPS.
+3. Copy [.env.example](../.env.example) to an ignored `.env.local`. Add `MONGODB_URI`, `MONGODB_DATABASE`, and `BETTER_AUTH_URL`. For a hosted app, the URL must use HTTPS.
 4. Add a random `BETTER_AUTH_SECRET` and a separate `FARSHORE_ENCRYPTION_KEY` containing 32 random bytes encoded as base64. Generate them locally; never send them in a chat or commit them.
 5. Add your email provider's SMTP host, port, credentials, and sender address. Account verification and password recovery require real email delivery. Use port 465 with `SMTP_SECURE=true`, or your provider's STARTTLS settings on port 587.
 6. Restart Farshore. The first account request creates the required unique and expiry indexes. Better Auth uses the same MongoDB database as the game.
@@ -52,7 +52,7 @@ Local development also offers Ollama at `http://127.0.0.1:11434/v1`. The existin
 
 This version needs a Node host with outbound MongoDB access, such as a container host or a Next.js-compatible Node service.
 
-Configure the server environment variables from [.env.example](.env.example), use a public HTTPS origin for `BETTER_AUTH_URL`, and set `NODE_ENV=production`. The reverse proxy must replace client-supplied forwarding headers with the actual client IP, and the origin should only be reachable through that proxy. This lets authentication limits distinguish players without accepting forged IP headers.
+Configure the server environment variables from [.env.example](../.env.example), use a public HTTPS origin for `BETTER_AUTH_URL`, and set `NODE_ENV=production`. The reverse proxy must replace client-supplied forwarding headers with the actual client IP, and the origin should only be reachable through that proxy. This lets authentication limits distinguish players without accepting forged IP headers.
 
 For a standard Node service:
 
@@ -65,7 +65,7 @@ npm.cmd start
 
 The app listens on port 3000 by default; the host can set `PORT`. `/api/health` checks that the web process is running. It does not claim the database or mail provider is healthy.
 
-The included [Dockerfile](Dockerfile) produces a standalone Next.js server and runs it as a non-root user. Supply secrets at runtime. Do not copy a local environment file into the image.
+The included [Dockerfile](../Dockerfile) produces a standalone Next.js server and runs it as a non-root user. Supply secrets at runtime. Do not copy a local environment file into the image.
 
 After deployment, check signup and email confirmation, login/logout, password reset, saving across two devices, rejected anonymous/private requests, and a real request with the chosen AI provider. Set up database backups and monitor server errors without logging passwords, reset links, or API keys.
 

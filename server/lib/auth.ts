@@ -5,7 +5,7 @@ import type { Db, MongoClient } from "mongodb";
 import { accountsConfigured, runtimeConfig } from "./runtime-config.ts";
 import { database } from "./mongodb.ts";
 import { consumeLimit } from "./rate-limit.ts";
-import type { OnlinePlayer } from "../src/lib/online.ts";
+import type { OnlinePlayer } from "../../src/lib/online/online.ts";
 
 type Mail = { to: string; subject: string; text: string };
 type AuthConfig = { db: Db; client: MongoClient; secret: string; baseURL: string; sendMail: (mail: Mail) => Promise<void> };

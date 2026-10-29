@@ -11,9 +11,9 @@ import {
   restoreSave,
   route,
   routeAfterChoice,
-} from "../src/lib/game.ts";
-import { chapterLore, mapStops, projectMap } from "../src/lib/odyssey.ts";
-import { sceneArt, prologue } from "../src/lib/cast.ts";
+} from "../src/lib/voyage/game.ts";
+import { chapterLore, mapStops, projectMap } from "../src/lib/story/odyssey.ts";
+import { sceneArt, prologue } from "../src/lib/story/cast.ts";
 const wind = encounters.find((e) => e.id === "winds");
 test("PPT contrast: commands provoke refusal, supportive warning earns trust", () => {
   assert.equal(storyDecision(wind, "Do not open the bag.", 50).followed, false);

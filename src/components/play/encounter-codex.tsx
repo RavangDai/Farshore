@@ -1,12 +1,12 @@
 "use client";
 import { Anchor, BrainCircuit, Feather, Flame, Heart, Music, Shield, Ship, Sparkles, Target, Timer, Wind } from "lucide-react";
 import type { ReactNode } from "react";
-import type { TrialId } from "../lib/arcade";
-import { isAdventure, isCave, type GameState } from "../lib/arcade-runtime";
-import type { CommentaryLine } from "../lib/commentary";
-import { voices } from "../lib/rivals";
-import { CharacterPortrait } from "./farshore-art";
-import { FieldNotes } from "./encounter-intel";
+import type { TrialId } from "../../lib/arcade/arcade";
+import { isAdventure, isCave, type GameState } from "../../lib/arcade/arcade-runtime";
+import type { CommentaryLine } from "../../lib/arcade/commentary";
+import { voices } from "../../lib/arcade/rivals";
+import { CharacterPortrait } from "../farshore-art";
+import { FieldNotes } from "../ai/encounter-intel";
 
 type Track = { icon: ReactNode; label: string; value: string; fill?: number; pips?: [number, number]; warn?: boolean };
 

@@ -1,7 +1,7 @@
-import { getAuth } from "../../../lib/auth";
-import { runtimeConfig } from "../../../lib/runtime-config";
+import { getAuth } from "../../../server/lib/auth";
+import { runtimeConfig } from "../../../server/lib/runtime-config";
 import { createAuthApi } from "../../../server/auth-api";
-import { checkWriteRequest, json } from "../../../server/http";
+import { checkWriteRequest, json } from "../../../server/lib/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function POST(request: Request) {

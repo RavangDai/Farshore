@@ -1,9 +1,9 @@
 import { LockKeyhole, Trophy, ArrowRight, Map, LayoutGrid, Check, Ship } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
-import { fieldNotes } from "../lib/field-notes";
+import { fieldNotes } from "../../lib/story/field-notes";
 import { Brain } from "lucide-react";
-import { trials, unlocked, difficultyNames, clearedCount, type ArcadeSave, type TrialId, type Difficulty } from "../lib/arcade";
-import { TrialArtwork } from "./farshore-art";
+import { trials, unlocked, difficultyNames, clearedCount, type ArcadeSave, type TrialId, type Difficulty } from "../../lib/arcade/arcade";
+import { TrialArtwork } from "../farshore-art";
 import { VoyageChart } from "./voyage-chart";
 
 const shortNames: Record<TrialId, string> = { lotus: "Lotus-Eaters", cyclops: "Cyclops’ Cave", aeolus: "Aeolus", circe: "Circe’s Palace", sirens: "Sirens’ Passage", scylla: "Scylla & Charybdis", calypso: "Calypso’s Raft", bow: "Ithaca" };

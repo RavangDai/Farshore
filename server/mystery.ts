@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import { parseCase, repliesFor, actors } from "../src/lib/mystery.ts";
+import { parseCase, repliesFor, actors } from "../src/lib/mystery/mystery.ts";
 import type { ModelConnection } from "./turn.ts";
 export { GET } from "./turn.ts";
 

@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import { assistTrial, finishAttempt, newArcade, readArcade, unlocked, validSummary, type ArcadeSave, type AttemptSummary } from "./arcade.ts";
+import { assistTrial, finishAttempt, newArcade, readArcade, unlocked, validSummary, type ArcadeSave, type AttemptSummary } from "../arcade/arcade.ts";
 
 export const preferencesSchema = z.object({
   revision: z.literal(2), difficulty: z.enum(["easy", "normal", "hard"]),

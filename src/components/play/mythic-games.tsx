@@ -1,7 +1,7 @@
-import { useFarshoreAtlas, useFarshoreSprites, drawFarshoreTile, drawFarshoreSprite } from "../lib/farshore-rendering";
-import { sceneFrame, torchlight, motes } from "../lib/scene-details";
+import { useFarshoreAtlas, useFarshoreSprites, drawFarshoreTile, drawFarshoreSprite } from "../../lib/render/farshore-rendering";
+import { sceneFrame, torchlight, motes } from "../../lib/render/scene-details";
 import { useEffect, useRef, type CSSProperties } from "react";
-import { archeryShot, columnHeight, rotatePiece, songBeat, tierOf, TILE_NAMES, type Action, type BowState, type GridState, type MythicState, type PotionState, type SongState, type StraitState, type Tile } from "../lib/mythic";
+import { archeryShot, columnHeight, rotatePiece, songBeat, tierOf, TILE_NAMES, type Action, type BowState, type GridState, type MythicState, type PotionState, type SongState, type StraitState, type Tile } from "../../lib/encounters/mythic";
 
 type Controls = { active: boolean; act: (action: Action) => void };
 function Sheep() { return <svg viewBox="0 0 40 32" aria-hidden="true"><path fill="#d9d7bd" d="M5 8h25v18H5zM10 3h16v7H10z"/><path fill="#66727a" d="M26 9h11v14H26zM8 24h5v8H8zM22 24h5v8h-5z"/><path fill="#142732" d="M33 12h3v3h-3z"/></svg>; }

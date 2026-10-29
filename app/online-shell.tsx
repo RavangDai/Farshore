@@ -3,9 +3,9 @@ import dynamic from "next/dynamic";
 import { FarshoreLogo } from "../src/components/farshore-art";
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { z } from "zod/v3";
-import { ARCADE_PREFS, ARCADE_SAVE, readArcade } from "../src/lib/arcade";
-import { mutationSchema, preferencesSchema, type OnlineGame, type OnlinePlayer, type OnlineRecord, type ProgressCommand } from "../src/lib/online";
-import { providerDetails, type ModelProvider, type ModelSettings } from "../src/lib/ai-account";
+import { ARCADE_PREFS, ARCADE_SAVE, readArcade } from "../src/lib/arcade/arcade";
+import { mutationSchema, preferencesSchema, type OnlineGame, type OnlinePlayer, type OnlineRecord, type ProgressCommand } from "../src/lib/online/online";
+import { providerDetails, type ModelProvider, type ModelSettings } from "../src/lib/online/ai-account";
 
 type Pending = z.infer<typeof mutationSchema>;
 type Status = "device" | "loading" | "saved" | "saving" | "pending" | "conflict" | "expired";
@@ -15,7 +15,7 @@ function FarshoreLoading() {
   return <main className="o-loading"><h1><FarshoreLogo/></h1><span className="fs-loading-tagline">Eight Trials. One Journey Home.</span><span className="fs-loading-track" aria-hidden="true"><i/></span><p>Preparing your journey...</p></main>;
 }
 const ArcadeGame = dynamic(() => import("../src/ArcadeApp"), { ssr: false, loading: FarshoreLoading });
-const AdviceGame = dynamic(() => import("../src/App"), { ssr: false, loading: FarshoreLoading });
+const AdviceGame = dynamic(() => import("../src/VoyageApp"), { ssr: false, loading: FarshoreLoading });
 const MysteryGame = dynamic(() => import("../src/MysteryApp"), { ssr: false, loading: FarshoreLoading });
 async function api(path: string, method = "GET", body?: unknown, signal?: AbortSignal) {
   const response = await fetch(path, { method, credentials: "same-origin", ...(body !== undefined ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}), signal: signal || AbortSignal.timeout(18000) });

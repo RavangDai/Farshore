@@ -3,8 +3,8 @@ import { database } from "./mongodb";
 import { modelConnection } from "./ai-account";
 import { progressRepository } from "./progress-repository";
 import { runtimeConfig } from "./runtime-config";
-import { canonicalRequest, checkWriteRequest, json, readJson } from "../server/http";
-import type { ModelConnection } from "../server/turn";
+import { canonicalRequest, checkWriteRequest, json, readJson } from "./http";
+import type { ModelConnection } from "../turn";
 type Get = (connection?: ModelConnection) => Promise<Response>;
 type Post = (request: Request, connection?: ModelConnection) => Promise<Response>;
 /** Live commentary asks far more often than strategy preparation, so it has its own budget. */

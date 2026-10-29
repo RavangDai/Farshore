@@ -8,24 +8,24 @@ import sys
 import zipfile
 import xml.etree.ElementTree as ET
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.tmp/pdf-review-tools'))
 from pypdf import PdfReader
 
-OUT = ROOT / 'Farshore Context and Assisment/docs/assignment/phase2'
+OUT = ROOT / 'docs/coursework/docs/assignment/phase2'
 ARCHIVE = OUT / 'Farshore-Phase-2-Submission.zip'
 PREFIX = 'Farshore-Phase-2/'
 
 extra = [
-    'Farshore Context and Assisment/docs/assignment/original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf',
-    'Farshore Context and Assisment/docs/assignment/original/Farshore_Phase12nd.pptx',
-    'Farshore Context and Assisment/docs/AI-VERIFICATION.md',
-    'Farshore Context and Assisment/docs/ai-verification-2026-09-23.json',
-    'src/App.tsx', 'server/turn.ts', 'src/lib/dictation.ts',
-    'src/lib/turn.ts', 'src/lib/game.ts', 'src/lib/odyssey.ts',
-    'scripts/phase2-spike.mjs', 'scripts/phase2-content.mjs',
-    'scripts/build-phase2.mjs', 'scripts/render-phase2.py',
-    'scripts/verify-phase2-powerpoint.ps1', 'scripts/pack-phase2.py',
+    'docs/coursework/docs/assignment/original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf',
+    'docs/coursework/docs/assignment/original/Farshore_Phase12nd.pptx',
+    'docs/coursework/docs/AI-VERIFICATION.md',
+    'docs/coursework/docs/ai-verification-2026-09-23.json',
+    'src/VoyageApp.tsx', 'server/turn.ts', 'src/lib/speech/dictation.ts',
+    'src/lib/voyage/turn.ts', 'src/lib/voyage/game.ts', 'src/lib/story/odyssey.ts',
+    'scripts/coursework/phase2-spike.mjs', 'scripts/coursework/phase2-content.mjs',
+    'scripts/coursework/build-phase2.mjs', 'scripts/coursework/render-phase2.py',
+    'scripts/coursework/verify-phase2-powerpoint.ps1', 'scripts/coursework/pack-phase2.py',
     'public/art/title.png', 'package.json', 'package-lock.json',
 ]
 files = sorted(p for p in OUT.rglob('*') if p.is_file() and p != ARCHIVE)
@@ -99,7 +99,7 @@ assert sum(f.get('status') in [400, 404] and f.get('rawBody') is not None for f 
 
 start = '''# Farshore Phase 2
 
-Open `Farshore Context and Assisment/docs/assignment/phase2/README.md` for the package guide.
+Open `docs/coursework/docs/assignment/phase2/README.md` for the package guide.
 Open that folder's `index.html` for the offline design reference.
 
 The design packet covers the architecture, five user flows, edge cases and 26 wireframes.

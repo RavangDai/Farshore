@@ -1,6 +1,6 @@
 import { GET as get, POST as post } from "../../../server/turn";
-import { modelApi } from "../../../lib/model-api";
-import { canonicalRequest, checkWriteRequest, json, readJson } from "../../../server/http";
+import { modelApi } from "../../../server/lib/model-api";
+import { canonicalRequest, checkWriteRequest, json, readJson } from "../../../server/lib/http";
 export const dynamic = "force-dynamic";
 export const GET = modelApi(get,post);
 export async function POST(request: Request) {

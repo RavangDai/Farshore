@@ -1,4 +1,4 @@
-import { validPlan, type AttemptSummary, type Difficulty, type OpponentPlan } from "./arcade.ts";
+import { validPlan, type AttemptSummary, type Difficulty, type OpponentPlan } from "../arcade/arcade.ts";
 
 export type AdventureId = "lotus" | "cyclops" | "aeolus" | "calypso";
 type Point = { x: number; y: number };

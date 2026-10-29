@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { GET, POST } from "../server/turn.ts";
-import { MODEL_TIMEOUT_MS } from "../src/lib/turn.ts";
-import { encounters } from "../src/lib/game.ts";
+import { MODEL_TIMEOUT_MS } from "../src/lib/voyage/turn.ts";
+import { encounters } from "../src/lib/voyage/game.ts";
 
 const lotus = encounters.find((e) => e.id === "lotus");
 const advice = "Let us return to the ship and keep our promise to our families.";

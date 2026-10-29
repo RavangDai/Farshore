@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newArcade } from '../src/lib/arcade.ts';
-import { defaultPreferences, applyProgressCommand, commandSchema } from '../src/lib/online.ts';
+import { newArcade } from '../src/lib/arcade/arcade.ts';
+import { defaultPreferences, applyProgressCommand, commandSchema } from '../src/lib/online/online.ts';
 import { createProgressApi, RevisionConflict, RequestConflict } from '../server/progress-api.ts';
-import { decryptSecret, encryptSecret } from '../server/secrets.ts';
-import { modelSettingsSchema } from '../src/lib/ai-account.ts';
+import { decryptSecret, encryptSecret } from '../server/lib/secrets.ts';
+import { modelSettingsSchema } from '../src/lib/online/ai-account.ts';
 import { POST as prepare } from '../server/arcade.ts';
-import { canonicalRequest, checkWriteRequest } from '../server/http.ts';
+import { canonicalRequest, checkWriteRequest } from '../server/lib/http.ts';
 
 function store() {
   const records = new Map(), requests = new Map();

@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import type { ModelConnection } from "./turn.ts";
+import type { ModelConnection } from "../turn.ts";
 
 const completion = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1) });
 

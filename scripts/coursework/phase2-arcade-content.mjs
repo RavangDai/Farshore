@@ -93,7 +93,7 @@ export const wireframes = [
 export const sourceList = [
  ['Professor\'s Phase 2 brief','original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf','Architecture 20%, flows 30%, wireframes 30%, spike 10%, presentation 10%. 10-minute talk plus 3-5-minute Q&A.'],
  ['Phase 1 proposal','original/Farshore_Phase12nd.pptx','Slide 4 sketches Maya, Daniel and Rosa. It says six interviews were booked, not completed.'],
- ['Current prototype','src/ArcadeApp.tsx; src/lib/arcade.ts; src/lib/mythic.ts; server/arcade.ts','Current screens, five engines, numeric summaries, validation and fixed authored rules.'],
+ ['Current prototype','src/ArcadeApp.tsx; src/lib/arcade/arcade.ts; src/lib/encounters/mythic.ts; server/arcade.ts','Current screens, five engines, numeric summaries, validation and fixed authored rules.'],
  ['October 8 spike','evidence/phase2-arcade-spike-2026-10-08.json','Six actual calls, exact provider outputs and real failure bodies.'],
  ['Ollama structured outputs','https://docs.ollama.com/capabilities/structured-outputs','Local schema-constrained output. Accessed October 8, 2026.'],
  ['Ollama compatibility','https://docs.ollama.com/api/openai-compatibility','Local chat completions integration. Accessed October 8, 2026.'],

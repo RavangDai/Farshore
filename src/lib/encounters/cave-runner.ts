@@ -34,7 +34,7 @@ import {
   type CavePerception,
   type CaveZone,
 } from "../ai/cyclops.ts";
-import type { AttemptSummary, OpponentPlan } from "../arcade.ts";
+import type { AttemptSummary, OpponentPlan } from "../arcade/arcade.ts";
 
 // ---------------------------------------------------------------------------
 // Tuning
@@ -817,9 +817,10 @@ export function tickCave(state: CaveState, delta: number): CaveState {
   }
 
   for (const b of s.boulders) {
-    if (b.resolved) continue;
+    // A landed boulder keeps ageing, so it leaves the state once its dust has
+    // settled instead of being carried for the rest of the run.
     b.t += dt;
-    if (b.t >= b.total) resolveBoulder(s, b);
+    if (!b.resolved && b.t >= b.total) resolveBoulder(s, b);
   }
   s.boulders = s.boulders.filter(b => !b.resolved || b.t < b.total + 500);
 

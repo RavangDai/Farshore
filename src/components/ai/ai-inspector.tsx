@@ -23,7 +23,7 @@ import {
   type AIRuntime,
   type AIStage,
   type Difficulty,
-} from "../lib/ai/types";
+} from "../../lib/ai/types";
 
 export type InspectorMode = "immersive" | "insights" | "lab";
 export const INSPECTOR_MODES: InspectorMode[] = ["immersive", "insights", "lab"];

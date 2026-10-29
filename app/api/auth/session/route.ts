@@ -1,6 +1,6 @@
-import { verifiedPlayer } from "../../../../lib/auth";
-import { accountsConfigured, runtimeConfig } from "../../../../lib/runtime-config";
-import { json } from "../../../../server/http";
+import { verifiedPlayer } from "../../../../server/lib/auth";
+import { accountsConfigured, runtimeConfig } from "../../../../server/lib/runtime-config";
+import { json } from "../../../../server/lib/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {

@@ -1,7 +1,7 @@
 import type { Db, MongoClient } from "mongodb";
-import { defaultPreferences, preferencesSchema, type OnlineRecord } from "../src/lib/online.ts";
-import { newArcade, readArcade } from "../src/lib/arcade.ts";
-import { RequestConflict, RevisionConflict, type ProgressRepository } from "../server/progress-api.ts";
+import { defaultPreferences, preferencesSchema, type OnlineRecord } from "../../src/lib/online/online.ts";
+import { newArcade, readArcade } from "../../src/lib/arcade/arcade.ts";
+import { RequestConflict, RevisionConflict, type ProgressRepository } from "../progress-api.ts";
 import { consumeLimit } from "./rate-limit.ts";
 
 type Campaign = OnlineRecord & { userId: string };

@@ -1,12 +1,12 @@
 # FARSHORE - Eight Trials. One Journey Home.
 
-**FARSHORE** is the game's official name; Homer's *The Odyssey* is its story inspiration. The illustrated arcade interface follows the supplied FARSHORE concept, with an interactive eight-trial selector, temple menus, matching character art, and a shared arcade HUD. See [visual design and asset prompts](FARSHORE-VISUAL-DESIGN.md).
+**FARSHORE** is the game's official name; Homer's *The Odyssey* is its story inspiration. The illustrated arcade interface follows the supplied FARSHORE concept, with an interactive eight-trial selector, temple menus, matching character art, and a shared arcade HUD. See [visual design and asset prompts](docs/FARSHORE-VISUAL-DESIGN.md).
 
 ## Immersive gameplay stage and explainable AI
 
-Gameplay now opens in a full-viewport, fixed-16:9 stage (`F` for fullscreen, `Escape` to pause) instead of a small canvas embedded in the page — see [UI_DESIGN.md](UI_DESIGN.md). Cyclops' Cave was rebuilt as a true perspective three-lane runner with a real explainable-AI opponent: every decision Polyphemus makes is recorded with the actual candidates it scored, the one it chose, a grounded reason, and a fairness guarantee that it withholds any attack it can't prove is survivable. Press **F3** during any encounter to cycle Immersive → AI Insights → AI Lab and watch that reasoning live. A dedicated **AI Lab** (Professor mode, from the main menu) lets you run any encounter at any difficulty, side by side, with no effect on your campaign save. Full detail in [AI_ARCHITECTURE.md](AI_ARCHITECTURE.md), [GAMEPLAY_DESIGN.md](GAMEPLAY_DESIGN.md), and [UI_DESIGN.md](UI_DESIGN.md) — including an honest accounting of which of the eight encounters have their next-generation AI controller wired in versus authored-and-reviewed-but-pending.
+Gameplay now opens in a full-viewport, fixed-16:9 stage (`F` for fullscreen, `Escape` to pause) instead of a small canvas embedded in the page — see [UI_DESIGN.md](docs/UI_DESIGN.md). Cyclops' Cave was rebuilt as a true perspective three-lane runner with a real explainable-AI opponent: every decision Polyphemus makes is recorded with the actual candidates it scored, the one it chose, a grounded reason, and a fairness guarantee that it withholds any attack it can't prove is survivable. Press **F3** during any encounter to cycle Immersive → AI Insights → AI Lab and watch that reasoning live. A dedicated **AI Lab** (Professor mode, from the main menu) lets you run any encounter at any difficulty, side by side, with no effect on your campaign save. Full detail in [AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md), [GAMEPLAY_DESIGN.md](docs/GAMEPLAY_DESIGN.md), and [UI_DESIGN.md](docs/UI_DESIGN.md) — including an honest accounting of which of the eight encounters have their next-generation AI controller wired in versus authored-and-reviewed-but-pending.
 
-The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](ONLINE-SETUP.md).
+The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](docs/ONLINE-SETUP.md).
 
 The paragraphs below describe gameplay and the earlier local setup. For the current online build and security boundary, use the setup guide and [SECURITY.md](SECURITY.md).
 
@@ -14,7 +14,7 @@ An eight-encounter Greek mythology arcade adventure: Lotus maze rescue, Cyclops 
 
 Choose **New Game** after the cinematic opening, follow the connected island map, and complete each encounter to unlock the next. Every island has Easy, Medium, and Hard difficulty, its own briefing, practice, pause/resume, retries, and saved scores and medals. Keyboard and touch controls work without sound. The How to Play screen includes a real A* rescue demonstration.
 
-The existing arcade engines, audio, local/account saves, optional model preparation, and earlier modes are preserved. Three- and five-stop saves migrate without losing clears. The original Cyclops grid game remains available as practice in its briefing. Details of the adaptation and save behavior are in [ODYSSEY-ADAPTATION.md](ODYSSEY-ADAPTATION.md).
+The existing arcade engines, audio, local/account saves, optional model preparation, and earlier modes are preserved. Three- and five-stop saves migrate without losing clears. The original Cyclops grid game remains available as practice in its briefing. Details of the adaptation and save behavior are in [ODYSSEY-ADAPTATION.md](docs/ODYSSEY-ADAPTATION.md).
 
 Every encounter is played against an **AI rival planned by a connected model**; there is no model-free mode. When a briefing opens, the model reads your recent attempts and picks the rival's strategy and opening taunt. During play that strategy runs locally every frame, while the model writes live commentary from a Homeric bard and from the rival, spoken aloud. Game code owns scoring, collisions, warnings, and progress. Without a reachable model, menus and briefings still open, but encounters cannot start. See [Connect the AI rival](#connect-the-ai-rival-required-to-play).
 
@@ -38,7 +38,7 @@ The journey now starts with the Cicones after Troy, includes the Laestrygonians 
 
 The map uses real Natural Earth coastlines, selectable shores, route progress, zoom, and source notes. Legendary locations are marked as illustrative; Oceanus is symbolic. It is a narrative map, not a proven historical itinerary.
 
-To rebuild its vector layer, download the [Natural Earth land GeoJSON](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_land.geojson), then run `node scripts/build-map.mjs <path-to-ne_50m_land.geojson>` from the project root. This regenerates `src/lib/map-land.ts` without adding a runtime dependency.
+To rebuild its vector layer, download the [Natural Earth land GeoJSON](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_land.geojson), then run `node scripts/build-map.mjs <path-to-ne_50m_land.geojson>` from the project root. This regenerates `src/lib/story/map-land.ts` without adding a runtime dependency.
 
 Choices can change the route: keeping the wind bag sealed leads to an earlier arrival; sparing Helios’s cattle preserves the remaining companions and avoids the shipwreck and captivity. Otherwise, the full route follows fifteen chapters. Old saves retain their counsel and scores; new chapters are added ahead of an ongoing voyage. Begin a new voyage to experience the revised story from the Cicones. Replay the introduction from **How to play** without resetting progress.
 
@@ -81,31 +81,47 @@ npm.cmd run dev
 
 No PowerShell security policy change is needed. If npm is not recognized, install Node and restart VS Code. For a different port, run `npm run dev -- --port 53173` and open the printed address. Match `BETTER_AUTH_URL` to that origin when enabling accounts.
 
-## Edit the game
+## Project layout
 
-| File | Purpose |
+```text
+app/                 Next.js pages and API routes (thin wrappers around server/)
+server/              Request handlers shared by Next.js and the offline Vite server
+  lib/               Server-only helpers: accounts, database, model calls, the built-in voice
+src/
+  ArcadeApp.tsx      The eight-trial arcade (the default game)
+  VoyageApp.tsx      The earlier advice voyage (?voyage)
+  MysteryApp.tsx     The mystery case (?mystery)
+  components/
+    play/            The encounter screen: stage, HUD, the three engines' views
+    ai/              AI inspector and AI Lab
+    menu/            Voyage map, trial selection, preferences
+    voyage/          The advice voyage's portraits, speech bubbles and map
+    ui/              Shared buttons, dialogs and text areas
+  lib/
+    arcade/          Trials, saves, the game runtime, commentary and the rivals' voices
+    encounters/      The game engines: the cave runner, mythic duels, adventures
+    ai/              The explainable AI opponents
+    render/          The 3D cave and sprite drawing
+    audio/           Music, sound effects, ambience, and what each game event sounds like
+    speech/          Spoken voices and dictation
+    story/           Lore, cast, and the Mediterranean map
+    voyage/, mystery/, online/   The earlier modes and online saves
+  styles/            Stylesheets
+public/              Art and fonts
+tests/               Node test suites (npm test)
+scripts/             Development and production launchers; coursework/ builds the Phase 2 packages
+docs/                Design notes, credits, coursework and screenshots
+colab/               Notebook that serves the model and voice from Google Colab
+```
+
+| To change | Edit |
 | --- | --- |
-| `src/MysteryApp.tsx` | Mystery title, investigation UI, journal, inventory, and saves |
-| `src/lib/mystery.ts` | Case truth, clues, puzzle prerequisites, and objective stars |
-| `server/mystery.ts` | Validated AI question matching to authored character answers |
-| `src/mystery.css` | Mystery layout, scene hotspots, and responsive styles |
-| `src/App.tsx` | Title screen, intro, UI, sound, speech, saves |
-| `src/styles.css` | Retro theme, motion, responsive layouts |
-| `src/components/speech-bubble.tsx` | Character dialogue and text reveal |
-| `src/components/scene-water.tsx` | Water currents, foam, and landscape masks |
-| `src/components/captain-portrait.tsx` | Pixel facial features and character acting |
-| `src/lib/character-performance.ts` | Scene and decision based expressions |
-| `src/lib/voyage-audio.ts` | Original music, ambience, and sound effects |
-| `src/lib/game.ts` | Encounters, scoring, trust, scripted decisions |
-| `src/lib/cast.ts` | Characters, lore, scene assignments, intro |
-| `server/turn.ts` | Dialogue validation and optional model connection |
-| `app/online-shell.tsx` | Accounts, AI settings, and progress synchronization |
-| `lib/auth.ts` | Better Auth and email/password security |
-| `lib/mongodb.ts` | MongoDB connection and indexes |
-| `lib/progress-repository.ts` | Transactional account saves |
-| `vite.offline.config.ts` | Original local edition's server and API wiring |
-| `public/art/` | Title, scenery, and portrait atlases |
-| `public/fonts/` | Pixel font and license |
+| A trial's rules or difficulty | `src/lib/encounters/` and `src/lib/arcade/arcade.ts` |
+| A character's voice | `src/lib/arcade/rivals.ts` |
+| A sound effect | `src/lib/audio/sounds.ts` |
+| When a sound plays | `src/lib/audio/cues.ts` |
+| An encounter's ambience | `src/lib/audio/ambience.ts` |
+| The music | `src/lib/audio/voyage-audio.ts` |
 
 Changes appear while `npm run dev` is running. In VS Code, **Terminal > Run Task > Run Farshore** is also available after installation.
 
@@ -126,7 +142,15 @@ On a CPU-only laptop, a rival strategy takes about 15 seconds (shown with progre
 
 **Online accounts.** Signed-in players add an OpenAI, Groq or OpenRouter connection under Account.
 
-Optional settings: `FARSHORE_COMMENTARY_MODEL` uses a different (smaller, faster) model for commentary than for strategy. `FARSHORE_TTS_URL` points at any OpenAI-compatible `/v1/audio/speech` server (the Colab notebook provides one) for neural voices; without it the browser's built-in speech reads the lines. Voice, commentary and volume can be switched off in Settings.
+Optional settings: `FARSHORE_COMMENTARY_MODEL` uses a different (smaller, faster) model for commentary than for strategy. Voices are covered in [Voices and sound](#voices-and-sound). Voice, commentary and volume can be switched off in Settings.
+
+## Voices and sound
+
+**Voices.** The bard and every rival speak with natural Kokoro-82M voices, run inside the game server: no API key or extra service. The first time a line is spoken, the server downloads the voice model (about 180 MB) into `.cache/models`; until it finishes, your browser reads the lines, and **Settings** shows the progress. Each character has their own voice and is placed in their world: Polyphemus booms through the cave, the Sirens sing as a doubled chorus, Poseidon's storm rolls with reverb. A line is spoken a sentence at a time, so the voice starts while the rest is still being made.
+
+On an 8-thread laptop a line is ready in about 1 to 3 seconds. `FARSHORE_TTS=browser` turns the built-in voice off, and `FARSHORE_TTS_URL` sends lines to any OpenAI-compatible `/v1/audio/speech` server instead, such as the Colab notebook. When the browser speaks, Farshore picks its most natural installed voices (Edge's "Natural" voices, Google's, or Apple's Premium ones) rather than the default.
+
+**Sound.** Every sound effect is made in code: plucked lyre strings, struck bronze and stone, gravel, splashes, wind, rain, thunder, and Polyphemus' roar are physical models rendered when an encounter's briefing opens, with variations so no two repeats match. Each encounter has its own ambience (cave drips and torchlight, a storm, the strait's whirlpool) and its own reverb. Sounds follow what happens in the game, so footsteps quicken with your speed and the giant's footfalls grow as he closes in.
 
 ## Earlier advice voyage: optional local AI
 
@@ -142,7 +166,7 @@ FARSHORE_MODEL_NAME=llama3.2:3b
 FARSHORE_API_KEY=
 ```
 
-Local Llama 3.2 3B was connected and verified through the API and browser on September 23, 2026. See the [setup guide](<Farshore Context and Assisment/docs/AI-SETUP.md>) and [verification record](<Farshore Context and Assisment/docs/AI-VERIFICATION.md>) for timings and remaining decision-consistency limitations. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
+Local Llama 3.2 3B was connected and verified through the API and browser on September 23, 2026. See the [setup guide](<docs/coursework/docs/AI-SETUP.md>) and [verification record](<docs/coursework/docs/AI-VERIFICATION.md>) for timings and remaining decision-consistency limitations. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
 
 Keep Ollama running while you play. Settings checks the model service's `/models` endpoint and confirms that the configured model is listed. If Ollama was closed, open it and select **Check connection again**. A successful status check confirms availability; a real turn still needs to produce a valid reply. The app allows up to 90 seconds for a reply, including loading the model. A failed turn keeps your counsel and offers **Try AI again** or **Send in Story mode**. Story mode is used only when you choose it.
 
@@ -158,4 +182,4 @@ Build checks TypeScript and creates the production Next.js app. Preview serves t
 
 Guest saves and earlier-mode progress are scoped to the browser and local address. Signed-in arcade progress follows the account when both deployments use the same database. Different local ports have separate guest saves.
 
-The online edition uses React, TypeScript, Next.js, MongoDB, Better Auth, Tailwind CSS, and Radix UI. The original local edition uses Vite. Original design notes, narrative sources, HCI limitations, and art credits are in `PROJECT-NOTES.md` and `ART-CREDITS.md`.
+The online edition uses React, TypeScript, Next.js, MongoDB, Better Auth, Tailwind CSS, and Radix UI. The original local edition uses Vite. Original design notes, narrative sources, HCI limitations, and art credits are in [`docs/PROJECT-NOTES.md`](docs/PROJECT-NOTES.md) and [`docs/ART-CREDITS.md`](docs/ART-CREDITS.md).

@@ -56,7 +56,7 @@ import {
   type Reading,
 } from "./types.ts";
 import { observeChoice, observeResolution, weakestOption, type PlayerModel } from "./player-model.ts";
-import { TILE_NAMES, columnHeight, dropPiece, rotatePiece, type Tile } from "../mythic.ts";
+import { TILE_NAMES, columnHeight, dropPiece, rotatePiece, type Tile } from "../encounters/mythic.ts";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const tileLine = (tiles: Tile[]) => tiles.map(t => TILE_NAMES[t]).join(" · ");

@@ -1,6 +1,6 @@
 param([string]$Workspace = 'D:\Farshore\Farshore')
 $ErrorActionPreference = 'Stop'
-$phaseFolder = Join-Path $Workspace 'Farshore Context and Assisment\docs\assignment\phase2'
+$phaseFolder = Join-Path $Workspace 'docs\coursework\docs\assignment\phase2'
 $previewFolder = Join-Path $Workspace '.tmp\phase2-build\powerpoint'
 New-Item -ItemType Directory -Path $previewFolder -Force | Out-Null
 $powerPoint = $null

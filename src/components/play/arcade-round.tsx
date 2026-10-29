@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, LogOut, Play, RotateCcw, Settings as SettingsIcon } from "lucide-react";
-import { difficultyNames, planLabel, planNames, trialFor, trials, type Difficulty, type OpponentPlan, type TrialId } from "../lib/arcade";
-import { songBeat, statusLabel } from "../lib/mythic";
+import { difficultyNames, planLabel, planNames, trialFor, trials, type Difficulty, type OpponentPlan, type TrialId } from "../../lib/arcade/arcade";
+import { statusLabel } from "../../lib/encounters/mythic";
 import {
   createGame,
   gameAction,
@@ -12,20 +12,20 @@ import {
   demonstrate,
   type GameAction,
   type GameState,
-} from "../lib/arcade-runtime";
-import { adventureStatus } from "../lib/odyssey-games";
-import { caveStatus, START_GAP } from "../lib/encounters/cave-runner";
-import { CommentaryDirector, detectMoment, moment, type CommentaryLine } from "../lib/commentary";
-import type { VoiceId } from "../lib/rivals";
-const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+} from "../../lib/arcade/arcade-runtime";
+import { adventureStatus } from "../../lib/encounters/odyssey-games";
+import { caveStatus } from "../../lib/encounters/cave-runner";
+import { audioFrame, type AudioFrame } from "../../lib/audio/cues";
+import { CommentaryDirector, detectMoment, moment, type CommentaryLine } from "../../lib/arcade/commentary";
+import type { VoiceId } from "../../lib/arcade/rivals";
 import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
 import { CaveGame } from "./cave-game";
 import { GameStage } from "./game-stage";
 import { ArcadeHUD } from "./arcade-hud";
-import { AIInspector, nextMode, type InspectorMode } from "./ai-inspector";
-import { caveFeed } from "../lib/ai/feeds";
-import { CharacterPortrait, TrialArtwork } from "./farshore-art";
+import { AIInspector, nextMode, type InspectorMode } from "../ai/ai-inspector";
+import { caveFeed } from "../../lib/ai/feeds";
+import { CharacterPortrait, TrialArtwork } from "../farshore-art";
 import { CommentarySubtitle, EncounterCodex } from "./encounter-codex";
 
 const INSPECTOR_KEY = "farshore-ai-inspector-mode";
@@ -64,10 +64,8 @@ type Props = {
   onSettings: () => void;
   onFinish: (round: GameState) => void;
   onLeave: () => void;
-  onFeedback: (good: boolean) => void;
-  onNote: (lane: number) => void;
-  /** 0..1 chase tension, pushed every tick for encounters that have one (Cyclops' chase gap). */
-  onIntensity?: (level: number) => void;
+  /** What the round sounds like: cues, continuous loops and the scene, from the engine's own state. */
+  onAudio?: (frame: AudioFrame) => void;
   /** The rival's opening line from the model, spoken over the title card. */
   taunt?: string;
   /** The bard's opening line, written while the player read the briefing. */
@@ -94,9 +92,7 @@ export function ArcadeRound({
   onSettings,
   onFinish,
   onLeave,
-  onFeedback,
-  onNote,
-  onIntensity,
+  onAudio,
   taunt,
   opening: openingLine,
   commentary = false,
@@ -115,8 +111,8 @@ export function ArcadeRound({
   const [opening, setOpening] = useState(true);
   const [log, setLog] = useState<CommentaryLine[]>([]);
   const arena = useRef<HTMLDivElement>(null), overlay = useRef<HTMLDivElement>(null);
-  const callbacks = useRef({ onFinish, onFeedback, onNote, onIntensity, onSpeak, onSilence }), lastSung = useRef("");
-  callbacks.current = { onFinish, onFeedback, onNote, onIntensity, onSpeak, onSilence };
+  const callbacks = useRef({ onFinish, onAudio, onSpeak, onSilence }), shownCount = useRef(0);
+  callbacks.current = { onFinish, onAudio, onSpeak, onSilence };
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const director = useRef<CommentaryDirector | null>(null);
@@ -189,22 +185,11 @@ export function ArcadeRound({
     const old = current.current;
     current.current = next;
     setRound(next);
-    if (next.id === "sirens" && "phase" in next && next.phase === "listen") {
-      const i = Math.floor(next.timer / songBeat(next)), key = `${next.round}:${i}`;
-      if (i < next.notes.length && key !== lastSung.current) {
-        lastSung.current = key;
-        if (!next.notes[i].rest) callbacks.current.onNote(next.notes[i].lane);
-      }
-    }
-    if (next.score > old.score || next.hits > old.hits || next.misses > old.misses)
-      callbacks.current.onFeedback(next.score > old.score);
-    // Commentary is derived from what just changed in the engine. The final
-    // word on a round belongs to the results screen.
+    // Sound and commentary are both derived from what just changed in the
+    // engine. The final word on a round belongs to the results screen.
+    callbacks.current.onAudio?.(audioFrame(old, next));
     const m = detectMoment(old, next);
     if (m && m.priority < 3 && phaseRef.current === "active") director.current?.offer(m, next, statusOf(next));
-    // The chase gap is real simulation state, read fresh every commit — never a
-    // scripted ramp. START_GAP bounds it to a stable 0..1 before it reaches audio.
-    if (isCave(next)) callbacks.current.onIntensity?.(clamp01(1 - (next.cyclops.gap - 8) / (START_GAP - 8)));
     if (next.done && !finished.current) {
       finished.current = true;
       callbacks.current.onFinish(next);
@@ -213,8 +198,6 @@ export function ArcadeRound({
 
   function act(action: GameAction) {
     if (phase !== "active" || finished.current) return;
-    if (action.type === "note" && current.current.id === "sirens" && "phase" in current.current && current.current.phase === "reply")
-      callbacks.current.onNote(action.lane);
     commit(gameAction(current.current, action));
   }
 
@@ -226,13 +209,13 @@ export function ArcadeRound({
     release();
     director.current?.hold();
     callbacks.current.onSilence?.();
+    callbacks.current.onAudio?.({ ...audioFrame(null, current.current), loops: {} });
     setPhase("paused");
   }
   function restartRound() {
     const next = createGame(id, difficulty, plan, practice, seed, originalCave);
     current.current = next;
     finished.current = false;
-    lastSung.current = "";
     held.current.clear();
     setRound(next);
     setLog([]);
@@ -265,8 +248,15 @@ export function ArcadeRound({
       const delta = Math.min(100, gap);
       if (phase === "countdown") {
         countdown.current -= delta;
-        setCount(Math.max(1, Math.ceil(countdown.current / 1000)));
+        const shown = Math.max(1, Math.ceil(countdown.current / 1000));
+        setCount(shown);
+        if (shown !== shownCount.current && countdown.current > 0) {
+          shownCount.current = shown;
+          callbacks.current.onAudio?.({ ...audioFrame(null, current.current), loops: {}, cues: [{ sound: "countdown", rate: shown === 1 ? 1.12 : 1 }] });
+        }
         if (countdown.current <= 0) {
+          shownCount.current = 0;
+          callbacks.current.onAudio?.({ ...audioFrame(null, current.current), cues: [{ sound: "go" }] });
           // The bard sets the scene as play begins. On a local model this first
           // line also warms the prompt cache for the rest of the encounter.
           if (opening) beginCommentary();

@@ -41,5 +41,5 @@ for (const feature of data.features) {
     if (path) paths.push(path);
   }
 }
-writeFileSync('src/lib/map-land.ts', '// Natural Earth 1:50m land, public domain. Clipped and simplified for Farshore.\n// https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/\nexport const landPaths: string[] = ' + JSON.stringify(paths) + ';\n');
+writeFileSync('src/lib/story/map-land.ts', '// Natural Earth 1:50m land, public domain. Clipped and simplified for Farshore.\n// https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/\nexport const landPaths: string[] = ' + JSON.stringify(paths) + ';\n');
 console.log(`${paths.length} land polygons; ${paths.join('').length} path characters`);

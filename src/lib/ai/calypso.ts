@@ -171,7 +171,7 @@ export function calypsoAlgorithm(policy: CalypsoPolicy, model: PlayerModel): str
 }
 
 /**
- * Mirrors `onTimber` in `src/lib/odyssey-games.ts` exactly: a timber's span is
+ * Mirrors `onTimber` in `src/lib/encounters/odyssey-games.ts` exactly: a timber's span is
  * periodic in `x` with period `TIMBER_PERIOD`, and the whole pattern drifts at
  * the row's own current speed. Duplicated rather than imported so this file
  * never imports the engine it is wired into (rule 6: no engine import cycles)

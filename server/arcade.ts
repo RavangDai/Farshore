@@ -1,9 +1,9 @@
 import { z } from "zod/v3";
-import { trialFor, validPlan, planDescription, type TrialId, type OpponentPlan } from "../src/lib/arcade.ts";
+import { trialFor, validPlan, planDescription, type TrialId, type OpponentPlan } from "../src/lib/arcade/arcade.ts";
 import { GET as modelGET, type ModelConnection } from "./turn.ts";
-import { modelText } from "./chat.ts";
-import { cleanLine } from "../src/lib/commentary.ts";
-import { personas } from "../src/lib/rivals.ts";
+import { modelText } from "./lib/chat.ts";
+import { cleanLine } from "../src/lib/arcade/commentary.ts";
+import { personas } from "../src/lib/arcade/rivals.ts";
 
 const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), score: z.number().int().min(0).max(1000000).optional(), timeMs: z.number().int().min(0).max(3600000).optional(), difficulty: z.enum(["easy", "normal", "hard"]).optional(), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
 const input = z.object({ trialId: z.enum(["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();

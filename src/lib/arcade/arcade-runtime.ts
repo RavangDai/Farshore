@@ -1,6 +1,6 @@
 import { type TrialId, type LegacyTrialId, type Difficulty, type OpponentPlan, type AttemptSummary } from "./arcade.ts";
-import { newMythic, mythicAction, tickMythic, mythicSummary, type MythicState, type Action } from "./mythic.ts";
-import { newAdventure, adventureAction, tickAdventure, adventureSummary, mazePath, LOTUS_SHIP, type AdventureState, type AdventureAction, type AdventureId } from "./odyssey-games.ts";
+import { newMythic, mythicAction, tickMythic, mythicSummary, type MythicState, type Action } from "../encounters/mythic.ts";
+import { newAdventure, adventureAction, tickAdventure, adventureSummary, mazePath, LOTUS_SHIP, type AdventureState, type AdventureAction, type AdventureId } from "../encounters/odyssey-games.ts";
 import {
   newCave,
   caveAction,
@@ -9,8 +9,8 @@ import {
   caveStatus,
   type CaveInput,
   type CaveState,
-} from "./encounters/cave-runner.ts";
-import type { AIRuntime } from "./ai/types.ts";
+} from "../encounters/cave-runner.ts";
+import type { AIRuntime } from "../ai/types.ts";
 
 export type GameState = MythicState | AdventureState | CaveState;
 export type GameAction = Action | AdventureAction | CaveInput;

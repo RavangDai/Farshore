@@ -1,9 +1,9 @@
-import { verifiedPlayer } from "../../../lib/auth";
-import { database } from "../../../lib/mongodb";
-import { accountsConfigured } from "../../../lib/runtime-config";
-import { progressRepository } from "../../../lib/progress-repository";
+import { verifiedPlayer } from "../../../server/lib/auth";
+import { database } from "../../../server/lib/mongodb";
+import { accountsConfigured } from "../../../server/lib/runtime-config";
+import { progressRepository } from "../../../server/lib/progress-repository";
 import { createProgressApi } from "../../../server/progress-api";
-import { json } from "../../../server/http";
+import { json } from "../../../server/lib/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {

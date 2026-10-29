@@ -157,7 +157,10 @@ export type Particle = {
  */
 export class Particles {
   private pool: Particle[] = [];
-  constructor(private capacity = 220) {}
+  private capacity: number;
+  constructor(capacity = 220) {
+    this.capacity = capacity;
+  }
 
   get count() {
     return this.pool.length;

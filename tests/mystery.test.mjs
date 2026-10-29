@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { act, newCase, parseCase, readCase, stars, repliesFor, hintsFor } from "../src/lib/mystery.ts";
+import { act, newCase, parseCase, readCase, stars, repliesFor, hintsFor } from "../src/lib/mystery/mystery.ts";
 import { POST } from "../server/mystery.ts";
 
 function play(actions = []) {

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { trials, type TrialId } from "../lib/arcade";
+import { trials, type TrialId } from "../lib/arcade/arcade";
 
 export const FARSHORE_ATLAS = "/art/farshore/trials-and-cast.png";
 export const artPosition = (index: number) => `${index % 4 * 100 / 3}% ${Math.floor(index / 4) * 50}%`;

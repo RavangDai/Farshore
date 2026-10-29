@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, BookOpen, Check, ChevronRight, Compass, Eye, HelpCircle, KeyRound, LockKeyhole, MessageCircle, RotateCcw, Settings, Shield, Sparkles, Star, Sun, Moon, Waves, X, Volume2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./components/ui/dialog";
-import { act, actors, CASE_SAVE, clues, glyphs, hintsFor, items, matchAuthored, newCase, objective, readCase, repliesFor, rooms, stars, type ActorId, type CaseAction, type CaseState, type ClueId, type Glyph, type HotspotId, type ItemId, type RoomId } from "./lib/mystery";
-import { VoyageAudio } from "./lib/voyage-audio";
-import type { ModelStatus } from "./lib/turn";
-import "./mystery.css";
+import { act, actors, CASE_SAVE, clues, glyphs, hintsFor, items, matchAuthored, newCase, objective, readCase, repliesFor, rooms, stars, type ActorId, type CaseAction, type CaseState, type ClueId, type Glyph, type HotspotId, type ItemId, type RoomId } from "./lib/mystery/mystery";
+import { VoyageAudio } from "./lib/audio/voyage-audio";
+import type { ModelStatus } from "./lib/voyage/turn";
+import "./styles/mystery.css";
 
 type Modal = "journal" | "hint" | "settings" | "theory" | "ending" | "restart" | "about" | null;
 type Selection = { type: "object"; id: HotspotId } | { type: "actor"; id: ActorId } | null;

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { loadEnv } from 'vite';
-import { POST } from '../server/arcade.ts';
-import { validPlan } from '../src/lib/arcade.ts';
+import { POST } from '../../server/arcade.ts';
+import { validPlan } from '../../src/lib/arcade/arcade.ts';
 // Standalone experiment: imports the production adapter, never runs a game UI.
 const env = loadEnv('development', process.cwd(), 'FARSHORE_');
 for (const [key, value] of Object.entries(env)) if (!process.env[key]) process.env[key] = value;

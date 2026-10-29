@@ -36,7 +36,6 @@
     "src",
     "server",
     "app",
-    "lib",
     "proxy.ts",
     "next.config.ts",
     "next-env.d.ts",

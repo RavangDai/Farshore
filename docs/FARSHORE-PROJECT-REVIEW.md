@@ -41,9 +41,9 @@ React builds the screens and updates them when the player acts. TypeScript check
 | --- | --- | --- |
 | Entry and mode selection | `src/main.tsx` | Loads Arcade by default, Advice Voyage with `?voyage`, or Mystery with `?mystery`. |
 | Campaign interface | `src/ArcadeApp.tsx` | Title, introduction, five-stop map, briefings, preferences, model preparation, results, and homecoming. |
-| Content and progression | `src/lib/arcade.ts` | Opponents, strategy catalog, objectives, valid saves, migration, unlocks, and assisted passages. |
-| Game rules | `src/lib/mythic.ts` | Creates a round, applies actions, advances time, moves rivals, and decides scores and wins. |
-| Input and rendering | `src/components/arcade-round.tsx`, `mythic-games.tsx` | Countdown, keyboard/pointer controls, pause, scoreboards, grids, potion boards, melodies, and canvas scenes. |
+| Content and progression | `src/lib/arcade/arcade.ts` | Opponents, strategy catalog, objectives, valid saves, migration, unlocks, and assisted passages. |
+| Game rules | `src/lib/encounters/mythic.ts` | Creates a round, applies actions, advances time, moves rivals, and decides scores and wins. |
+| Input and rendering | `src/components/play/arcade-round.tsx`, `mythic-games.tsx` | Countdown, keyboard/pointer controls, pause, scoreboards, grids, potion boards, melodies, and canvas scenes. |
 | Server and model boundary | `vite.config.ts`, `server/arcade.ts` | Receives requests, validates input, calls the optional model, and checks its response. |
 | Assets and quality checks | `public/art/`, `public/fonts/`, `tests/` | Local artwork/fonts and automated checks for rules, saves, speech, audio, and model error paths. |
 
@@ -268,7 +268,7 @@ Campaign records and preferences use browser localStorage. Arcade retains the `f
 
 ### Where the next technical change belongs
 
-For useful personalization, begin with `src/lib/mythic.ts`: collect the new metrics during play and emit them in `mythicSummary()`. Update the `AttemptSummary` type and validation in `src/lib/arcade.ts`, then update `server/arcade.ts` to derive meaningful observations. Keep migration compatible with existing saves. Update the briefing explanations in `src/ArcadeApp.tsx` so they describe exactly what the model can change. Verify that invalid output and late replies still preserve progress.
+For useful personalization, begin with `src/lib/encounters/mythic.ts`: collect the new metrics during play and emit them in `mythicSummary()`. Update the `AttemptSummary` type and validation in `src/lib/arcade/arcade.ts`, then update `server/arcade.ts` to derive meaningful observations. Keep migration compatible with existing saves. Update the briefing explanations in `src/ArcadeApp.tsx` so they describe exactly what the model can change. Verify that invalid output and late replies still preserve progress.
 
 For maintenance, make `README.md` the current starting point, with a short version history linking the arcade package and clearly labeled earlier modes. Correct the packet's slide count and latency rounding. A contribution statement should describe actual work; it cannot be completed accurately from code alone.
 
@@ -286,15 +286,15 @@ Paths below are relative to the project root. Original instructor PDFs control r
 
 | ID | Source location and use |
 | --- | --- |
-| S1 | `Farshore Context and Assisment/docs/assignment/original/CMPS_4200_HCI_Phase_1_Project_Requirements.pdf`, pp. 1-2: proposal, models, interviews, personas, team size. |
-| S2 | `Farshore Context and Assisment/docs/assignment/original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf`, pp. 1-3: rubric, flows, AI states, spike, timing, submissions. |
+| S1 | `coursework/docs/assignment/original/CMPS_4200_HCI_Phase_1_Project_Requirements.pdf`, pp. 1-2: proposal, models, interviews, personas, team size. |
+| S2 | `coursework/docs/assignment/original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf`, pp. 1-3: rubric, flows, AI states, spike, timing, submissions. |
 | S3 | `README.md`, `PROJECT-NOTES.md`, `package.json`, `src/main.tsx`: entry points, setup, stack, retained modes, historical inconsistencies. |
-| S4 | `src/ArcadeApp.tsx`, `src/lib/arcade.ts`: current screens, controls, progression, strategies, saves, and preparation states. |
-| S5 | `src/lib/mythic.ts`, `src/components/arcade-round.tsx`, `src/components/mythic-games.tsx`: five engines, inputs, pause, summary data, scoring. |
+| S4 | `src/ArcadeApp.tsx`, `src/lib/arcade/arcade.ts`: current screens, controls, progression, strategies, saves, and preparation states. |
+| S5 | `src/lib/encounters/mythic.ts`, `src/components/play/arcade-round.tsx`, `src/components/play/mythic-games.tsx`: five engines, inputs, pause, summary data, scoring. |
 | S6 | `server/arcade.ts`, `vite.config.ts`: model catalog/schema, observations, validation, credentials boundary, timeout, and local API hosting. |
-| S7 | `Farshore Context and Assisment/docs/assignment/phase2-arcade/`: design packet, presentation PDF/PPTX, editable content/SVGs, notes, critique worksheet, contribution Markdown/PDF. |
-| S8 | S7 `evidence/phase2-arcade-spike-2026-10-08.json`, `evidence/quality-review.json`, `technical-spike-summary.pdf`; `scripts/phase2-arcade-spike.mjs`: measured calls, outputs, failures, limitations. |
-| S9 | `src/MysteryApp.tsx`, `src/lib/mystery.ts`, `server/mystery.ts`, mystery design notes: authored case and optional answer matching. |
-| S10 | `src/App.tsx`, `src/lib/game.ts`, `server/turn.ts`, `docs/assignment/PRESENTATION.md` under the context folder: advice voyage and original proposal differences. |
+| S7 | `coursework/docs/assignment/phase2-arcade/`: design packet, presentation PDF/PPTX, editable content/SVGs, notes, critique worksheet, contribution Markdown/PDF. |
+| S8 | S7 `evidence/phase2-arcade-spike-2026-10-08.json`, `evidence/quality-review.json`, `technical-spike-summary.pdf`; `scripts/coursework/phase2-arcade-spike.mjs`: measured calls, outputs, failures, limitations. |
+| S9 | `src/MysteryApp.tsx`, `src/lib/mystery/mystery.ts`, `server/mystery.ts`, mystery design notes: authored case and optional answer matching. |
+| S10 | `src/VoyageApp.tsx`, `src/lib/voyage/game.ts`, `server/turn.ts`, `docs/assignment/PRESENTATION.md` under the context folder: advice voyage and original proposal differences. |
 | S11 | `tests/`, fresh October 12 test/build runs; context-folder `docs/arcade/trials-verification.md` and model evidence: current checks and separately dated earlier verification. |
 

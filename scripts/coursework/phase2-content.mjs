@@ -128,9 +128,9 @@ export const wireframes = [
 export const sourceList = [
   ['Assignment authority','../original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf','Pages 1-3. Architecture 20%, flows 30%, wireframes 30%, spike 10%, presentation 10%.'],
   ['Phase 1 persona source','../original/Farshore_Phase12nd.pptx','Slide 4. Maya, Daniel and Rosa are sketches. Six interviews were planned, not evidenced.'],
-  ['Current UI','../../../../src/App.tsx','Screen/modal inventory, current loading, errors, input review and immediate commitment.'],
+  ['Current UI','../../../../../src/VoyageApp.tsx','Screen/modal inventory, current loading, errors, input review and immediate commitment.'],
   ['Current model adapter','../../../../server/turn.ts','Actual prompt, schema, error mapping and server-controlled scoring.'],
-  ['Current speech adapter','../../../../src/lib/dictation.ts','Browser/Windows paths, typed fallback and timing limits.'],
+  ['Current speech adapter','../../../../../src/lib/speech/dictation.ts','Browser/Windows paths, typed fallback and timing limits.'],
   ['Archived model evidence','../../AI-VERIFICATION.md','September 23-26 observations and a known semantic contradiction.'],
   ['Fresh model evidence','evidence/spike-2026-09-30.json','Raw provider responses, adapter results, measured timings and manual review.'],
   ['Ollama compatible API','https://docs.ollama.com/api/openai-compatibility','Official API reference, accessed September 30, 2026. Local key is ignored.'],

@@ -1,10 +1,12 @@
 # FARSHORE - Eight Trials. One Journey Home.
 
-October 8, 2026: the default game now follows the five-stop mythic arcade concept. Each shore has its own rules and interaction: grid stealth, potion match-3, melody memory, paddle defense, and turn-based archery. `src/lib/mythic.ts` owns the new deterministic engines; `src/lib/arcade.ts` owns content, strategies, and save migration. The previous timing/three-lane rules remain in `src/lib/legacy-arcade.ts` for historical checks.
+October 28, 2026: the repository was reorganized (documentation in `docs/`, server-only code in `server/lib/`, library modules grouped by purpose under `src/lib/`, components by screen under `src/components/`, stylesheets in `src/styles/`), and the retired SVG scenes and three-trial rules (`legacy-arcade.ts`) were removed with their tests. Spoken lines now use natural Kokoro-82M voices built into the game server, with the browser's most natural voice as the fallback. All sound effects were rebuilt as physical models with per-scene ambience and reverb, driven by `src/lib/audio/cues.ts` from the engines' own state.
+
+October 8, 2026: the default game now follows the five-stop mythic arcade concept. Each shore has its own rules and interaction: grid stealth, potion match-3, melody memory, paddle defense, and turn-based archery. `src/lib/encounters/mythic.ts` owns the new deterministic engines; `src/lib/arcade/arcade.ts` owns content, strategies, and save migration. The previous timing/three-lane rules remain in `src/lib/legacy-arcade.ts` for historical checks.
 
 Solo and local adaptive AI start immediately. Optional model planning supports all five opponents, with explicit loading, cancellation, reviewed strategies, failures, and a local-start action. Circe's own board and Antinous' own shots are visible; the other rivals make observable searches, melodies, and attacks. Browser saves migrate to schema 2 while retaining old clears and adding the two new pending shores.
 
-The [current design record](<Farshore Context and Assisment/docs/arcade/README.md>) includes a class demonstration flow. [Current verification](<Farshore Context and Assisment/docs/arcade/trials-verification.md>) records gameplay, model integration, and browser checks. The earlier [three-trial record](<Farshore Context and Assisment/docs/arcade/three-trial-record.md>) and [original verification](<Farshore Context and Assisment/docs/arcade/verification.md>) are historical. The Phase 2 package still describes the original advice voyage. No research evidence or instructor approval is inferred from this implementation.
+The [current design record](<coursework/docs/arcade/README.md>) includes a class demonstration flow. [Current verification](<coursework/docs/arcade/trials-verification.md>) records gameplay, model integration, and browser checks. The earlier [three-trial record](<coursework/docs/arcade/three-trial-record.md>) and [original verification](<coursework/docs/arcade/verification.md>) are historical. The Phase 2 package still describes the original advice voyage. No research evidence or instructor approval is inferred from this implementation.
 
 ## Earlier implementation record
 
@@ -22,7 +24,7 @@ The case is fully authored and playable without AI. `server/mystery.ts` optional
 
 Separate storage preserves the original voyage at `?voyage`. Mystery saves use `farshore-mystery-circe-v1`; drafts use `farshore-mystery-drafts-v1`. Failed or cancelled model requests retain the draft and cannot grant progress. AI requests show elapsed wait, cancellation, and retry. Suggested questions remain available during a model wait.
 
-The [case design record](<Farshore Context and Assisment/docs/MYSTERY-CASE.md>) documents the truth, dependency graph, star rules, checks, and remaining evaluation. Dedicated in-game dictation, additional cases, and Challenge mode remain proposed. The existing Phase 2 package still describes the original voyage; newcomer evaluation should precede its redesign.
+The [case design record](<coursework/docs/MYSTERY-CASE.md>) documents the truth, dependency graph, star rules, checks, and remaining evaluation. Dedicated in-game dictation, additional cases, and Challenge mode remain proposed. The existing Phase 2 package still describes the original voyage; newcomer evaluation should precede its redesign.
 
 ## Original voyage
 
@@ -61,7 +63,7 @@ For the original local Llama plan, install Ollama from its official source, pull
 Ollama API reference: https://docs.ollama.com/api/openai-compatibility
 Structured outputs: https://docs.ollama.com/capabilities/structured-outputs
 
-Settings enables AI dialogue after checking that the model service responds and lists the configured model. A model error keeps the advice and offers retry or an explicit Story mode submission. The app does not silently substitute scripted responses for an AI request. The model deadline is 90 seconds to allow for cold loading. Local Llama 3.2 3B was verified on September 23, 2026 with real API and browser turns. The adapter requests strict JSON-schema output. See the [verification record](<Farshore Context and Assisment/docs/AI-VERIFICATION.md>) for measured timings and an unresolved dialogue/decision inconsistency. The under-one-second and total laptop memory claims remain unverified.
+Settings enables AI dialogue after checking that the model service responds and lists the configured model. A model error keeps the advice and offers retry or an explicit Story mode submission. The app does not silently substitute scripted responses for an AI request. The model deadline is 90 seconds to allow for cold loading. Local Llama 3.2 3B was verified on September 23, 2026 with real API and browser turns. The adapter requests strict JSON-schema output. See the [verification record](<coursework/docs/AI-VERIFICATION.md>) for measured timings and an unresolved dialogue/decision inconsistency. The under-one-second and total laptop memory claims remain unverified.
 
 ## Simplifications from the slides
 
@@ -92,11 +94,11 @@ The gameplay checks cover advice interpretation, duplicate-turn prevention, winn
 
 ## Main files
 
-- `src/App.tsx`: game UI, browser speech, local save, navigation.
-- `src/lib/game.ts`: authored encounters, state transitions, scripted decisions.
+- `src/VoyageApp.tsx`: game UI, browser speech, local save, navigation.
+- `src/lib/voyage/game.ts`: authored encounters, state transitions, scripted decisions.
 - `server/turn.ts`: validation and optional live model adapter.
-- `src/styles.css`: theme and responsive layouts.
-- `src/lib/cast.ts`: principal cast, source book references, scene actors, and prologue.
+- `src/styles/global.css`: theme and responsive layouts.
+- `src/lib/story/cast.ts`: principal cast, source book references, scene actors, and prologue.
 - `public/art/`: original generated title scene, location atlas, and character atlas.
 - `public/fonts/`: locally served Press Start 2P and its SIL Open Font License.
 

@@ -1,9 +1,9 @@
 import { Compass, Sparkles, AlertTriangle, Star, Trophy } from "lucide-react";
-import type { GameState } from "../lib/arcade-runtime";
-import { gameSummary, isAdventure, isCave } from "../lib/arcade-runtime";
-import { medalFor } from "../lib/arcade";
-import { encounterCue, fieldNotes } from "../lib/field-notes";
-import { TrialArtwork } from "./farshore-art";
+import type { GameState } from "../../lib/arcade/arcade-runtime";
+import { gameSummary, isAdventure, isCave } from "../../lib/arcade/arcade-runtime";
+import { medalFor } from "../../lib/arcade/arcade";
+import { encounterCue, fieldNotes } from "../../lib/story/field-notes";
+import { TrialArtwork } from "../farshore-art";
 
 export function EncounterIntel({ state }: { state: GameState }) {
   const cue = encounterCue(state);

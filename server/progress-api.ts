@@ -1,5 +1,5 @@
-import { applyProgressCommand, mutationSchema, ProgressError, type OnlinePlayer, type OnlineRecord } from "../src/lib/online.ts";
-import { checkWriteRequest, json, payloadHash, readJson } from "./http.ts";
+import { applyProgressCommand, mutationSchema, ProgressError, type OnlinePlayer, type OnlineRecord } from "../src/lib/online/online.ts";
+import { checkWriteRequest, json, payloadHash, readJson } from "./lib/http.ts";
 
 export interface ProgressRepository {
   load(): Promise<OnlineRecord>;

@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { Minus, Plus, LocateFixed, ExternalLink } from "lucide-react";
-import { encounters, type Game } from "../lib/game";
-import { chapterLore, homerLink, mapStops, projectMap, type MapStop } from "../lib/odyssey";
-import { landPaths } from "../lib/map-land";
+import { encounters, type Game } from "../../lib/voyage/game";
+import { chapterLore, homerLink, mapStops, projectMap, type MapStop } from "../../lib/story/odyssey";
+import { landPaths } from "../../lib/story/map-land";
 
 const stopFor = (id: string) => mapStops.find(stop => stop.chapters.includes(id))!;
 const point = (stop: MapStop) => projectMap(stop.lon, stop.lat);

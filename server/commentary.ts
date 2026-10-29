@@ -1,8 +1,8 @@
 import { z } from "zod/v3";
-import { difficultyNames, trialFor, type TrialId } from "../src/lib/arcade.ts";
-import { cleanLine, momentKinds, type CommentaryRequest } from "../src/lib/commentary.ts";
-import { personas } from "../src/lib/rivals.ts";
-import { chatJson, ModelError } from "./chat.ts";
+import { difficultyNames, trialFor, type TrialId } from "../src/lib/arcade/arcade.ts";
+import { cleanLine, momentKinds, type CommentaryRequest } from "../src/lib/arcade/commentary.ts";
+import { personas } from "../src/lib/arcade/rivals.ts";
+import { chatJson, ModelError } from "./lib/chat.ts";
 import type { ModelConnection } from "./turn.ts";
 
 const count = z.number().int().min(0).max(1_000_000);

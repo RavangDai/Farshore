@@ -675,6 +675,8 @@
   .fs-arena { order: 1; }
   .fs-arena-perspective .fs-cave-view { position: relative; height: auto; }
   .fs-arena-perspective .fs-cave-canvas { height: auto; aspect-ratio: 16 / 9; }
+  .fs-arena-perspective .fs-cave-stage { height: auto; }
+  .fs-arena-perspective .fs-cave-gl { height: 100%; aspect-ratio: auto; }
   .fs-arena-perspective .fs-touch-pad { position: relative; display: flex; }
   .fs-legacy-scene { display: block; overflow: visible; padding: 6px 8px 4px; }
   .fs-legacy-inner { width: 100%; }

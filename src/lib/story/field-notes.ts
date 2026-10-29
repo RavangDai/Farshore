@@ -1,6 +1,6 @@
-import { isAdventure, isCave, type GameState } from "./arcade-runtime.ts";
-import { AVOIDANCE, caveProgress } from "./encounters/cave-runner.ts";
-import type { TrialId } from "./arcade.ts";
+import { isAdventure, isCave, type GameState } from "../arcade/arcade-runtime.ts";
+import { AVOIDANCE, caveProgress } from "../encounters/cave-runner.ts";
+import type { TrialId } from "../arcade/arcade.ts";
 
 export const fieldNotes: Record<TrialId, { region: string; bonus: string; lesson: string; keys: string[] }> = {
   lotus: { region: "THE FORGETFUL SHORE", bonus: "Find three laurel relics · +125 each", lesson: "Lead one sailor at a time. Moly protects you for 14 seconds. Easy mode marks the way back to the ship.", keys: ["WASD", "ARROWS"] },

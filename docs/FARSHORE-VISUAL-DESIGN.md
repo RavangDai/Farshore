@@ -2,7 +2,7 @@
 
 FARSHORE is the product name. Homer's *The Odyssey* is its story inspiration. This applies to the splash, main menu, loading screens, browser metadata, offline title, and current documentation. Internal `odyssey` filenames remain compatible with existing code and saves.
 
-The supplied `FARSHORE_ Eight Trials Homeward.png` is the primary style reference: illustrated Greek adventure art, cobalt seas, amber torchlight, engraved gold typography, bronze frames, parchment trial ribbons, and a compact arcade HUD. The reference contact sheet is not served as an interface or gameplay background.
+The supplied `farshore-style-reference.png` is the primary style reference: illustrated Greek adventure art, cobalt seas, amber torchlight, engraved gold typography, bronze frames, parchment trial ribbons, and a compact arcade HUD. The reference contact sheet is not served as an interface or gameplay background.
 
 The interface uses responsive HTML, CSS, SVG, and the existing canvas renderers. Eight illustrated trial cards show real selection, locks, records, medals, and difficulty choices. The connected voyage map remains an alternate view. Pause, results, settings, help, and credits share the same frame styling. Reduced motion disables decorative animation. The reference's rhythm track and Ithaca board do not replace the existing melody-memory and trajectory-archery rules.
 
@@ -25,6 +25,6 @@ The online shell uses Next.js's documented dynamic component loader so each mode
 - All 134 regression tests pass, covering encounter engines, optional skill rewards, progression, saves, account isolation, and AI adapters.
 - Next.js production build and the Vite offline build pass. The offline bundle retains its existing size advisory.
 - Browser review at desktop size and 390 × 844 verified the splash, menu, trial selector, difficulty choices, game HUD, touch movement, Escape pause, resume countdown, and confirmation before leaving an attempt. Practice did not unlock the next trial or alter campaign records.
-- Screenshots are saved in `output/farshore-redesign/`. The supplied reference remains a design reference, separate from the original production artwork.
+- Screenshots are saved in `screenshots/farshore-redesign/`. The supplied reference remains a design reference, separate from the original production artwork.
 
 The [encounter detail pass](FARSHORE-DETAIL-PASS.md) documents the added game rewards, tactical cues, richer arena rendering, transparent item atlas, and its production prompt.

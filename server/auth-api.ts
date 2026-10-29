@@ -1,5 +1,5 @@
 import { z } from "zod/v3";
-import { checkWriteRequest, json, readJson } from "./http.ts";
+import { checkWriteRequest, json, readJson } from "./lib/http.ts";
 const email = z.string().trim().email().max(254);
 const password = z.string().min(12).max(128);
 const schema = z.discriminatedUnion("action", [

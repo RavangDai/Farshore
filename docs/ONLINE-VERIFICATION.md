@@ -17,7 +17,7 @@ Verified locally on October 12, 2026, using Node 22.20.0 on Windows.
 | Production HTTP policy | Game and password-reset scripts had matching CSP nonces; foreign-origin writes returned 403; an oversized game body returned 413 |
 | Reverse proxy | Configured public-origin handling passed without trusting a caller's forwarded host header |
 
-The account preview is saved at [output/online/account-preview.png](output/online/account-preview.png).
+The account preview is saved at [screenshots/online/account-preview.png](screenshots/online/account-preview.png).
 
 The MongoDB tests used temporary data. Verification and reset emails were captured in memory. No user MongoDB cluster, SMTP provider, or public deployment was provisioned. The Dockerfile is included; the Docker image was not built because the local Docker daemon was unavailable.
 

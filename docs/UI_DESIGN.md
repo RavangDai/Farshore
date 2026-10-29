@@ -2,7 +2,7 @@
 
 ## Design language
 
-**Cinematic Greek Mythology + Illustrated 2.5D Arcade + modern indie polish.** Navy and cobalt seas, amber/bronze torchlight, engraved gold typography, parchment-and-bronze framing. The style is established by the original menus (`src/farshore.css`, `src/farshore-brand.css`, `src/farshore-detail.css`) and extended, not replaced, by the new gameplay stage and AI inspector (`src/farshore-stage.css`).
+**Cinematic Greek Mythology + Illustrated 2.5D Arcade + modern indie polish.** Navy and cobalt seas, amber/bronze torchlight, engraved gold typography, parchment-and-bronze framing. The style is established by the original menus (`src/styles/farshore.css`, `src/styles/farshore-brand.css`, `src/styles/farshore-detail.css`) and extended, not replaced, by the new gameplay stage and AI inspector (`src/styles/farshore-stage.css`).
 
 ### Colour tokens (`farshore-stage.css`)
 
@@ -21,7 +21,7 @@ Gold/bronze for structure and interactive chrome, cyan exclusively for AI/foreca
 
 Press Start 2P (pixel, licensed SIL OFL) for arcade chrome and eyebrow labels; Georgia serif for narrative and headline text, matching the "engraved gold typography" reference. Monospace (`SFMono-Regular`/Consolas) exclusively inside the AI inspector, for algorithm names, candidate scores and timeline codes — a deliberate register shift that reads as "instrumentation" against the serif game chrome around it.
 
-## The immersive gameplay stage (`src/components/game-stage.tsx`)
+## The immersive gameplay stage (`src/components/play/game-stage.tsx`)
 
 The highest-priority correction from the design brief: the previous Cyclops screen was a small canvas embedded in a page column. The replacement is a dedicated, full-viewport stage:
 
@@ -33,17 +33,30 @@ The highest-priority correction from the design brief: the previous Cyclops scre
 
 A `labMode` variant widens a dedicated side column (`clamp(330px, 26vw, 430px)`) only when the expanded AI Lab panel is open, collapsing back to full width in AI Insights or Immersive mode — so the "distinct feature" doesn't cost playable space when a player isn't using it.
 
+## The 3D cave (`src/lib/render/cave-world.ts`)
+
+Cyclops' Cave now renders in real 3D with three.js, in the manner of the classic temple runners: a sunlit sandstone causeway across Polyphemus' sea grotto, seen from behind and above Odysseus. The 2D renderer below remains as the fallback when WebGL is unavailable.
+
+- **Loaded only for this encounter.** `cave-game.tsx` imports the world module with `import()`, so three.js never enters the bundle for the other seven encounters.
+- **The engine stays authoritative.** The world is placed from each state snapshot. Odysseus stands at the origin and an entity `z` metres ahead in the engine sits at `-z`. Scenery (parapet blocks, braziers, gates, ruins, cliffs, the cave roof) is keyed to absolute distance travelled, so a given gate keeps its place and its look as it streams toward the camera.
+- **Hazards sit inside their lanes.** Lanes are 1.55 m apart and no model is wider than 1.5 m, so a blocked lane never appears to spill into the next one.
+- **Polyphemus is behind the camera**, so he is felt rather than seen: his shadow stretches past Odysseus as the chase gap closes, his footfalls shake the view, and when he locks a throw his hand rises into the top of the frame on that lane's side, holding a glowing boulder. Every gate's one-eyed mask blazes while the throw is locked, and chevrons stream down the locked lane toward the runner.
+- **Three moods by progress:** a teal, torchlit grotto, then an ember-lit collapse with falling rock, then the run out through the cave mouth into daylight and open sea. The mouth is fixed once, shortly before the daylight stretch, so the player runs toward it and through it.
+- **All surfaces are painted on canvas at load** (`cave-textures.ts`): flagstones with bronze lane inlays and moss, block stone, ashlar, the Greek key, the guardian mask, vines and water caustics. The repository gains no image files.
+- **The arcade layer is a transparent 2D canvas on top:** pixel-font JUMP / SLIDE / DODGE tags over hazards in the runner's lane, compact badges over the others, score pops, particles, speed streaks and the danger vignette.
+- **Performance:** about 150 draw calls in a busy stretch, instanced parapets and roof, merged gate geometry, and a governor that lowers the render resolution if the frame rate cannot hold. Disposal releases every geometry, material, texture and the WebGL context.
+
 ## The perspective runner (`src/lib/render/cave-scene.ts`)
 
-A from-scratch pseudo-3D renderer for Cyclops' Cave, replacing the prior flat/static presentation:
+The 2D fallback for Cyclops' Cave, used where WebGL is unavailable:
 
 - A single perspective-divide function (`project(z, laneOffset)`) turns a world-space depth `z` and lane offset into screen position and scale. Every entity — obstacles, sheep, coins, the boulder in flight, Polyphemus himself — is placed through this one function, which is what keeps depth sorting, scaling and lane alignment consistent without per-entity special-casing.
 - Three render passes per frame in back-to-front order: far ridges (parallax, driven by real distance travelled, not wall-clock time) → walls and torches → floor and lane guides → depth-sorted world entities → in-flight boulders → the hero sprite → particles → foreground vignette.
 - A capped (240-entry) particle pool (`src/lib/render/stage.ts`) driven by **event stamps** the simulation already publishes (`struckAt`, `landedAt`, `pickupAt`) — the renderer watches for a stamp changing and fires a burst exactly once, rather than the simulation knowing anything about particles. This is the separation the brief asked for: decorative effects derived from gameplay events, never vice versa.
-- Screen shake, damage flash and hit-stop are all bounded, driven by the same stamps, and independently disableable via the Visual Effects / Camera Shake preference (`src/components/odyssey-preferences.tsx`) — accessibility settings the brief required, not an afterthought.
+- Screen shake, damage flash and hit-stop are all bounded, driven by the same stamps, and independently disableable via the Visual Effects / Camera Shake preference (`src/components/menu/odyssey-preferences.tsx`) — accessibility settings the brief required, not an afterthought.
 - Reduced motion (`still`) freezes every decorative animation — ambient particles, footstep dust, flicker — while leaving the actual game state (position, hazards, HUD numbers) fully live and legible.
 
-## The explainable AI inspector (`src/components/ai-inspector.tsx`)
+## The explainable AI inspector (`src/components/ai/ai-inspector.tsx`)
 
 Three modes, switchable live with `F3` or the on-screen chip group, matching the design brief's Immersive / AI Insights / AI Lab split exactly:
 
@@ -53,11 +66,11 @@ Three modes, switchable live with `F3` or the on-screen chip group, matching the
 
 A closing footnote on the AI Lab panel states explicitly: *"Every value on this panel is read from the opponent's own decision records. Opening or closing this panel does not change how the opponent plays."* — a claim that is true because the panel and the compact overlay consume the identical `InspectorFeed` the engine produced for its own use, never a parallel "demo" data path.
 
-## HUD (`src/components/arcade-hud.tsx`)
+## HUD (`src/components/play/arcade-hud.tsx`)
 
-Arranged per the brief: captain portrait and lives top-left, encounter name/objective/progress top-centre, score/difficulty/pause top-right, a live tactical cue strip along the bottom (reused across all eight encounters via `src/lib/field-notes.ts`'s `encounterCue()`, with a Cyclops-specific branch reading real hazard distance and lane-lock state). A chase-distance meter is shown only for the Cyclops encounter, where it's meaningful. Hit damage flashes red across the frame (outside the camera-shake transform, so it stays legible even when the screen is shaking); pickups fire a floating `+score`/`+HEALTH` callout anchored over the lane that earned it, stacked rather than overlapping on rapid pickups.
+Arranged per the brief: captain portrait and lives top-left, encounter name/objective/progress top-centre, score/difficulty/pause top-right, a live tactical cue strip along the bottom (reused across all eight encounters via `src/lib/story/field-notes.ts`'s `encounterCue()`, with a Cyclops-specific branch reading real hazard distance and lane-lock state). A chase-distance meter is shown only for the Cyclops encounter, where it's meaningful. Hit damage flashes red across the frame (outside the camera-shake transform, so it stays legible even when the screen is shaking); pickups fire a floating `+score`/`+HEALTH` callout anchored over the lane that earned it, stacked rather than overlapping on rapid pickups.
 
-## The voyage chart (`src/components/voyage-chart.tsx`)
+## The voyage chart (`src/components/menu/voyage-chart.tsx`)
 
 Replaces the previous abstract island-and-route map with eight hand-drawn SVG landmarks — a lotus garden with glowing blossoms, a cave mouth with the Cyclops' torchlit silhouette, wind-swept peaks, Circe's purple towers, jagged singing rocks, Scylla's twin headlands with an animated whirlpool, a storm-battered coast with an animated lightning strike, and Ithaca's golden colonnade — each reacting to its lock state (muted/grey when locked, its real tint and a completion checkmark when cleared). A ship rides the actual SVG route path (computed via `getPointAtLength`, so it always sits exactly on the curve), its position driven by real campaign progress rather than a fixed illustration. Weather motifs (mist, wind streaks, a storm bolt, a magical glow) animate per-island and freeze completely under reduced motion. The companion panel shows the hovered or selected island's genre, objective, controls, difficulty picker, personal best and medal, and the entry button — live preview on hover, not just on click.
 
@@ -68,7 +81,7 @@ Replaces the previous abstract island-and-route map with eight hand-drawn SVG la
 - Keyboard navigation is complete: arrow-key trial grid navigation, full pause-menu focus trapping, `Escape` to pause/resume, `F3` to cycle the inspector without losing focus context.
 - All interactive SVG/canvas regions carry `role`, `aria-label` and (for the voyage chart's island targets) `aria-pressed`/keyboard activation, not mouse-only hit targets.
 
-## The cinematic layer (`src/farshore-cinema.css`)
+## The cinematic layer (`src/styles/farshore-cinema.css`)
 
 Loaded after every other sheet and extending, not replacing, the language above.
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import "../src/styles.css";
+import "../src/styles/global.css";
 import "./online.css";
-import "../src/farshore-brand.css";
+import "../src/styles/farshore-brand.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

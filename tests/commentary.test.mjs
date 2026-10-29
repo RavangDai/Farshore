@@ -1,11 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { standardPlan } from "../src/lib/arcade.ts";
-import { createGame } from "../src/lib/arcade-runtime.ts";
-import { CommentaryDirector, cleanLine, detectMoment, factsFor, progressOf } from "../src/lib/commentary.ts";
-import { kokoroVoices, personas, voices } from "../src/lib/rivals.ts";
+import { standardPlan } from "../src/lib/arcade/arcade.ts";
+import { createGame } from "../src/lib/arcade/arcade-runtime.ts";
+import { CommentaryDirector, cleanLine, detectMoment, factsFor, progressOf } from "../src/lib/arcade/commentary.ts";
+import { personas } from "../src/lib/arcade/rivals.ts";
 import { POST as commentaryPOST, commentaryPrompt } from "../server/commentary.ts";
-import { GET as voiceGET, POST as voicePOST } from "../server/voice.ts";
 
 const lotus = () => createGame("lotus", "normal", standardPlan("lotus"), false, 7);
 const with_ = (state, change) => ({ ...state, ...change });
@@ -50,24 +49,26 @@ test("the director paces lines: one request in flight, the important moment wins
     return new Promise(resolve => release.push(() => resolve(Response.json({ line: `line ${calls.length}` }))));
   };
   const d = new CommentaryDirector({ trialId: "lotus", difficulty: "normal", onLine: l => lines.push(l), fetcher, now: () => now, minGapMs: 0, staleMs: 5000 });
+  // Waits for the director's own timers and promises, however busy the machine is.
+  const until = async condition => { const end = Date.now() + 5000; while (!condition()) { assert.ok(Date.now() < end, "timed out"); await new Promise(r => setTimeout(r, 2)); } };
   const s = lotus();
   d.offer({ kind: "score", speaker: "bard", priority: 1 }, s, "status");
-  await new Promise(r => setTimeout(r, 5));
-  assert.equal(calls.length, 1);
+  await until(() => calls.length === 1);
   // Offered while the first is in flight: the hit outranks the score.
   d.offer({ kind: "score", speaker: "bard", priority: 1 }, s, "status");
   d.offer({ kind: "hit", speaker: "rival", priority: 2 }, s, "status");
   d.offer({ kind: "score", speaker: "bard", priority: 1 }, s, "status");
   release.shift()();
-  await new Promise(r => setTimeout(r, 5));
+  await until(() => calls.length === 2);
   assert.deepEqual(lines.map(l => l.text), ["line 1"]);
-  assert.equal(calls.length, 2);
   assert.equal(calls[1].moment, "hit");
   assert.deepEqual(calls[1].recent, ["line 1"]);
-  // The hit's line arrives far too late to describe the action: not said.
+  // The hit's line arrives far too late to describe the action: not said. The
+  // next moment is only requested once that late reply has been handled.
   now = 20000;
   release.shift()();
-  await new Promise(r => setTimeout(r, 5));
+  d.offer({ kind: "score", speaker: "bard", priority: 1 }, s, "status");
+  await until(() => calls.length === 3);
   assert.deepEqual(lines.map(l => l.text), ["line 1"]);
   d.dispose();
 });
@@ -157,34 +158,4 @@ test("commentary failures are quiet and typed", async () => {
     delete process.env.FARSHORE_MODEL_URL;
     assert.equal((await commentaryPOST(post(valid))).status, 503);
   }, async () => assert.fail("contacted the model"));
-});
-
-test("each character has a known neural voice and a browser fallback shape", () => {
-  assert.equal(Object.keys(voices).length, 9);
-  for (const v of Object.values(voices)) { assert.ok(v.pitch > 0 && v.pitch <= 2); assert.ok(v.rate > 0.5 && v.rate < 1.5); }
-  assert.ok(kokoroVoices.has("bm_george"));
-});
-
-test("the voice route is off without a voice server, and proxies audio when one is configured", async () => {
-  const voicePost = body => new Request("http://localhost:5173/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  await withModel(async () => {
-    assert.deepEqual(await (await voiceGET()).json(), { neural: false });
-    assert.equal((await voicePOST(voicePost({ text: "Hello", voice: "bard" }))).status, 503);
-  }, async () => assert.fail("contacted a voice server"));
-  await withModel(async () => {
-    assert.deepEqual(await (await voiceGET()).json(), { neural: true });
-    assert.equal((await voicePOST(voicePost({ text: "Hello", voice: "zeus" }))).status, 400);
-    assert.equal((await voicePOST(voicePost({ text: "x".repeat(300), voice: "bard" }))).status, 400);
-    const r = await voicePOST(voicePost({ text: "Sing, Muse.", voice: "cyclops" }));
-    assert.equal(r.status, 200);
-    assert.equal(r.headers.get("content-type"), "audio/mpeg");
-    assert.equal((await r.arrayBuffer()).byteLength, 4);
-  }, async (url, options) => {
-    assert.equal(url, "http://127.0.0.1:8880/v1/audio/speech");
-    assert.equal(options.headers.Authorization, "Bearer secret");
-    const body = JSON.parse(options.body);
-    assert.equal(body.voice, "am_onyx");
-    assert.equal(body.input, "Sing, Muse.");
-    return new Response(new Uint8Array([1, 2, 3, 4]), { headers: { "Content-Type": "audio/mpeg" } });
-  }, { FARSHORE_TTS_URL: "http://127.0.0.1:8880/v1/audio/speech", FARSHORE_TTS_KEY: "secret" });
 });

@@ -1,28 +1,29 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArcadeRound } from "./components/arcade-round";
-import { ARCADE_PREFS, ARCADE_SAVE, adaptivePlan, assistTrial, challengeObjective, clearedCount, difficultyNames, medalFor, finishAttempt, newArcade, planDescription, planLabel, readArcade, trialFor, trials, unlocked, validPlan, type ArcadeSave, type Difficulty, type OpponentPlan, type TrialId } from "./lib/arcade";
-import { gameSummary, type GameState } from "./lib/arcade-runtime";
-import { OdysseyPreferences } from "./components/odyssey-preferences";
-import { TrialGlyph } from "./components/odyssey-map";
+import { ArcadeRound } from "./components/play/arcade-round";
+import { ARCADE_PREFS, ARCADE_SAVE, adaptivePlan, assistTrial, challengeObjective, clearedCount, difficultyNames, medalFor, finishAttempt, newArcade, planDescription, planLabel, readArcade, trialFor, trials, unlocked, validPlan, type ArcadeSave, type Difficulty, type OpponentPlan, type TrialId } from "./lib/arcade/arcade";
+import { gameSummary, type GameState } from "./lib/arcade/arcade-runtime";
+import { OdysseyPreferences } from "./components/menu/odyssey-preferences";
+import { TrialGlyph } from "./components/menu/odyssey-map";
 import { ArrowRight, ArrowLeft, Play, Map, BookOpen, Settings, Info, Compass, Trophy, Volume2, VolumeX, Sparkles, RotateCcw, FlaskConical, BrainCircuit, Swords, GraduationCap, Mic, MicOff, RefreshCw, Feather, SlidersHorizontal, Loader2 } from "lucide-react";
-import { VoyageAudio } from "./lib/voyage-audio";
-import "./arcade.css";
-import "./mythic.css";
-import "./odyssey.css";
-import "./farshore.css";
-import "./farshore-brand.css";
+import { VoyageAudio } from "./lib/audio/voyage-audio";
+import { encounterSounds } from "./lib/audio/cues";
+import "./styles/arcade.css";
+import "./styles/mythic.css";
+import "./styles/odyssey.css";
+import "./styles/farshore.css";
+import "./styles/farshore-brand.css";
 import { FarshoreLogo, Torch, TrialArtwork, CharacterPortrait } from "./components/farshore-art";
-import { PerformanceSeals, ResultFrieze } from "./components/encounter-intel";
-import "./farshore-detail.css";
-import "./farshore-stage.css";
-import "./farshore-cinema.css";
-import { TrialSelection } from "./components/trial-selection";
-import { AILabMode, labRunFrom, type LabRun, type LabSettings } from "./components/ai-lab-mode";
-import { aiRuntimeOf } from "./lib/arcade-runtime";
-import { defaultPreferences, preferencesSchema, type OnlineGame, type OnlinePreferences } from "./lib/online";
-import { factsFor, requestLine } from "./lib/commentary";
-import { voices, type Speaker, type VoiceId } from "./lib/rivals";
-import { VOICE_PREFS, VoiceBox, readVoicePrefs, type VoicePrefs } from "./lib/voice";
+import { PerformanceSeals, ResultFrieze } from "./components/ai/encounter-intel";
+import "./styles/farshore-detail.css";
+import "./styles/farshore-stage.css";
+import "./styles/farshore-cinema.css";
+import { TrialSelection } from "./components/menu/trial-selection";
+import { AILabMode, labRunFrom, type LabRun, type LabSettings } from "./components/ai/ai-lab-mode";
+import { aiRuntimeOf } from "./lib/arcade/arcade-runtime";
+import { defaultPreferences, preferencesSchema, type OnlineGame, type OnlinePreferences } from "./lib/online/online";
+import { factsFor, requestLine } from "./lib/arcade/commentary";
+import { voices, type Speaker, type VoiceId } from "./lib/arcade/rivals";
+import { VOICE_PREFS, VoiceBox, readVoicePrefs, type VoicePrefs, type VoiceStatus } from "./lib/speech/voice";
 
 type Screen = "splash" | "howto" | "credits" | "title" | "intro" | "map" | "brief" | "play" | "result" | "ending" | "lab";
 type Prefs = OnlinePreferences;
@@ -41,6 +42,14 @@ const prologue = [
   { chapter: "The voyage begins", lines: ["Eight trials stand", "between you and home."], text: "Rescue your crew from the lotus, outrun a giant, sail the winds, break Circe's spell, resist the Sirens, survive the strait, cross a storm, and reclaim the bow of Ithaca.", next: "Land of the Lotus-Eaters", detail: "Read the first briefing" },
 ];
 const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}`;
+const voiceLabels: Record<VoiceStatus, string> = { checking: "Checking…", loading: "Natural voices, getting ready", neural: "Natural voices", browser: "Browser voices", unavailable: "Browser voices" };
+const voiceNotes: Record<VoiceStatus, string> = {
+  checking: "Checking which voices are available.",
+  loading: "Preparing the natural voices. The first time, this downloads about 180 MB; until it finishes, your browser reads the lines.",
+  neural: "Each character speaks with their own natural voice.",
+  browser: "Natural voices are turned off on this server, so your browser reads the lines.",
+  unavailable: "The natural voices could not be prepared, so your browser reads the lines. The first run needs an internet connection.",
+};
 
 /** Counts a result number up from zero once, unless motion is reduced. */
 function CountUp({ value, still, format = (n: number) => n.toLocaleString() }: { value: number; still: boolean; format?: (n: number) => string }) {
@@ -69,7 +78,7 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
   const [storageError, setStorageError] = useState(""), [audioError, setAudioError] = useState("");
   const [aiState, setAiState] = useState<AiState>("idle"), [aiError, setAiError] = useState(""), [aiPlan, setAiPlan] = useState<OpponentPlan | null>(null), [aiTaunt, setAiTaunt] = useState("");
   const [rival, setRival] = useState<Rival>({ status: "checking", message: "Looking for your AI rival...", model: null, commentary: null }), [elapsed, setElapsed] = useState(0);
-  const [voicePrefs, setVoicePrefs] = useState<VoicePrefs>(readVoicePrefs), [speaking, setSpeaking] = useState(false), [neural, setNeural] = useState(false);
+  const [voicePrefs, setVoicePrefs] = useState<VoicePrefs>(readVoicePrefs), [speaking, setSpeaking] = useState(false), [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("checking");
   const [recap, setRecap] = useState<{ speaker: Speaker; text: string } | "pending" | null>(null);
   const [run, setRun] = useState<Run | null>(null), [result, setResult] = useState<GameState | null>(null);
   // AI Lab state. Lab runs never touch the campaign save: they launch as
@@ -89,9 +98,8 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
 
   useEffect(() => { const service = new VoyageAudio(); audio.current = service; return () => { service.dispose(); audio.current = null; request.current?.abort(); }; }, []);
   useEffect(() => {
-    const box = new VoiceBox(); voice.current = box; box.onSpeaking(setSpeaking);
-    const probe = window.setTimeout(() => setNeural(box.usesNeural), 2500);
-    return () => { clearTimeout(probe); box.dispose(); voice.current = null; };
+    const box = new VoiceBox(); voice.current = box; box.onSpeaking(setSpeaking); box.onStatus(setVoiceStatus);
+    return () => { box.dispose(); voice.current = null; };
   }, []);
   useEffect(() => { voice.current?.setVolume(voicePrefs.volume); if (!voicePrefs.voice) voice.current?.stop(); try { localStorage.setItem(VOICE_PREFS, JSON.stringify(voicePrefs)); } catch { /* Storage is optional. */ } }, [voicePrefs]);
   useEffect(() => { try { localStorage.setItem(saveKey, JSON.stringify(save)); localStorage.setItem(preferencesKey, JSON.stringify(prefs)); setStorageError(""); } catch { setStorageError("Browser saving is unavailable. Keep this tab open to preserve your voyage."); } }, [save, prefs, saveKey, preferencesKey]);
@@ -112,6 +120,11 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
   }, [rival.status, screen]);
   // A briefing always opens with the rival already studying you.
   useEffect(() => { if (screen === "brief" && rivalOnline && aiState === "idle") void prepare(); }, [screen, rivalOnline, aiState, selected, prefs.difficulty]);
+  // Outside an encounter the voyage is at sea; while a briefing is read, the encounter's sounds are rendered.
+  useEffect(() => {
+    if (screen !== "play") { audio.current?.setScene("sea"); audio.current?.setLoops({}); }
+    if (screen === "brief") audio.current?.prepare(encounterSounds[selected]);
+  }, [screen, selected]);
   // The bard reads the prologue aloud.
   useEffect(() => { if (screen === "intro") speak(prologue[intro].lines.join(" ") + " " + prologue[intro].text, "bard"); return () => voice.current?.stop(); }, [screen, intro]);
   useEffect(() => {
@@ -165,7 +178,7 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
     opening.current = requestLine({ trialId: id, difficulty, moment: "start", speaker: "bard", facts: { score: 0, hits: 0, misses: 0, streak: 0, livesLeft: null, secondsLeft: null, progress: 0, status: t.objective.slice(0, 160) }, recent: [] }).catch(() => "");
   }
   function wakeAudio() { if (prefs.sound) void audio.current?.unlock().catch(() => setAudioError("Audio could not start. Every cue is also visible.")); }
-  function navigate(next: Screen) { wakeAudio(); cancelAi(); if (screen === "play") audio.current?.setIntensity(0); setAssistance(false); setRestart(false); setScreen(next); }
+  function navigate(next: Screen) { wakeAudio(); cancelAi(); if (screen === "play") audio.current?.setLoops({}); setAssistance(false); setRestart(false); setScreen(next); }
   function openTrial(id: TrialId) { if (!unlocked(save, id)) return; cancelAi(); setSelected(id); setAssistance(false); setResult(null); setScreen("brief"); }
   /** Starts an attempt against the model-planned rival. Without a connected model, nothing starts. */
   function launch(practice = false, originalCave = false, reuse?: Pick<Run, "plan" | "taunt">) {
@@ -187,7 +200,8 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
   }
   function finish(round: GameState) {
     if (!round.done || round.id !== selected) return;
-    audio.current?.setIntensity(0);
+    // The round's own final frame already sounded the victory or defeat.
+    audio.current?.setLoops({});
     requestRecap(round);
     if (run?.lab) {
       // A lab run records a comparison row and returns to the lab, leaving the
@@ -196,7 +210,6 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
       if (runtime) setLabRuns(old => [...old, labRunFrom(round, runtime, run.seed ?? 0, ++labRunId.current)].slice(-24));
       setResult(round);
       setScreen("lab");
-      audio.current?.cue(round.won ? "sail" : "costly");
       return;
     }
     if (!round.practice) {
@@ -204,7 +217,7 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
       setSave(old => finishAttempt(old, selected, summary));
       online?.command({ type: "complete", trialId: selected, summary });
     }
-    setResult(round); setScreen("result"); audio.current?.cue(round.won ? "sail" : "costly");
+    setResult(round); setScreen("result");
   }
   async function toggleSound() {
     const enabled = !prefs.sound;
@@ -350,12 +363,13 @@ export default function ArcadeApp({ online }: { online?: OnlineGame } = {}) {
         {screen === "credits" && <section className="a-paper od-credits"><span className="a-eyebrow">THE PEOPLE & THE POEM</span><Compass size={50} strokeWidth={1}/><h1>A story three thousand years in the making.</h1><p>Inspired by Homer's <em>The Odyssey</em>. An independent FARSHORE arcade adaptation with original rules and imaginative mythological settings.</p><dl><div><dt>PROJECT</dt><dd>FARSHORE / Bibek Pathak</dd></div><div><dt>ART & SOUND</dt><dd>Original generated landscape and portrait art / Locally synthesized maritime music</dd></div><div><dt>AI RIVAL</dt><dd>Your connected model plans every rival and voices the live commentary / Qwen3 4B Instruct recommended</dd></div><div><dt>TYPE & ICONS</dt><dd>Press Start 2P by CodeMan38 (SIL OFL) / Georgia / Lucide (ISC)</dd></div><div><dt>BUILT WITH</dt><dd>React / TypeScript / Next.js / Canvas & SVG</dd></div></dl><p className="a-caption">Lotus Guardians, competitive potion brewing, wind gates, and repeated arcade contests are fictional game devices. The earlier advice voyage and Circe mystery remain in Settings.</p><div className="a-actions"><a className="a-btn" href="/story-sources.md" target="_blank" rel="noreferrer">Story & sources</a><button className="a-btn a-primary" onClick={() => navigate("title")}>Main menu</button></div></section>}
       </main><footer className="a-footer" inert={blocked}><span>{String(completed).padStart(2, "0")} / 08 ENCOUNTERS COMPLETE</span><span>THE SEA REMEMBERS EVERY JOURNEY.</span></footer>
     </>}
-    {screen === "play" && run && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} taunt={run.taunt} opening={run.opening} commentary={rivalOnline && voicePrefs.commentary} onSpeak={speak} onSilence={silence} onSettings={() => setSettings(true)} onNote={lane => audio.current?.arcadeNote(lane)} onIntensity={level => audio.current?.setIntensity(level)} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "map")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined} onFeedback={good => audio.current?.cue(good ? "select" : "costly")}/>}
+    {screen === "play" && run && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} taunt={run.taunt} opening={run.opening} commentary={rivalOnline && voicePrefs.commentary} onSpeak={speak} onSilence={silence} onSettings={() => setSettings(true)} onAudio={frame => audio.current?.frame(frame)} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "map")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined}/>}
     {(storageError || audioError) && <div className="a-notice" role="status">{storageError || audioError}</div>}
     {settings && <div className="a-modal-backdrop"><section className="a-settings a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-settings-title"><div className="a-modal-head"><span className="a-eyebrow">MAKE YOURSELF AT HOME</span><button className="a-btn a-small" onClick={() => setSettings(false)}>Close</button></div><h2 id="a-settings-title">Voyage settings</h2>
-      <div className="a-connection fs-settings-rival" data-status={rival.status}><strong><BrainCircuit size={16}/> AI rival</strong><p role="status">{rival.message}</p>{rivalOnline && <dl className="fs-model-facts"><div><dt>Plans the rivals</dt><dd>{rival.model}</dd></div><div><dt>Voices the commentary</dt><dd>{rival.commentary}</dd></div><div><dt>Voice</dt><dd>{neural ? "Neural voice server (Kokoro)" : "Browser speech"}</dd></div></dl>}<button className="a-btn a-small fs-rich" disabled={rival.status === "checking"} onClick={() => void checkModel()}><RefreshCw size={15}/><span><b>Check connection again</b><small>Every encounter needs a connected model</small></span></button>
+      <div className="a-connection fs-settings-rival" data-status={rival.status}><strong><BrainCircuit size={16}/> AI rival</strong><p role="status">{rival.message}</p>{rivalOnline && <dl className="fs-model-facts"><div><dt>Plans the rivals</dt><dd>{rival.model}</dd></div><div><dt>Voices the commentary</dt><dd>{rival.commentary}</dd></div><div><dt>Voice</dt><dd>{voiceLabels[voiceStatus]}</dd></div></dl>}<button className="a-btn a-small fs-rich" disabled={rival.status === "checking"} onClick={() => void checkModel()}><RefreshCw size={15}/><span><b>Check connection again</b><small>Every encounter needs a connected model</small></span></button>
         <details><summary>How to connect a model</summary><ol className="fs-connect-steps"><li><b>This computer</b> Install Ollama, run <code>ollama pull qwen3:4b-instruct</code>, then set <code>FARSHORE_MODEL_URL=http://127.0.0.1:11434/v1/chat/completions</code> and <code>FARSHORE_MODEL_NAME=qwen3:4b-instruct</code> in <code>.env</code> and restart the game server.</li><li><b>Google Colab</b> Open <code>colab/farshore_model_server.ipynb</code>, choose a T4 GPU runtime, run every cell, and paste the printed <code>FARSHORE_*</code> lines into <code>.env</code>. It also starts a neural voice.</li><li><b>Online accounts</b> Add an OpenAI, Groq or OpenRouter connection under Account.</li></ol></details></div>
       <div className="a-connection"><strong><Feather size={16}/> Commentary & voice</strong>
+        <p className="a-caption" role="status">{voiceNotes[voiceStatus]}</p>
         <button className="a-setting-toggle" aria-pressed={voicePrefs.commentary} onClick={() => setVoicePrefs(v => ({ ...v, commentary: !v.commentary }))}><span>Live AI commentary<small>The bard and your rival react to what happens, written by your model.</small></span><strong>{voicePrefs.commentary ? "On" : "Off"}</strong></button>
         <button className="a-setting-toggle" aria-pressed={voicePrefs.voice} onClick={() => setVoicePrefs(v => ({ ...v, voice: !v.voice }))}><span>Spoken voice<small>Reads commentary, taunts and the prologue aloud. Music dips while a voice speaks.</small></span><strong>{voicePrefs.voice ? "On" : "Off"}</strong></button>
         <label className="a-field fs-volume">Voice volume <input type="range" min={0} max={1} step={0.05} value={voicePrefs.volume} onChange={e => setVoicePrefs(v => ({ ...v, volume: Number(e.target.value) }))}/><output>{Math.round(voicePrefs.volume * 100)}%</output></label>

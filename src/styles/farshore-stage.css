@@ -90,6 +90,24 @@ body.fs-stage-open {
   background: var(--fs-navy-900);
 }
 
+/* The WebGL cave sits under a transparent overlay canvas that carries the
+   prompts, score pops and touch input. */
+.fs-cave-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.fs-cave-gl {
+  position: absolute;
+  inset: 0;
+}
+
+.fs-cave-overlay {
+  position: relative;
+  background: transparent;
+}
+
 /* HUD and overlays sit on the frame rather than in page flow, which is what
    keeps the playable area as large as the window allows. */
 .fs-stage-hud {

@@ -1,4 +1,4 @@
-import { chapterLore, homerLink, HOMER_URL } from "../lib/odyssey";
+import { chapterLore, homerLink, HOMER_URL } from "../../lib/story/odyssey";
 
 export function ChapterSource({ id }: { id: string }) {
   const lore = chapterLore[id];

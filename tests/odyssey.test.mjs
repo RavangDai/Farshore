@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { trials, newArcade, standardPlan, adaptivePlan, finishAttempt, readArcade, unlocked, medalFor, totalScore } from '../src/lib/arcade.ts';
-import { createGame, tickGame, gameAction, gameSummary, isAdventure, demonstrate } from '../src/lib/arcade-runtime.ts';
-import { mazePath, LOTUS_SHIP, walkable, onTimber, newAdventure, tickAdventure, adventureAction, adventureSummary } from '../src/lib/odyssey-games.ts';
+import { trials, newArcade, standardPlan, adaptivePlan, finishAttempt, readArcade, unlocked, medalFor, totalScore } from '../src/lib/arcade/arcade.ts';
+import { createGame, tickGame, gameAction, gameSummary, isAdventure, demonstrate } from '../src/lib/arcade/arcade-runtime.ts';
+import { mazePath, LOTUS_SHIP, walkable, onTimber, newAdventure, tickAdventure, adventureAction, adventureSummary } from '../src/lib/encounters/odyssey-games.ts';
 
 const difficulties = ['easy', 'normal', 'hard'];
 const advance = (state, ms) => { for (let time = 0; time < ms && !state.done; time += 50) state = tickGame(state, Math.min(50, ms - time)); return state; };

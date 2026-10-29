@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, tickGame, gameAction, gameSummary } from '../src/lib/arcade-runtime.ts';
-import { standardPlan } from '../src/lib/arcade.ts';
-import { mazePath, LOTUS_SHIP, newAdventure, tickAdventure, adventureAction } from '../src/lib/odyssey-games.ts';
+import { createGame, tickGame, gameAction, gameSummary } from '../src/lib/arcade/arcade-runtime.ts';
+import { standardPlan } from '../src/lib/arcade/arcade.ts';
+import { mazePath, LOTUS_SHIP, newAdventure, tickAdventure, adventureAction } from '../src/lib/encounters/odyssey-games.ts';
 
 const create = id => createGame(id, 'normal', standardPlan(id), false, 17);
 const advance = (s, ms = 250) => { for (let i = 0; i < ms; i += 50) s = tickGame(s, 50); return s; };

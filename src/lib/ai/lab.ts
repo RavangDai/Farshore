@@ -5,7 +5,7 @@
 // testable with the same `node --experimental-strip-types --test` harness the
 // rest of the engine uses.
 
-import type { Difficulty, TrialId } from "../arcade.ts";
+import type { Difficulty, TrialId } from "../arcade/arcade.ts";
 import { averageInterval, attackSuccessRate, predictionAccuracy, type AIRuntime } from "./types.ts";
 
 /**

@@ -1,6 +1,7 @@
 node_modules
 .next
 .git
+.cache
 .env
 .env.*
 !.env.example
@@ -8,7 +9,5 @@ node_modules
 .tmp
 dist
 dist-offline
-output
-.wrangler
-.sites-runtime
+docs
 *.log

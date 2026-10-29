@@ -1,19 +1,22 @@
+# Dependencies and build output
 node_modules/
-dist/
-.env
-.env.local
-*.tsbuildinfo
-.DS_Store
-.tmp/
-
-# Online application runtime state
-.sites-runtime/
-.wrangler/
-.vinext/
 .next/
-.env.*
-!.env.example
-.dev.vars*
+dist/
 dist-offline/
 next-env.d.ts
 *.tsbuildinfo
+
+# The downloaded voice model and other runtime caches
+.cache/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+.dev.vars*
+
+# Scratch files
+.tmp/
+.DS_Store
+__pycache__/
+*.pyc

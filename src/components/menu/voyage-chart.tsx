@@ -9,9 +9,9 @@ import {
   type ArcadeSave,
   type Difficulty,
   type TrialId,
-} from "../lib/arcade";
-import { fieldNotes } from "../lib/field-notes";
-import { TrialArtwork } from "./farshore-art";
+} from "../../lib/arcade/arcade";
+import { fieldNotes } from "../../lib/story/field-notes";
+import { TrialArtwork } from "../farshore-art";
 
 /**
  * The voyage chart.

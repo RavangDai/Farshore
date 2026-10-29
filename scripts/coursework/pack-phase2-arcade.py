@@ -3,10 +3,10 @@ from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote
 import json, re, sys, zipfile, xml.etree.ElementTree as ET
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'.tmp/pdf-review-tools'))
 from pypdf import PdfReader
-OUT=ROOT/'Farshore Context and Assisment/docs/assignment/phase2-arcade'
+OUT=ROOT/'docs/coursework/docs/assignment/phase2-arcade'
 ARCHIVE=OUT/'Farshore-Phase-2-Arcade-Submission.zip'
 D=json.loads((OUT/'editable/content.json').read_text(encoding='utf-8'))
 assert len(D['screens'])==15 and len(D['flows'])==5 and len(D['wireframes'])==28
@@ -45,14 +45,14 @@ for target in links.targets:
     elif u.fragment:assert u.fragment in links.ids,target
 files=sorted(p for p in OUT.rglob('*') if p.is_file() and p!=ARCHIVE)
 extra=[
- 'scripts/phase2-arcade-content.mjs','scripts/build-phase2-arcade.mjs','scripts/render-phase2-arcade.py',
- 'scripts/render-phase2.py','scripts/verify-phase2-arcade-powerpoint.ps1','scripts/pack-phase2-arcade.py','scripts/phase2-arcade-spike.mjs',
- 'server/arcade.ts','server/turn.ts','src/lib/arcade.ts','src/lib/game.ts','src/lib/turn.ts','src/lib/odyssey.ts',
- 'src/ArcadeApp.tsx','src/lib/mythic.ts','public/art/title.png','public/story-sources.md',
+ 'scripts/coursework/phase2-arcade-content.mjs','scripts/coursework/build-phase2-arcade.mjs','scripts/coursework/render-phase2-arcade.py',
+ 'scripts/coursework/render-phase2.py','scripts/coursework/verify-phase2-arcade-powerpoint.ps1','scripts/coursework/pack-phase2-arcade.py','scripts/coursework/phase2-arcade-spike.mjs',
+ 'server/arcade.ts','server/turn.ts','src/lib/arcade/arcade.ts','src/lib/voyage/game.ts','src/lib/voyage/turn.ts','src/lib/story/odyssey.ts',
+ 'src/ArcadeApp.tsx','src/lib/encounters/mythic.ts','public/art/title.png','public/story-sources.md',
  'package.json','package-lock.json',
- 'Farshore Context and Assisment/docs/assignment/original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf',
- 'Farshore Context and Assisment/docs/assignment/original/Farshore_Phase12nd.pptx',
- 'Farshore Context and Assisment/docs/assignment/phase2/editable/content.json',
+ 'docs/coursework/docs/assignment/original/CMPS_4200_HCI_Phase_2_Project_Requirements.pdf',
+ 'docs/coursework/docs/assignment/original/Farshore_Phase12nd.pptx',
+ 'docs/coursework/docs/assignment/phase2/editable/content.json',
 ]
 with zipfile.ZipFile(ARCHIVE,'w',zipfile.ZIP_DEFLATED) as z:
     for p in files:

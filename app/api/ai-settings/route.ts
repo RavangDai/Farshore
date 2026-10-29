@@ -1,11 +1,11 @@
-import { verifiedPlayer } from "../../../lib/auth";
-import { database } from "../../../lib/mongodb";
-import { progressRepository } from "../../../lib/progress-repository";
-import { readAiRow, safeSettings, type AiRow } from "../../../lib/ai-account";
-import { runtimeConfig, accountsConfigured } from "../../../lib/runtime-config";
-import { checkWriteRequest, json, readJson } from "../../../server/http";
-import { modelSettingsSchema } from "../../../src/lib/ai-account";
-import { encryptSecret } from "../../../server/secrets";
+import { verifiedPlayer } from "../../../server/lib/auth";
+import { database } from "../../../server/lib/mongodb";
+import { progressRepository } from "../../../server/lib/progress-repository";
+import { readAiRow, safeSettings, type AiRow } from "../../../server/lib/ai-account";
+import { runtimeConfig, accountsConfigured } from "../../../server/lib/runtime-config";
+import { checkWriteRequest, json, readJson } from "../../../server/lib/http";
+import { modelSettingsSchema } from "../../../src/lib/online/ai-account";
+import { encryptSecret } from "../../../server/lib/secrets";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {

@@ -13,7 +13,7 @@ The existing React/TypeScript application, Next.js hosting, guest and MongoDB ac
 
 ## Runtime
 
-`src/lib/arcade-runtime.ts` dispatches to the existing `mythic.ts` engines or the new pure functions in `odyssey-games.ts`. `ArcadeRound` still owns the animation-frame lifecycle, countdown, input, pause, focus, background-tab handling, and final callback. Game state owns collision, timers, scores, and terminal outcomes. Large frame deltas remain bounded to preserve reaction time.
+`src/lib/arcade/arcade-runtime.ts` dispatches to the existing `mythic.ts` engines or the new pure functions in `odyssey-games.ts`. `ArcadeRound` still owns the animation-frame lifecycle, countdown, input, pause, focus, background-tab handling, and final callback. Game state owns collision, timers, scores, and terminal outcomes. Large frame deltas remain bounded to preserve reaction time.
 
 The eight stops are Lotus, Cyclops, Aeolus, Circe, Sirens, Scylla & Charybdis, Calypso, and Ithaca. Each has Easy, Medium (`normal` in existing storage), and Hard. Ordinary victory unlocks the next shore. Failed rounds keep attempt history without unlocking islands. Practice and the AI rescue demonstration do not award campaign progress. The retained, explicitly confirmed Athena assistance route is marked Assisted and earns no medal.
 

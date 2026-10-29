@@ -7,7 +7,7 @@ editable. PowerPoint renders the final slides in a separate verification step.
 import sys, json, math, re, zipfile, html
 from pathlib import Path
 from xml.sax.saxutils import escape
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.tmp/pdf-review-tools'))
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import HexColor
@@ -15,7 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 
-OUT = ROOT / 'Farshore Context and Assisment/docs/assignment/phase2'
+OUT = ROOT / 'docs/coursework/docs/assignment/phase2'
 D = json.loads((OUT/'editable/content.json').read_text(encoding='utf-8'))
 BUILD = ROOT / '.tmp/phase2-build'
 BUILD.mkdir(parents=True, exist_ok=True)
@@ -219,7 +219,7 @@ def summary_page():
       ('Failure behavior','E1: malformed JSON to model service, HTTP 400, unexpected EOF. E2: missing model, HTTP 404, model name not found. E3: deliberate 1ms client deadline, TimeoutError, no model response received. E4: one-character advice, app HTTP 400 before provider contact. Exact provider bodies and client errors are archived separately.'),
       ('Limits and cost','No 429 in this sequential local run and no quota/concurrency threshold measured. Existing adapter handles 429. No billed inference API was used. Hardware/electricity, browser speech services and future cloud costs are unmeasured.'),
       ('Effect on the design','Proposed elapsed wait and cancel for long requests. Retain counsel, retry and provide explicit Story mode. Review the action and rationale before score commitment, with refine/discard controls for uncertainty. No invented confidence percentages. Keep Llama provisionally for the prototype and evaluate decision flags.'),
-      ('Evidence and sources','evidence/spike-2026-09-30.json, evidence/quality-review.json and scripts/phase2-spike.mjs. Official Ollama compatible API and structured outputs documentation, accessed September 30, 2026. Proposed controls are design deliverables, not implemented game changes.')]
+      ('Evidence and sources','evidence/spike-2026-09-30.json, evidence/quality-review.json and scripts/coursework/phase2-spike.mjs. Official Ollama compatible API and structured outputs documentation, accessed September 30, 2026. Proposed controls are design deliverables, not implemented game changes.')]
     for title,body in blocks:
         yy=p.text(title,64,yy,772,24,bold=True)+5
         yy=p.text(body,64,yy,772,18)+18
@@ -233,7 +233,7 @@ def slide_pages():
     p.text('The player advises.\nOdysseus decides.',64,220,630,54,bold=True)
     p.text('Information architecture, task flows and AI states',64,425,650,28,color=GRAY)
     p.image(ROOT/'public/art/title.png',800,195,410,280)
-    p.notes='Introduce the game: the player uses free language to guide Odysseus home before 240 months. Phase 2 focuses on the structure and behavior of the interaction. This presentation uses current code plus clearly labeled design proposals. Source: Phase 2 brief, page 1; src/lib/game.ts. Original project artwork: public/art/title.png.'
+    p.notes='Introduce the game: the player uses free language to guide Odysseus home before 240 months. Phase 2 focuses on the structure and behavior of the interaction. This presentation uses current code plus clearly labeled design proposals. Source: Phase 2 brief, page 1; src/lib/voyage/game.ts. Original project artwork: public/art/title.png.'
     p=new('Players and design needs','Persona references from the Phase 1 sketches')
     for i,person in enumerate(D['personas']):
         x=64+i*402;p.text(person['name'],x,185,350,34,bold=True)
@@ -243,22 +243,22 @@ def slide_pages():
     p.notes='Maya cares about fair scoring. Daniel needs a clear start and a text option. Rosa needs to understand the model and why Odysseus refused. These references come from the Phase 1 slide, not a completed interview study. Explain that task flows carry their persona labels. Source: Farshore_Phase12nd.pptx, slide 4; phase2 editable content.'
     p=new('Screen hierarchy','All current screens and shared overlays')
     site(p,64,170,1140,485)
-    p.notes='Walk through Title, Introduction, Encounter and Journey report. Shared overlays hold support content without moving the voyage forward. The Encounter contains the Llama feature, optional voice input and spoken output. Settings shows model availability. Source: src/App.tsx screen and Modal types; design packet architecture.'
+    p.notes='Walk through Title, Introduction, Encounter and Journey report. Shared overlays hold support content without moving the voyage forward. The Encounter contains the Llama feature, optional voice input and spoken output. Settings shows model availability. Source: src/VoyageApp.tsx screen and Modal types; design packet architecture.'
     p=new('Data flow and privacy','Local text inference with separate browser/OS voice services')
     dataflow(p,64,170,1140,470)
-    p.notes='Reviewed text goes through React and the local API to Llama. The model returns text and decision flags. The server determines time and trust changes from authored rules. Accepted results live in browser localStorage. Browser/OS speech may use a remote provider, so voice is a separate privacy boundary. A cloud text endpoint would change the disclosure. Sources: server/turn.ts; src/App.tsx; src/lib/dictation.ts; https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition; https://docs.ollama.com/api/openai-compatibility, accessed September 30, 2026.'
+    p.notes='Reviewed text goes through React and the local API to Llama. The model returns text and decision flags. The server determines time and trust changes from authored rules. Accepted results live in browser localStorage. Browser/OS speech may use a remote provider, so voice is a separate privacy boundary. A cloud text endpoint would change the disclosure. Sources: server/turn.ts; src/VoyageApp.tsx; src/lib/speech/dictation.ts; https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition; https://docs.ollama.com/api/openai-compatibility, accessed September 30, 2026.'
     p=new('F2: Counsel and decision review','Maya and Rosa / review checkpoint proposed')
     flow(p,D['flows'][1],64,165,640,485,False)
     bullets(p,['Read the action and rationale before scoring.','Refine or discard a questionable candidate.','Commit once, then advance the route.','Current game commits immediately.'],800,185,420,27,28)
-    p.notes='Describe the primary AI task: valid counsel, processing, structure validation, candidate review and one-time commitment. The proposed review step separates generation from consequences. It preserves a meaningful story refusal while offering a response to model contradiction. Refine counsel, regenerate or discard an unscored candidate. Current code applies a valid result immediately, so this is a Phase 2 design addition. Source: src/App.tsx submit; F2 in design packet.'
+    p.notes='Describe the primary AI task: valid counsel, processing, structure validation, candidate review and one-time commitment. The proposed review step separates generation from consequences. It preserves a meaningful story refusal while offering a response to model contradiction. Refine counsel, regenerate or discard an unscored candidate. Current code applies a valid result immediately, so this is a Phase 2 design addition. Source: src/VoyageApp.tsx submit; F2 in design packet.'
     p=new('F3: Dictation and transcript review','Daniel / typing remains available throughout')
     flow(p,D['flows'][2],64,165,660,485,False)
     bullets(p,['Wait for Listening, then speak.','Stop and correct the transcript.','Submit only reviewed text.','A speech failure offers Type instead.'],830,185,375,27,24)
-    p.notes='Voice is optional and never submits automatically. Stop dictation and review names and negation before sending. Brave on Windows uses Windows + H guidance. The browser cannot open the OS panel itself. Dictation latency and actual microphone behavior were not measured in this spike. Sources: src/lib/dictation.ts; src/App.tsx; F3.'
+    p.notes='Voice is optional and never submits automatically. Stop dictation and review names and negation before sending. Brave on Windows uses Windows + H guidance. The browser cannot open the OS panel itself. Dictation latency and actual microphone behavior were not measured in this spike. Sources: src/lib/speech/dictation.ts; src/VoyageApp.tsx; F3.'
     p=new('F4: Error recovery','Maya and Rosa / failed turns preserve counsel and score')
     flow(p,D['flows'][3],64,165,650,485,False)
     bullets(p,['Connection error, timeout or rate limit: retry or Story mode.','Invalid input: explain the required length inline.','Wrong or empty reply: reject or review.'],820,185,390,27,26)
-    p.notes='No dead end. Distinguish provider failure, invalid model structure and semantic disagreement. Keep the same draft and unchanged score on failure. Story mode is explicit and labeled. Empty JSON errors already reject. Review and discard for plausible but incorrect output are proposed. The complete packet also contains F1 start/resume and F5 consequence/report. Source: server/turn.ts and src/App.tsx recovery; F1-F5.'
+    p.notes='No dead end. Distinguish provider failure, invalid model structure and semantic disagreement. Keep the same draft and unchanged score on failure. Story mode is explicit and labeled. Empty JSON errors already reject. Review and discard for plausible but incorrect output are proposed. The complete packet also contains F1 start/resume and F5 consequence/report. Source: server/turn.ts and src/VoyageApp.tsx recovery; F1-F5.'
     p=new('AI interface states','Input, long-wait feedback and result review')
     columns=[('Initial',['Scene and current mode','Editable counsel','Dictate / Send']),('Loading',['Thinking and elapsed wait','Draft retained','Cancel request (proposed)']),('Success',['Action and rationale','Preview time/trust','Accept decision (proposed)'])]
     for i,(title,rows) in enumerate(columns):
@@ -283,7 +283,7 @@ def slide_pages():
     short_purposes=['Supportive safe counsel','Negation with safe counsel','Polite dangerous counsel','Direct safe counsel','Motivated safe counsel','Ambiguous counsel']
     p.table(['Input','Use case','Seconds','Analytic review'],[[s['id'],short_purposes[i],f"{s['latencySeconds']:.2f}",notes[i]] for i,s in enumerate(D['spike']['samples'])],64,255,[90,360,155,545],23,49)
     p.text('Single sequential run, first-call loading included. Six valid structures. Three followed-flag disagreements.',64,625,1140,22,color=GRAY)
-    p.notes='Method: standalone script uses the existing production prompt and adapter, captures raw provider bodies and times six realistic inputs. Local CPU inference, Llama 3.2 3B Q4_K_M, temperature 0.2 and 450 output-token cap. No model was loaded before S1. Report min, arithmetic mean and max across valid calls only. S4 and S5 follow requested actions but say followed=false. S6 has no requested action but says followed=true. This is a small analytic sample, not an accuracy benchmark. Sources: scripts/phase2-spike.mjs; evidence/spike-2026-09-30.json; evidence/quality-review.json.'
+    p.notes='Method: standalone script uses the existing production prompt and adapter, captures raw provider bodies and times six realistic inputs. Local CPU inference, Llama 3.2 3B Q4_K_M, temperature 0.2 and 450 output-token cap. No model was loaded before S1. Report min, arithmetic mean and max across valid calls only. S4 and S5 follow requested actions but say followed=false. S6 has no requested action but says followed=true. This is a small analytic sample, not an accuracy benchmark. Sources: scripts/coursework/phase2-spike.mjs; evidence/spike-2026-09-30.json; evidence/quality-review.json.'
     p=new('Failures and design changes','Actual provider errors and separate client/app failures')
     p.table(['Failure','Observed response','Design response'],[['Malformed model JSON','HTTP 400: unexpected EOF','Explain invalid request / preserve draft'],['Missing model','HTTP 404: model not found','Connection check / explicit Story mode'],['1ms client deadline','TimeoutError, no received model body','Cancel long waits / retain counsel'],['One-character counsel','App HTTP 400 before model contact','Inline input guidance']],64,185,[365,385,400],24)
     p.text('No quota benchmark or API fee. Hardware and speech costs unmeasured.',64,605,1150,23,color=GRAY)
@@ -395,7 +395,7 @@ def pptx(pages,file):
     colors={'dk1':'102E40','lt1':'FFFFFF','dk2':'526875','lt2':'F5F6F7','accent1':'126978','accent2':'A9884B','accent3':'577A8C','accent4':'A15347','accent5':'487563','accent6':'7B638A','hlink':'126978','folHlink':'7B638A'}
     # Reuse the supplied presentation's schema-complete Office theme. All slide
     # fonts and colors are explicit, so this does not copy its slide design.
-    with zipfile.ZipFile(ROOT/'Farshore Context and Assisment/docs/assignment/original/Farshore_Phase12nd.pptx') as reference:
+    with zipfile.ZipFile(ROOT/'docs/coursework/docs/assignment/original/Farshore_Phase12nd.pptx') as reference:
         parts['ppt/theme/theme1.xml']=reference.read('ppt/theme/theme1.xml')
     overrides=[]
     for name in parts:

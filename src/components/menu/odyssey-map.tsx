@@ -1,5 +1,5 @@
 import { Compass, LockKeyhole, Trophy, Ship, ArrowRight, Leaf, Eye, Wind, FlaskConical, Music, Waves, Sailboat, Target } from "lucide-react";
-import { trials, unlocked, difficultyNames, type ArcadeSave, type TrialId, type Difficulty } from "../lib/arcade";
+import { trials, unlocked, difficultyNames, type ArcadeSave, type TrialId, type Difficulty } from "../../lib/arcade/arcade";
 
 const positions = [[12, 26], [34, 18], [58, 22], [81, 30], [85, 66], [62, 77], [37, 70], [13, 78]];
 const glyphs = [Leaf, Eye, Wind, FlaskConical, Music, Waves, Sailboat, Target];

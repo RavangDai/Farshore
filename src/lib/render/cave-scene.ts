@@ -848,7 +848,7 @@ export class CaveScene {
   }
 
   private drawObstacle(c: CanvasRenderingContext2D, o: Obstacle, s: CaveState, now: number) {
-    const p = laneAt(o.z, o.z);
+    const p = laneAt(o.lane, o.z);
     const k = p.scale;
     const w = 190 * k;
     const rule = AVOIDANCE[o.kind];

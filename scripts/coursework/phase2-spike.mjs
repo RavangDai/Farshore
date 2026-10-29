@@ -1,16 +1,16 @@
 // Standalone Phase 2 experiment. Never writes browser saves or changes .env.
-// Run: node --experimental-strip-types scripts/phase2-spike.mjs
+// Run: node --experimental-strip-types scripts/coursework/phase2-spike.mjs
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { performance } from 'node:perf_hooks';
-import { POST } from '../server/turn.ts';
+import { POST } from '../../server/turn.ts';
 
 try { process.loadEnvFile('.env'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
 const endpoint = process.env.FARSHORE_MODEL_URL;
 const model = process.env.FARSHORE_MODEL_NAME;
 if (!endpoint || !model) throw new Error('Configure FARSHORE_MODEL_URL and FARSHORE_MODEL_NAME first.');
-const outputDir = path.resolve('Farshore Context and Assisment/docs/assignment/phase2/evidence');
+const outputDir = path.resolve('docs/coursework/docs/assignment/phase2/evidence');
 await fs.mkdir(outputDir, { recursive: true });
 const started = new Date().toISOString();
 const resultPath = path.join(outputDir, `spike-${started.slice(0,10)}.json`);

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { LOTUS_MAZE, LOTUS_SHIP, mazePath, adventureStatus, type AdventureState, type AdventureAction } from "../lib/odyssey-games";
-import { useFarshoreAtlas, useFarshoreSprites, useFarshoreItems, drawFarshoreItem, drawFarshoreTile, drawFarshoreSprite } from "../lib/farshore-rendering";
-import { gardenTile, shadow, torchlight, motes, sceneFrame } from "../lib/scene-details";
+import { LOTUS_MAZE, LOTUS_SHIP, mazePath, adventureStatus, type AdventureState, type AdventureAction } from "../../lib/encounters/odyssey-games";
+import { useFarshoreAtlas, useFarshoreSprites, useFarshoreItems, drawFarshoreItem, drawFarshoreTile, drawFarshoreSprite } from "../../lib/render/farshore-rendering";
+import { gardenTile, shadow, torchlight, motes, sceneFrame } from "../../lib/render/scene-details";
 
 const gold = "#e9b85c", cyan = "#32d4f5", cream = "#f6f0e3";
 function circle(c: CanvasRenderingContext2D, x: number, y: number, r: number, fill: string) { c.fillStyle = fill; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DictationSession, dictationIssue, dictationMethod } from "../src/lib/dictation.ts";
+import { DictationSession, dictationIssue, dictationMethod } from "../src/lib/speech/dictation.ts";
 
 test("Brave on Windows offers system voice typing instead of its unusable speech API", () => {
   assert.equal(dictationMethod(true, true, "Win32"), "windows");

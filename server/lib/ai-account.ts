@@ -1,6 +1,6 @@
 import type { Db } from "mongodb";
-import { providerDetails, providerSchema, type ModelSettings } from "../src/lib/ai-account.ts";
-import { decryptSecret } from "../server/secrets.ts";
+import { providerDetails, providerSchema, type ModelSettings } from "../../src/lib/online/ai-account.ts";
+import { decryptSecret } from "./secrets.ts";
 import { runtimeConfig } from "./runtime-config.ts";
 export type AiRow = { userId: string; provider: string; model: string; encryptedKey: string | null; keySuffix: string | null; enabled: boolean; updatedAt: string };
 export function readAiRow(db: Db, userId: string): Promise<AiRow | null> {

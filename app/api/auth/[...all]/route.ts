@@ -1,5 +1,5 @@
-import { getAuth } from "../../../../lib/auth";
-import { json } from "../../../../server/http";
+import { getAuth } from "../../../../server/lib/auth";
+import { json } from "../../../../server/lib/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {

@@ -82,11 +82,20 @@ export type TrajectoryPoint = { x: number; y: number };
 /** Ring radius by tier, byte-for-byte the table `archeryShot` uses. */
 const RING_RADIUS_BY_TIER: readonly [number, number, number] = [0.25, 0.19, 0.145];
 
+/** `BOW.perSight`, `BOW.drop` and `BOW.push` in mythic.ts. */
+const PER_SIGHT = 0.043;
+const DROP = 0.15;
+const PUSH = 0.009;
+
+/** Axe `i` as a share of the way to the twelfth: 3.5 m out, 1 m apart, as `axeZ` places them. */
+const axeShare = (i: number) => (3.5 + (i - 1)) / 14.5;
+
 /**
- * Mirrors `archeryShot` in mythic.ts exactly: the same 12-sample path, the
- * same contiguous-ring rule, the same radius-by-tier table and the same
- * block-ring shrink. If the engine's formula changes, this must change with
- * it — there is no import to keep the two in sync automatically.
+ * Mirrors `archeryShot` in mythic.ts exactly: the same axe spacing, the same
+ * draw-squared drop and drift, the same contiguous-ring rule, the same
+ * radius-by-tier table and the same block-ring shrink. If the engine's
+ * formula changes, this must change with it — there is no import to keep the
+ * two in sync automatically.
  */
 export function sampleTrajectory(
   aim: IthacaAim,
@@ -95,11 +104,13 @@ export function sampleTrajectory(
   tier: Tier,
 ): { path: TrajectoryPoint[]; rings: number } {
   const path: TrajectoryPoint[] = [];
+  const power = clamp(aim.tension, 25, 100) / 100;
+  const slow = 1 / (power * power);
   let rings = 0;
   for (let i = 1; i <= 12; i++) {
-    const z = i / 12;
-    const x = aim.aim * 0.043 * z + wind * 0.009 * z * z * (75 / aim.tension);
-    const y = aim.elevation * 0.04 * z + (aim.tension - 75) * 0.018 * z * z;
+    const z = axeShare(i);
+    const x = aim.aim * PER_SIGHT * z + wind * PUSH * z * z * slow;
+    const y = aim.elevation * PER_SIGHT * z - DROP * z * z * slow;
     path.push({ x, y });
     const radius = RING_RADIUS_BY_TIER[tier] * (blockedRing === i ? 0.58 : 1);
     if (rings === i - 1 && Math.hypot(x, y) <= radius) rings++;
@@ -134,33 +145,35 @@ function safetyScore(exposure: number): number {
 }
 
 /**
- * The aim degrees that zero `sampleTrajectory`'s own x term at the final
- * sample — solved directly from that formula rather than searched for, which
- * is the real technique "wind compensation" names.
+ * The sight that brings `sampleTrajectory`'s curve back to the line at the
+ * final sample: into the wind by its push, up by the drop. Solved directly
+ * from that formula rather than searched for, which is the real technique
+ * "wind compensation" names.
  */
-function windCompensatedAim(wind: number, tension = 75): number {
-  return -(wind * 0.009 * (75 / tension)) / 0.043;
+function windCompensatedAim(wind: number, tension = 100): IthacaAim {
+  const slow = (100 / tension) ** 2;
+  return { aim: -(wind * PUSH * slow) / PER_SIGHT, elevation: (DROP * slow) / PER_SIGHT, tension };
 }
 
 /**
- * Mirrors `bestAim` in mythic.ts: the same tension×aim×elevation grid, scored
- * by the same rings-first, path-cost-second utility. `nodes` accumulates
- * every evaluation so the decision can report the search's real cost rather
- * than an estimate of it.
+ * Mirrors `bestAim` in mythic.ts: the solved full-draw sight refined over the
+ * same ±2.5 grid in tenths, scored by the same rings-first utility with each
+ * opening's own size as the measure. `nodes` accumulates every evaluation so
+ * the decision can report the search's real cost rather than an estimate of it.
  */
 function sweepAim(wind: number, tier: Tier, nodes: { count: number }): { aim: IthacaAim; value: number } {
+  const centre = windCompensatedAim(wind);
   let best = -Infinity;
-  let choice: IthacaAim = { aim: 0, elevation: 0, tension: 75 };
-  for (let tension = 60; tension <= 90; tension += 5) {
-    for (let aim = -15; aim <= 15; aim++) {
-      for (let elevation = -7; elevation <= 7; elevation++) {
-        nodes.count++;
-        const { path, rings } = sampleTrajectory({ aim, elevation, tension }, wind, 0, tier);
-        const value = rings * 100 - path.reduce((n, p) => n + Math.hypot(p.x, p.y), 0);
-        if (value > best) {
-          best = value;
-          choice = { aim, elevation, tension };
-        }
+  let choice: IthacaAim = centre;
+  for (let da = -25; da <= 25; da++) {
+    for (let de = -25; de <= 25; de++) {
+      nodes.count++;
+      const aim = { aim: clamp(centre.aim + da / 10, -20, 20), elevation: clamp(centre.elevation + de / 10, -20, 20), tension: 100 };
+      const { path, rings } = sampleTrajectory(aim, wind, 0, tier);
+      const value = rings * 100 - path.reduce((n, p) => n + Math.hypot(p.x, p.y) / RING_RADIUS_BY_TIER[tier], 0);
+      if (value > best) {
+        best = value;
+        choice = aim;
       }
     }
   }
@@ -265,7 +278,7 @@ export type IthacaPolicy = {
   commitMs: number;
   /** Degrees of execution error applied to every committed aim, on every tier. */
   errorBoundDeg: { aim: number; elevation: number };
-  /** Whether the contest's aim selection is the full tension×aim×elevation sweep. */
+  /** Whether the contest's aim selection is the full aim×elevation sweep at full draw. */
   exhaustiveSearch: boolean;
   /** Whether aim selection reads the measured wind at all. */
   windAware: boolean;
@@ -291,7 +304,7 @@ export function ithacaPolicy(difficulty: Difficulty, adaptive: boolean): IthacaP
   const coverAware = tier >= 1 || adaptive;
   return {
     algorithm: promoted
-      ? "Exhaustive tension×aim×elevation sweep with trajectory prediction and Markov zone forecasting"
+      ? "Exhaustive aim×elevation sweep at full draw with trajectory prediction and Markov zone forecasting"
       : coverAware
         ? "Wind-compensated aim solve with threshold-gated cover"
         : "Randomised aim jitter with fixed station rotation",
@@ -317,7 +330,7 @@ export function ithacaPolicy(difficulty: Difficulty, adaptive: boolean): IthacaP
 export function ithacaAlgorithm(policy: IthacaPolicy, model: PlayerModel): string {
   if (!policy.predictive) return policy.algorithm;
   return model.samples === 0
-    ? "Exhaustive tension×aim×elevation sweep with trajectory prediction (zone forecasting idle — no shots observed yet)"
+    ? "Exhaustive aim×elevation sweep at full draw with trajectory prediction (zone forecasting idle — no shots observed yet)"
     : policy.algorithm;
 }
 
@@ -357,13 +370,13 @@ function perceptionReadings(view: IthacaPerception, board: BoardRead): Reading[]
       scoreline,
       windReading,
       { key: "blocked", label: "Narrowed ring", value: view.blockedRing > 0 ? `Ring ${view.blockedRing}` : "none" },
-      { key: "lastAim", label: "Your last shot", value: `${view.playerAim.aim}° aim · ${view.playerAim.elevation}° elevation · tension ${view.playerAim.tension}` },
+      { key: "lastAim", label: "Your last shot", value: `${view.playerAim.aim} sideways · ${view.playerAim.elevation} up · ${view.playerAim.tension}% draw` },
     ];
   }
   return [
     scoreline,
     windReading,
-    { key: "aim", label: view.phase === "player" ? "Your aim (live)" : "Your last aim", value: `${view.playerAim.aim}° aim · ${view.playerAim.elevation}° elevation` },
+    { key: "aim", label: view.phase === "player" ? "Your aim (live)" : "Your last aim", value: `${view.playerAim.aim} sideways · ${view.playerAim.elevation} up` },
     { key: "station", label: "Antinous' position", value: positionName(view.antinousPosition) },
   ];
 }
@@ -457,15 +470,16 @@ export function decideIthaca(
     if (policy.exhaustiveSearch) {
       const swept = sweepAim(view.wind, tier, nodes);
       intendedAim = swept.aim;
-      searchNote = `best of ${nodes.count} tension×aim×elevation combinations swept`;
+      searchNote = `best of ${nodes.count} aim×elevation sights swept at full draw`;
     } else if (policy.windAware) {
-      intendedAim = { aim: Math.round(clamp(windCompensatedAim(view.wind), -15, 15)), elevation: 0, tension: 75 };
+      const solved = windCompensatedAim(view.wind);
+      intendedAim = { aim: clamp(solved.aim, -15, 15), elevation: solved.elevation, tension: 100 };
       searchNote = `aim solved directly against the current wind (${view.wind})`;
     } else {
       intendedAim = {
         aim: Math.round((roll() - 0.5) * 14),
         elevation: Math.round((roll() - 0.5) * 9),
-        tension: Math.round(65 + roll() * 20),
+        tension: Math.round(88 + roll() * 12),
       };
       searchNote = "rolled aim, judged with no wind term";
     }

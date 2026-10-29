@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { emotionDirection, type CaptainEmotion } from "@/lib/character-performance";
+import { emotionDirection, type CaptainEmotion } from "@/lib/voyage/character-performance";
 
 type Props = {
   text: string;

@@ -6,13 +6,13 @@ The 2026 illustrated FARSHORE assets are original images generated with the buil
 
 ## Voyage map
 
-The Mediterranean chart uses Natural Earth’s public-domain [1:50m land polygons](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/), clipped and simplified into `src/lib/map-land.ts`. See the [terms of use](https://www.naturalearthdata.com/about/terms-of-use/). The chart styling, labels, markers, and route lines were made for Farshore. Coordinates for legendary locations are illustrative, not evidence of their historical position. Oceanus is shown symbolically. The coastline is modern and is not a Bronze Age reconstruction.
+The Mediterranean chart uses Natural Earth’s public-domain [1:50m land polygons](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/), clipped and simplified into `src/lib/story/map-land.ts`. See the [terms of use](https://www.naturalearthdata.com/about/terms-of-use/). The chart styling, labels, markers, and route lines were made for Farshore. Coordinates for legendary locations are illustrative, not evidence of their historical position. Oceanus is shown symbolically. The coastline is modern and is not a Bronze Age reconstruction.
 
 Original generated game assets, made for this project with OpenAI image generation:
 
 - `public/art/title.png`: Mediterranean sea, Greek ship, and distant Ithaca at dusk.
 - `public/art/locations.png`: 3 × 2 scenery atlas. Row 1: Cyclops cave, Aeolus' island, Circe's palace. Row 2: Underworld, dangerous straits, Ithaca garden. Scenery is reused for related episodes.
-- `public/art/portraits.png`: 5 × 4 character atlas with transparent background, in the row-major order in `src/lib/cast.ts`. Each is an original stylized mythological interpretation. No actor or film images were used.
+- `public/art/portraits.png`: 5 × 4 character atlas with transparent background, in the row-major order in `src/lib/story/cast.ts`. Each is an original stylized mythological interpretation. No actor or film images were used.
 
 The atlas is rendered with percentage background positions, avoiding a separate image dependency for every character. Idle motion, entrances, title drift, and text reveal are CSS/React animations. These are not full walking or combat sprite sheets.
 
@@ -26,7 +26,7 @@ The mystery case uses `public/art/mystery-rooms.png`, a three-scene backdrop atl
 
 ## Mystery room generation record
 
-Generated October 1, 2026 with the built-in OpenAI image generation tool, image_gen__imagegen. The final asset is [public/art/mystery-rooms.png](public/art/mystery-rooms.png). The original generated file was exec-dd57b359-81e0-413e-80a5-cd65e311cdd0.png in the 01a0f88f-760f-78f2-bc74-d47909f73357 generated-images directory. It was copied into the project without editing. The atlas has three vertically stacked scenes.
+Generated October 1, 2026 with the built-in OpenAI image generation tool, image_gen__imagegen. The final asset is [public/art/mystery-rooms.png](../public/art/mystery-rooms.png). The original generated file was exec-dd57b359-81e0-413e-80a5-cd65e311cdd0.png in the 01a0f88f-760f-78f2-bc74-d47909f73357 generated-images directory. It was copied into the project without editing. The atlas has three vertically stacked scenes.
 
 Prompt:
 
@@ -34,7 +34,7 @@ Prompt:
 
 ## Arcade scenes
 
-The October 8 arcade revision uses original code-native SVG scenes in `src/components/arcade-scenes.tsx`: Polyphemus and his throwing arm, projectile arcs, a detailed galley and rowing crew, Sirens and song waves, and an Ithaca hall with twelve axes, a bow, sight, and flying arrows. Water lines, lane telegraphs, impacts and hit feedback use the game clock. No new raster assets or third-party sprites were downloaded. These scenes reuse the included scenery atlas beneath the interactive layers.
+The October 8 arcade revision drew its encounters as original code-native SVG scenes: Polyphemus and his throwing arm, projectile arcs, a detailed galley and rowing crew, Sirens and song waves, and an Ithaca hall with twelve axes, a bow, sight, and flying arrows. No raster assets or third-party sprites were downloaded for them. They were retired on October 28, 2026, once every encounter had moved to the current stage renderers.
 
 ## Detailed encounter items
 
@@ -42,4 +42,10 @@ The October 19 encounter detail pass adds the original transparent sprite atlas 
 
 ## Music and sound
 
-The four voyage themes and matching cues are original procedural compositions for Farshore, defined in `src/lib/voyage-audio.ts`. Plucked and flute-like synthesized voices, bass, a soft drum, and filtered sea noise are generated locally with Web Audio. No external recordings, samples, or third-party music are bundled. Scene changes crossfade between themes.
+The four voyage themes are original procedural compositions for Farshore, defined in `src/lib/audio/voyage-audio.ts`. Scene changes crossfade between themes.
+
+Every sound effect and ambience is original and rendered in code (`src/lib/audio/sounds.ts`), from physical models rather than recordings: plucked strings built from their partials for the lyre, struck bronze, stone, wood and glass bodies, glottal-pulse throats for Polyphemus, a sung vowel ensemble for the Sirens, scattered grains for gravel, rain and fire, and shaped noise for wind, surf and thunder. Reverbs are generated impulse responses. No external recordings, samples, or third-party music are bundled. During development an AudioSet classifier (Xenova/ast-finetuned-audioset-10-10-0.4593) was used only as a listening check, to confirm that each sound is heard as what it represents; it is not part of the game.
+
+## Voices
+
+Spoken lines use [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) by hexgrad (Apache-2.0), in the [ONNX export](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX) published by onnx-community, run with [kokoro-js](https://github.com/hexgrad/kokoro) (Apache-2.0) and [Transformers.js](https://github.com/huggingface/transformers.js) (Apache-2.0). Text is converted to phonemes by eSpeak NG (GPL-3.0) through the `phonemizer` package. The model is downloaded on first use and is not stored in this repository. When it is unavailable, the browser's own speech voices read the lines.

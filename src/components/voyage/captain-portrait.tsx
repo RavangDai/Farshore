@@ -1,4 +1,4 @@
-import type { CaptainEmotion } from "@/lib/character-performance";
+import type { CaptainEmotion } from "@/lib/voyage/character-performance";
 
 /** Small pixel features sit over the original portrait, preserving its painted silhouette. */
 export function CaptainPortrait({ emotion }: { emotion: CaptainEmotion }) {

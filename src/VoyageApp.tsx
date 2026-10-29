@@ -45,18 +45,19 @@ import {
   branchExplanation,
   type Decision,
   type Game,
-} from "@/lib/game";
-import { cast, prologue, sceneArt } from "@/lib/cast";
-import { SpeechBubble } from "@/components/speech-bubble";
-import { SceneWater } from "@/components/scene-water";
-import { CaptainPortrait } from "@/components/captain-portrait";
-import { captainEmotion } from "@/lib/character-performance";
-import { VoyageAudio, musicMood, type AudioCue } from "@/lib/voyage-audio";
-import { DictationSession, dictationIssue, dictationMethod, type DictationMethod, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/dictation";
-import { MODEL_TIMEOUT_MS, type ModelStatus } from "@/lib/turn";
-import { VoyageMap } from "@/components/voyage-map";
-import { ChapterSource, StorySources } from "@/components/story-sources";
-import { homerLink } from "@/lib/odyssey";
+} from "@/lib/voyage/game";
+import { cast, prologue, sceneArt } from "@/lib/story/cast";
+import { SpeechBubble } from "@/components/voyage/speech-bubble";
+import { SceneWater } from "@/components/voyage/scene-water";
+import { CaptainPortrait } from "@/components/voyage/captain-portrait";
+import { captainEmotion } from "@/lib/voyage/character-performance";
+import { VoyageAudio, musicMood, type AudioCue } from "@/lib/audio/voyage-audio";
+import { VoiceBox } from "@/lib/speech/voice";
+import { DictationSession, dictationIssue, dictationMethod, type DictationMethod, type DictationState, type DictationIssue, type SpeechRecognition as Recognition } from "@/lib/speech/dictation";
+import { MODEL_TIMEOUT_MS, type ModelStatus } from "@/lib/voyage/turn";
+import { VoyageMap } from "@/components/voyage/voyage-map";
+import { ChapterSource, StorySources } from "@/components/voyage/story-sources";
+import { homerLink } from "@/lib/story/odyssey";
 type SpeechWindow = Window & {
   SpeechRecognition?: new () => Recognition;
   webkitSpeechRecognition?: new () => Recognition;
@@ -113,7 +114,7 @@ function Words({ text, instant = false }: { text: string; instant?: boolean }) {
     </>
   );
 }
-export default function Home() {
+export default function VoyageApp() {
   const [game, setGame] = useState<Game>(firstGame),
     [ready, setReady] = useState(false),
     [screen, setScreen] = useState<"title" | "intro" | "play">("title"),
@@ -150,6 +151,7 @@ export default function Home() {
     sceneRef = useRef<HTMLElement>(null),
     resultRef = useRef<HTMLDivElement>(null),
     audio = useRef<VoyageAudio | null>(null),
+    voiceBox = useRef<VoiceBox | null>(null),
     gameRef = useRef(game);
   gameRef.current = game;
   const encounter =
@@ -194,14 +196,15 @@ export default function Home() {
   }
   useEffect(() => {
     audio.current = new VoyageAudio();
+    voiceBox.current = new VoiceBox();
+    voiceBox.current.onSpeaking(setSpeaking);
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const motion = () => setSystemReducedMotion(preference.matches);
     const visibility = () => {
       setPageHidden(document.hidden);
       if (document.hidden) {
         recognition.current?.cancel();
-        window.speechSynthesis?.cancel();
-        setSpeaking(false);
+        voiceBox.current?.stop();
         setDictationState("idle");
       }
     };
@@ -219,6 +222,7 @@ export default function Home() {
       document.removeEventListener("keydown", keyboard, true);
       document.removeEventListener("pointerdown", pointer, true);
       audio.current?.dispose();
+      voiceBox.current?.dispose();
     };
   }, []);
   useEffect(() => {
@@ -272,7 +276,7 @@ export default function Home() {
     void checkModel();
     return () => {
       recognition.current?.cancel();
-      window.speechSynthesis?.cancel();
+      voiceBox.current?.stop();
     };
   }, [checkModel]);
   useEffect(() => {
@@ -376,15 +380,9 @@ export default function Home() {
         setGame(updated);
         setAdvice("");
         chime(d.safeChoice ? "reply" : "costly");
-        if (voice && window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(d.reply);
-          u.rate = 0.88;
-          u.pitch = 0.85;
-          setSpeaking(false);
-          u.onstart = () => setSpeaking(true);
-          u.onend = u.onerror = () => setSpeaking(false);
-          window.speechSynthesis.speak(u);
+        if (voice) {
+          voiceBox.current?.stop();
+          voiceBox.current?.say(d.reply, "odysseus");
         }
         setTimeout(() => resultRef.current?.focus(), 50);
         return { decision: d, months: updated.months, trust: updated.trust };
@@ -406,8 +404,7 @@ export default function Home() {
   );
   function next() {
     if (lock.current) return;
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
+    voiceBox.current?.stop();
     chime();
     setGame((g) => advance(g));
     setError("");
@@ -429,8 +426,7 @@ export default function Home() {
       else recognition.current.stop();
       return;
     }
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
+    voiceBox.current?.stop();
     const C =
       (window as SpeechWindow).SpeechRecognition ||
       (window as SpeechWindow).webkitSpeechRecognition;
@@ -458,8 +454,7 @@ export default function Home() {
   }
   function returnTitle() {
     recognition.current?.cancel();
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
+    voiceBox.current?.stop();
     setScreen("title");
     setModal(null);
   }
@@ -1346,8 +1341,7 @@ export default function Home() {
                   onChange={(e) => {
                     setVoice(e.target.checked);
                     if (!e.target.checked) {
-                      window.speechSynthesis?.cancel();
-                      setSpeaking(false);
+                      voiceBox.current?.stop();
                     }
                   }}
                 />

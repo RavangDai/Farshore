@@ -1,7 +1,7 @@
 import { z } from "zod/v3";
-import { encounters, storyDecision } from "../src/lib/game.ts";
-import { MODEL_TIMEOUT_MS, type ModelStatus } from "../src/lib/turn.ts";
-import { chapterLore } from "../src/lib/odyssey.ts";
+import { encounters, storyDecision } from "../src/lib/voyage/game.ts";
+import { MODEL_TIMEOUT_MS, type ModelStatus } from "../src/lib/voyage/turn.ts";
+import { chapterLore } from "../src/lib/story/odyssey.ts";
 const input = z.object({
   encounterId: z.string().max(30),
   advice: z.string().trim().min(3).max(800),

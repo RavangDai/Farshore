@@ -55,7 +55,7 @@ import {
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-// ---- Mirrored engine physics (src/lib/odyssey-games.ts) -------------------
+// ---- Mirrored engine physics (src/lib/encounters/odyssey-games.ts) -------------------
 //
 // These numbers are not this policy's to choose: they are the ship's real
 // physics, copied from the engine's own aeolus tick so the trajectory this

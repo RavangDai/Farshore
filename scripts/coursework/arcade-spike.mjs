@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { loadEnv } from "vite";
-import { validPlan } from "../src/lib/arcade.ts";
+import { validPlan } from "../../src/lib/arcade/arcade.ts";
 const base = process.argv[2] || "http://localhost:5173";
 const output = process.argv[3] || ".tmp/arcade-spike.json";
 const attempt = (overrides = {}) => ({ won: false, source: "standard", hits: 3, successes: 2, early: 0, late: 0, misses: 0, laneMs: [0, 0, 0], ...overrides });

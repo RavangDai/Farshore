@@ -1,4 +1,4 @@
-import type { OnlinePreferences } from "../lib/online";
+import type { OnlinePreferences } from "../../lib/online/online";
 
 export function OdysseyPreferences({ preferences: p, onChange }: { preferences: OnlinePreferences; onChange: (next: OnlinePreferences) => void }) {
   return <div className="od-preferences">

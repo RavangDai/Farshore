@@ -6,15 +6,15 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 - **Difficulty**: Easy / Medium / Hard, chosen per attempt, selectable independently of campaign progress once an island is unlocked.
 - **Opponent source**: *Arcade Solo* (a local, learnable, deterministic-per-seed policy) or *Adaptive AI* (the same engine's harder, player-reactive branch — see `AI_ARCHITECTURE.md` for how "adaptive" is implemented honestly rather than just faster).
-- **Medals**: gold (0 hits, 0 misses), silver (≤2 combined), bronze (any clear). `medalFor()` in `src/lib/arcade.ts`.
-- **Progression**: clearing an island unlocks the next (`unlocked()` in `src/lib/arcade.ts`). Practice and AI-demonstration runs never touch campaign state. An "Assisted" accessibility passage is available after a failed attempt, explicitly confirmed, and earns no medal.
+- **Medals**: gold (0 hits, 0 misses), silver (≤2 combined), bronze (any clear). `medalFor()` in `src/lib/arcade/arcade.ts`.
+- **Progression**: clearing an island unlocks the next (`unlocked()` in `src/lib/arcade/arcade.ts`). Practice and AI-demonstration runs never touch campaign state. An "Assisted" accessibility passage is available after a failed attempt, explicitly confirmed, and earns no medal.
 - **Saves**: per-device by default; versioned and validated (`readArcade`, `validSummary`) so a corrupted or tampered save is rejected rather than silently accepted.
 
 ---
 
 ## 1 · Lotus-Eaters — maze rescue
 
-**Genre**: Pac-Man-style top-down maze. **File**: `src/lib/odyssey-games.ts` (`LotusState`), rendered by `src/components/adventure-game.tsx`.
+**Genre**: Pac-Man-style top-down maze. **File**: `src/lib/encounters/odyssey-games.ts` (`LotusState`), rendered by `src/components/play/adventure-game.tsx`.
 
 **Objective**: find a sailor, carry them back to the ship at the maze's entrance, repeat (1 for practice, 3 for a full attempt). Laurel relics are optional bonus pickups (+125 each). A moly pickup grants 14 seconds of guardian immunity.
 
@@ -55,7 +55,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 3 · Island of Aeolus — wind sailing
 
-**Genre**: Flappy-Bird-style vertical navigation. **File**: `src/lib/odyssey-games.ts` (`WindState`).
+**Genre**: Flappy-Bird-style vertical navigation. **File**: `src/lib/encounters/odyssey-games.ts` (`WindState`).
 
 **Objective**: keep the ship inside a series of gate openings until reaching open water.
 
@@ -69,7 +69,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 4 · Circe's Palace — falling-potion duel
 
-**Genre**: competitive match-3 (a two-board falling-block duel, not literal Bomberman — see note below). **File**: `src/lib/mythic.ts` (`PotionState`).
+**Genre**: competitive match-3 (a two-board falling-block duel, not literal Bomberman — see note below). **File**: `src/lib/encounters/mythic.ts` (`PotionState`).
 
 **Note on genre**: the original design brief called for a Bomberman-style arena. This codebase's established, tested implementation is a competitive falling-potion duel against Circe, matching three potions to clear lines, with moly purifying swine and sending curse blocks to her board. This session preserved that existing, working design rather than replacing it with an unbuilt genre, per the standing instruction to keep an established design unless clearly inadequate — the duel is a complete, winnable game with real stakes (a full board ends the attempt) and a genuine opponent.
 
@@ -81,7 +81,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 5 · Sirens' Passage — call-and-response rhythm
 
-**Genre**: Guitar-Hero-style listen-then-echo over four lanes. **File**: `src/lib/mythic.ts` (`SongState`).
+**Genre**: Guitar-Hero-style listen-then-echo over four lanes. **File**: `src/lib/encounters/mythic.ts` (`SongState`).
 
 **Objective**: echo five melodies without filling the Temptation gauge.
 
@@ -95,7 +95,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 6 · Scylla & Charybdis — six-head defence
 
-**Genre**: Galaga-style positional defence against six independently animated heads, plus a whirlpool pull. **File**: `src/lib/mythic.ts` (`StraitState`).
+**Genre**: Galaga-style positional defence against six independently animated heads, plus a whirlpool pull. **File**: `src/lib/encounters/mythic.ts` (`StraitState`).
 
 **Objective**: survive the strait with the ship afloat.
 
@@ -109,7 +109,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 7 · Calypso's Raft Escape — raft hopping
 
-**Genre**: Frogger-style platform hopping across drifting timbers, under lightning. **File**: `src/lib/odyssey-games.ts` (`RaftState`).
+**Genre**: Frogger-style platform hopping across drifting timbers, under lightning. **File**: `src/lib/encounters/odyssey-games.ts` (`RaftState`).
 
 **Objective**: cross seven currents (five for a full attempt) to reach the far shore.
 
@@ -123,7 +123,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 8 · Palace of Ithaca — archery contest then palace battle
 
-**Genre**: turn-based trajectory archery (Phase 1), described in the brief as leading into a tactical palace battle (Phase 2, not yet built). **File**: `src/lib/mythic.ts` (`BowState`).
+**Genre**: turn-based trajectory archery (Phase 1), described in the brief as leading into a tactical palace battle (Phase 2, not yet built). **File**: `src/lib/encounters/mythic.ts` (`BowState`).
 
 **Objective**: outscore Antinous across five shots through twelve axe rings.
 

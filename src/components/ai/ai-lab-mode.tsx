@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Brain, FlaskConical, GitCompare, Play, Trash2 } from "lucide-react";
-import { difficultyNames, trials, type Difficulty, type TrialId } from "../lib/arcade";
-import { TrialArtwork } from "./farshore-art";
-import { TrialGlyph } from "./odyssey-map";
-import { DIFFICULTIES, labRunFrom, type LabRun, type LabSettings } from "../lib/ai/lab";
+import { difficultyNames, trials, type Difficulty, type TrialId } from "../../lib/arcade/arcade";
+import { TrialArtwork } from "../farshore-art";
+import { TrialGlyph } from "../menu/odyssey-map";
+import { DIFFICULTIES, labRunFrom, type LabRun, type LabSettings } from "../../lib/ai/lab";
 
 // LabRun, labRunFrom and LabSettings are pure data shapes and projections,
 // defined in src/lib/ai/lab.ts so they can be unit-tested without a JSX-aware

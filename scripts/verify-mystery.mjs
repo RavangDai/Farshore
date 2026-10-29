@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { act, newCase, repliesFor } from "../src/lib/mystery.ts";
+import { act, newCase, repliesFor } from "../src/lib/mystery/mystery.ts";
 const base = process.argv[2] || "http://localhost:5173";
 const output = process.argv[3] || ".tmp/mystery-live-ai.json";
 const state = act(newCase(), { type: "start" }).state;

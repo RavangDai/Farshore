@@ -6,7 +6,7 @@
 // and formats what the controller already recorded. A metric with no backing
 // data is omitted rather than filled with a placeholder.
 
-import type { InspectorFeed } from "../../components/ai-inspector";
+import type { InspectorFeed } from "../../components/ai/ai-inspector";
 import { laneName } from "./cyclops.ts";
 import { dodgeBias, meanReaction, occupancyPrior, predictAfter } from "./player-model.ts";
 import { cavePolicy } from "./cyclops.ts";

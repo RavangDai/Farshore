@@ -123,15 +123,17 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 ## 8 · Palace of Ithaca — archery contest then palace battle
 
-**Genre**: turn-based trajectory archery (Phase 1), described in the brief as leading into a tactical palace battle (Phase 2, not yet built). **File**: `src/lib/encounters/mythic.ts` (`BowState`).
+**Genre**: first-person archery in a 3D great hall (Phase 1), described in the brief as leading into a tactical palace battle (Phase 2, not yet built). **Files**: rules in `src/lib/encounters/mythic.ts` (`BowState`, `BOW`); the hall in `src/lib/render/hall-world.ts` (three.js), its overlay and flat fallback in `hall-overlay.ts`, the shared camera and geometry in `hall-view.ts`, and the view in `src/components/play/hall-game.tsx`.
 
-**Objective**: outscore Antinous across five shots through twelve axe rings.
+**Objective**: shoot through the line of twelve axe heads. Every axe the arrow passes scores a point; the arrow stops at the first axe it strikes. After five arrows each, beat Antinous' total. Ties go to him.
 
-**Controls**: sliders for aim, elevation and string tension; Space/Release to shoot. A trajectory preview and a far-ring sight are both live before release.
+**Controls**: aim with the mouse (the sight moves like a heavy, precise cursor), the arrow keys / WASD (Shift for fine adjustment), or a finger drag. Hold the mouse button, Space, or the touch DRAW button to pull the bow over 0.9 s; let go to shoot. Letting go below 30% draw, or pausing, lets the string down without spending an arrow. A weaker draw drops and drifts by the square of the shortfall, so a full draw flies flattest, but a full draw held more than 1.6 s starts to tremble and the arrow follows the trembling sight. The draught gauge shows which way the wind carries an arrow; aim into it. Easy shows the whole predicted flight, medium the first four axes, hard none; every tier shows the previous arrow's path.
 
-**AI**: imperfect aim with visible variance (easy); wind compensation (medium) exist live. The full trajectory-prediction, cover-evaluation and block-shot controller described in `AI_ARCHITECTURE.md` is authored and reviewed as `src/lib/ai/ithaca.ts` but not yet wired in. Phase 2 (the palace battle against the suitors) is not implemented in this session — Phase 1 is a complete, winnable encounter on its own.
+**Presentation**: each turn opens on the gallery view of the numbered line and settles behind the bow. The player's arrow is chased down the hall, each axe ringing as it is threaded; Antinous' arrow is watched from the gallery. A track of twelve pips, the scoreboard and the result banner only reveal an arrow's score once it lands, and a miss names the axe struck, the side it missed on, and the correction.
 
-**Win/lose**: higher total rings after five shots each wins; Antinous wins ties.
+**AI**: Antinous aims with a seeded execution error measured in openings (about 7, 9 and 10 axes a shot on easy, medium and hard). The unsteady suitor allows for half the draught; the wind reader (AI plan) allows for all of it, risks one half-drawn showy shot, and the block-shot plan may lodge an arrow that narrows one opening for the player's next shot. The fuller controller in `src/lib/ai/ithaca.ts` mirrors the same physics but is not yet wired in. Phase 2 (the palace battle against the suitors) is not implemented — Phase 1 is a complete, winnable encounter on its own.
+
+**Win/lose**: higher total axes after five arrows each wins; Antinous wins ties. Each arrow short of twelve counts against the medal.
 
 ---
 

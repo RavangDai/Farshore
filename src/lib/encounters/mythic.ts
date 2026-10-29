@@ -22,7 +22,7 @@ export type Shot = { aim: Aim; wind: number; rings: number; path: Point[]; block
  */
 export type BowState = Base & { id: "bow"; aim: Aim; wind: number; turn: number; phase: "player" | "rival" | "review"; timer: number; shot: Shot | null; blocked: number; rivalAim: Aim; shots: number[]; rivalShots: number[]; drawing: boolean; draw: number; pull: number; lastShot: Shot | null };
 export type MythicState = GridState | PotionState | SongState | StraitState | BowState;
-export type Action = { type: "move"; dx: number; dy: number } | { type: "stance"; stance: "sneak" | "dash" } | { type: "hide" } | { type: "column"; direction: number } | { type: "rotate" } | { type: "drop" } | { type: "note"; lane: number } | { type: "paddle"; y: number } | { type: "row"; held: boolean } | { type: "aim"; field: "aim" | "elevation"; value: number } | { type: "draw"; held: boolean } | { type: "shoot" } | { type: "letdown" };
+export type Action = { type: "move"; dx: number; dy: number } | { type: "stance"; stance: "sneak" | "dash" } | { type: "hide" } | { type: "column"; direction: number } | { type: "rotate" } | { type: "drop" } | { type: "note"; lane: number } | { type: "paddle"; y: number } | { type: "row"; held: boolean } | { type: "aim"; field: "aim" | "elevation"; value: number } | { type: "sight"; aim: number; elevation: number } | { type: "draw"; held: boolean } | { type: "shoot" } | { type: "letdown" };
 function roll(s: Base) { s.seed = (Math.imul(s.seed, 1664525) + 1013904223) >>> 0; return s.seed / 4294967296; }
 const same = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
 const covers = (t: Point, p: Point) => p.x >= t.x && p.x <= t.x + 1 && p.y >= t.y && p.y <= t.y + 1;
@@ -269,6 +269,21 @@ export function shotAdvice(shot: Shot): string {
   const wind = sideways && Math.sign(p.x) === Math.sign(shot.wind) ? " on the draught" : "";
   return `Through ${shot.rings} of 12. It struck axe ${shot.rings + 1} ${side}${wind}: ${fix}.`;
 }
+/**
+ * The scores as the hall shows them. The rules count an arrow the moment it
+ * is loosed, but the scoreboard waits until it has struck, so the result is
+ * never given away mid-flight.
+ */
+export function bowScoreShown(s: BowState) {
+  const flying = !!s.shot && s.timer < arrowTime(strikeZ(s.shot));
+  const mine = flying && s.phase === "rival" && s.shot!.owner === "player", his = flying && s.phase === "review" && s.shot!.owner === "rival";
+  return {
+    score: s.score - (mine ? s.shot!.rings : 0),
+    rivalScore: s.rivalScore - (his ? s.shot!.rings : 0),
+    shots: mine ? s.shots.slice(0, -1) : s.shots,
+    rivalShots: his ? s.rivalShots.slice(0, -1) : s.rivalShots,
+  };
+}
 function setWind(s: BowState) { s.wind = Math.round((roll(s) - .5) * [40, 80, 110][tierOf(s.difficulty)]); }
 function letDown(s: BowState) { s.drawing = false; s.pull = 0; s.draw = 0; s.aim.tension = 0; }
 function loose(s: BowState) {
@@ -326,6 +341,10 @@ export function mythicAction(state: MythicState, action: Action): MythicState {
     if (action.type === "row") s.rowing = action.held;
   } else if (s.id === "bow" && s.phase === "player") {
     if (action.type === "aim" && (action.field === "aim" || action.field === "elevation") && Number.isFinite(action.value)) s.aim[action.field] = clamp(action.value, -BOW.sightLimit, BOW.sightLimit);
+    if (action.type === "sight" && Number.isFinite(action.aim) && Number.isFinite(action.elevation)) {
+      s.aim.aim = clamp(action.aim, -BOW.sightLimit, BOW.sightLimit);
+      s.aim.elevation = clamp(action.elevation, -BOW.sightLimit, BOW.sightLimit);
+    }
     if (action.type === "draw" && action.held && !s.drawing) { s.drawing = true; s.pull = 0; s.draw = 0; }
     if ((action.type === "draw" && !action.held || action.type === "shoot") && s.drawing) {
       if (s.draw >= BOW.minDraw) loose(s);

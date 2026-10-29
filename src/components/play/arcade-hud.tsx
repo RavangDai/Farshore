@@ -1,8 +1,9 @@
 "use client";
 import { AlertTriangle, Compass, Footprints, Heart, Pause, Sparkles, Trophy } from "lucide-react";
 import { difficultyNames, trialFor, type Difficulty, type TrialId } from "../../lib/arcade/arcade";
-import { isCave, type GameState } from "../../lib/arcade/arcade-runtime";
+import { isBow, isCave, type GameState } from "../../lib/arcade/arcade-runtime";
 import { caveProgress, START_GAP } from "../../lib/encounters/cave-runner";
+import { BOW, bowScoreShown } from "../../lib/encounters/mythic";
 import { encounterCue, fieldNotes } from "../../lib/story/field-notes";
 import { FARSHORE_ATLAS, artPosition } from "../farshore-art";
 import { InspectorModeSwitch, type InspectorMode } from "../ai/ai-inspector";
@@ -48,7 +49,8 @@ export function ArcadeHUD({
   const notes = fieldNotes[state.id as TrialId];
   const cave = isCave(state);
   const lives = cave ? 3 - state.hits : null;
-  const progress = cave ? caveProgress(state) : 0;
+  // The archery contest fills its track arrow by arrow, both archers' together.
+  const progress = cave ? caveProgress(state) : isBow(state) ? (state.shots.length + state.rivalShots.length) / ((state.practice ? 1 : BOW.turns) * 2) : 0;
   // Not every engine runs to a clock: the grid and puzzle encounters end on a
   // turn or score condition instead.
   const timed = "duration" in state ? state.duration : null;
@@ -96,7 +98,7 @@ export function ArcadeHUD({
           <div
             className="fs-hud-track"
             role="progressbar"
-            aria-label="Escape progress"
+            aria-label={cave ? "Escape progress" : "Encounter progress"}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress * 100)}
@@ -111,7 +113,7 @@ export function ArcadeHUD({
           <div className="fs-hud-block">
             <div className="fs-hud-score">
               <span>SCORE</span>
-              <strong>{state.score.toLocaleString()}</strong>
+              <strong>{(isBow(state) ? bowScoreShown(state).score : state.score).toLocaleString()}</strong>
             </div>
             {cave && (
               <div

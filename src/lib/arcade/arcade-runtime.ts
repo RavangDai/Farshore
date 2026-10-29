@@ -1,5 +1,5 @@
 import { type TrialId, type LegacyTrialId, type Difficulty, type OpponentPlan, type AttemptSummary } from "./arcade.ts";
-import { newMythic, mythicAction, tickMythic, mythicSummary, type MythicState, type Action } from "../encounters/mythic.ts";
+import { newMythic, mythicAction, tickMythic, mythicSummary, type BowState, type MythicState, type Action } from "../encounters/mythic.ts";
 import { newAdventure, adventureAction, tickAdventure, adventureSummary, mazePath, LOTUS_SHIP, type AdventureState, type AdventureAction, type AdventureId } from "../encounters/odyssey-games.ts";
 import {
   newCave,
@@ -18,6 +18,8 @@ export type GameAction = Action | AdventureAction | CaveInput;
 /** The perspective runner, which carries its own explainable AI runtime. */
 export const isCave = (s: GameState): s is CaveState => s.id === "cyclops" && "cyclops" in s;
 export const isAdventure = (s: GameState): s is AdventureState => "invulnerable" in s && !isCave(s);
+/** The contest of the twelve axes, drawn in the 3D hall. */
+export const isBow = (s: GameState): s is BowState => s.id === "bow";
 export const usesAdventure = (id: TrialId) => ["lotus", "cyclops", "aeolus", "calypso"].includes(id);
 
 export function createGame(

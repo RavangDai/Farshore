@@ -49,7 +49,7 @@ export async function POST(request: Request, connection?: ModelConnection) {
     circe: "chain previews the next potion for multi-chain matches; hoard uses the same planning but banks curses until the other board is crowded. Prefer chain for repeated losses, otherwise hoard.",
     sirens: "swell repeats the weakest missed sound lane in new melodies; echo also adds visible rests and changes tempo between melodies. Choose a melody strategy using the missed-lane history.",
     scylla: "pincer sends heads around the shield and synchronizes moderate whirlpool pull; undertow adds stronger synchronized pull during approaching attacks. Prefer pincer for repeated losses, otherwise undertow.",
-    bow: "surge calculates wind compensation for scored shots; feint can sacrifice rings to block and narrow the player's next ring opening. Prefer surge for repeated losses, otherwise feint.",
+    bow: "surge reads the draught fully when aiming at the twelve axe openings; feint can sacrifice axes to lodge an arrow that narrows one opening for the player's next shot. Prefer surge for repeated losses, otherwise feint.",
   }[data.trialId];
   try {
     const response = await fetch(url, {

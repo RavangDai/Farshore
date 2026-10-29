@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { adaptivePlan, assistTrial, finishAttempt, newArcade, readArcade, standardPlan, trials as campaignTrials, unlocked } from "../src/lib/arcade/arcade.ts";
-import { BOW, archeryShot, bestAim, bowSway, columnHeight, dropPiece, mythicAction, mythicSummary, newMythic, potionChoice, resolveBoard, songBeat, tickMythic } from "../src/lib/encounters/mythic.ts";
+import { BOW, archeryShot, bestAim, bowScoreShown, bowSway, columnHeight, dropPiece, mythicAction, mythicSummary, newMythic, potionChoice, resolveBoard, songBeat, tickMythic } from "../src/lib/encounters/mythic.ts";
 
 const trials = campaignTrials.filter(t => ["cyclops", "circe", "sirens", "scylla", "bow"].includes(t.id));
 function advance(s, ms) { for (let elapsed = 0; elapsed < ms && !s.done; elapsed += 50) s = tickMythic(s, Math.min(50, ms - elapsed)); return s; }
@@ -136,6 +136,13 @@ test("the bow must be drawn before it shoots: letting go early, or pausing, lets
   assert.equal(flying.drawing, false, "no second arrow is nocked while one is in the air");
   assert.equal(flying.aim.aim, s.aim.aim);
 });
+test("the sight moves on both axes at once, within its limits, and ignores nonsense", () => {
+  const s = newMythic("bow", "normal", standardPlan("bow"));
+  const moved = mythicAction(s, { type: "sight", aim: 35, elevation: -4.5 });
+  assert.equal(moved.aim.aim, BOW.sightLimit); assert.equal(moved.aim.elevation, -4.5);
+  const junk = mythicAction(moved, { type: "sight", aim: Number.NaN, elevation: 3 });
+  assert.equal(junk.aim.aim, BOW.sightLimit); assert.equal(junk.aim.elevation, -4.5);
+});
 test("a bow held at full draw is steady at first, then trembles, and the arrow follows the trembling sight", () => {
   let s = newMythic("bow", "normal", standardPlan("bow"));
   s = mythicAction(s, { type: "draw", held: true }); s = advance(s, 900 + 1000);
@@ -159,6 +166,18 @@ test("each turn plays out in order: your arrow lands, Antinous shoots, then fres
   s = advance(s, 100); assert.equal(s.phase, "player"); assert.equal(s.turn, 2);
   const wind = s.wind, blocked = s.blocked;
   s = loose(s); assert.equal(s.blocked, 0); assert.equal(s.shot.wind, wind); assert.equal(s.shot.block, blocked);
+});
+test("an arrow's score is shown only once it lands, for Odysseus and for Antinous", () => {
+  let s = loose({ ...newMythic("bow", "normal", standardPlan("bow")), wind: 0 });
+  assert.equal(s.score, 12, "the rules count the arrow at once");
+  assert.deepEqual(bowScoreShown(s), { score: 0, rivalScore: 0, shots: [], rivalShots: [] }, "but it is not shown mid-flight");
+  s = advance(s, BOW.flightMs);
+  assert.deepEqual(bowScoreShown(s), { score: 12, rivalScore: 0, shots: [12], rivalShots: [] });
+  s = advance(s, BOW.resultMs + BOW.rivalAimMs);
+  assert.equal(s.rivalShots.length, 1);
+  assert.equal(bowScoreShown(s).rivalShots.length, 0, "Antinous' arrow is still in the air");
+  s = advance(s, BOW.flightMs);
+  assert.deepEqual(bowScoreShown(s), { score: 12, rivalScore: s.rivalScore, shots: [12], rivalShots: s.rivalShots });
 });
 test("five steady, wind-compensated full draws beat every Antinous strategy on medium", () => {
   for (const planId of trials[4].plans) {

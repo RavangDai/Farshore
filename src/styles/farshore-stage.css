@@ -449,6 +449,80 @@ body.fs-stage-open {
   .fs-touch-pad { display: flex; }
 }
 
+/* The hall of the twelve axes. While aiming, the sight is the cursor. */
+.fs-hall-view[data-aiming="true"] .fs-hall-canvas {
+  cursor: none;
+}
+
+/* Hold to draw, let go to loose: a large round button for touch screens. */
+.fs-hall-draw {
+  position: absolute;
+  right: 3.5%;
+  bottom: 21%;
+  z-index: 4;
+  display: none;
+  width: clamp(84px, 13vmin, 128px);
+  aspect-ratio: 1;
+  place-content: center;
+  gap: 2px;
+  border: 3px solid var(--fs-gold);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #2a1a0cdd, #0a0603ee);
+  color: var(--fs-gold);
+  font: 700 15px/1 Arial, sans-serif;
+  letter-spacing: 0.1em;
+  box-shadow: 0 0 0 6px #00000055, 0 8px 24px #000a;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fs-hall-draw small {
+  font: 600 11px/1 Arial, sans-serif;
+  letter-spacing: 0.06em;
+  color: #f6eacbcc;
+}
+
+.fs-hall-draw[data-drawing="true"] {
+  background: radial-gradient(circle at 50% 40%, #8a5a1ccc, #2a1a0cee);
+  box-shadow: 0 0 0 6px #f2d27e55, 0 0 32px #f2d27e88;
+}
+
+.fs-hall-draw:disabled {
+  opacity: 0.45;
+}
+
+.fs-hall-draw[data-touch="true"] {
+  display: grid;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .fs-hall-draw { display: grid; }
+}
+
+/* The hall's overlay carries the bow's scoreboard and results, so its status
+   line stays only for screen readers, clear of the twelve-axe track. */
+.fs-arena[data-trial="bow"] ~ .fs-arena-status {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .fs-arena[data-trial="bow"] ~ .fs-arena-status {
+    position: relative;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    padding: 4px 12px 0;
+  }
+}
+
 /* Countdown and pause panels, centred on the frame. */
 .fs-stage-veil {
   position: absolute;

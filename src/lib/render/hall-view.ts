@@ -19,10 +19,18 @@ export type ScreenPoint = { x: number; y: number; depth: number; scale: number; 
 export const LINE_Y = 1.42;
 /** Metres from the bow to the twelfth axe. */
 export const LINE_M = BOW.firstAxeM + (BOW.axes - 1) * BOW.axeGapM;
-/** The archer's eye at full draw: just above the arrow, behind the bow. */
-export const EYE: Vec3 = { x: 0, y: LINE_Y + 0.08, z: 0.62 };
-/** Looking across the line from the right-hand colonnade, the way a guest at the feast sees it. */
-const GALLERY: HallCamera = { eye: { x: 3.05, y: 2.5, z: -0.4 }, look: { x: -0.35, y: 1.1, z: -9.2 }, fov: 50 };
+/**
+ * The aiming eye: above and behind the bow rather than at the string, so the
+ * axe heads stack into a visible staircase rising to the twelfth instead of
+ * the first hiding the other eleven.
+ */
+export const EYE: Vec3 = { x: 0, y: LINE_Y + 0.42, z: 1.55 };
+/**
+ * Looking down the line from above the lamps, between the axes and the
+ * colonnade, the way a guest at the feast sees the contest. Nothing stands
+ * between this eye and the axes as it follows an arrow down the hall.
+ */
+const GALLERY: HallCamera = { eye: { x: 1.65, y: 3.3, z: 1.2 }, look: { x: -0.35, y: 1.0, z: -8.5 }, fov: 52 };
 /** The turn opens on the gallery view, then settles behind the bow over this long. */
 const SETTLE_MS = 900;
 /** After Antinous' result, the camera swings back out to the gallery over this long. */
@@ -97,22 +105,28 @@ export function projector(cam: HallCamera, width = VIEW_W, height = VIEW_H) {
 function aimCamera(s: BowState): HallCamera {
   const sway = bowSway(s);
   const sight = sightPoint({ aim: s.aim.aim + sway.aim, elevation: s.aim.elevation + sway.elevation });
-  return { eye: EYE, look: mix3(onLine(1), sight, 0.25), fov: lerp(40, 28, easeOut(s.draw)) };
+  return { eye: EYE, look: mix3(onLine(1), sight, 0.25), fov: lerp(34, 24, easeOut(s.draw)) };
 }
 
-/** Riding behind an arrow, then easing back once it has struck so the axe it hit is framed. */
+/**
+ * Riding behind an arrow, then easing back once it has struck so the axe it
+ * hit is framed. An arrow through all twelve is followed to the last axe and
+ * then watched as it flies on out of the doorway.
+ */
 function chaseCamera(f: Flight): HallCamera {
-  const arrow = arrowPoint(f.shot, f.z);
-  const back = 0.95 + 0.85 * easeOut(f.since / 650);
-  const lift = 0.16 + 0.12 * easeOut(f.since / 650);
-  return { eye: add(arrow, { x: -0.14, y: lift, z: back }), look: add(arrow, { x: 0, y: -0.02, z: -3 }), fov: lerp(56, 48, clamp01(f.since / 650)) };
+  const anchor = arrowPoint(f.shot, Math.min(f.z, 1));
+  const settle = easeOut(f.since / 650);
+  // Through all twelve: rise and pull back over the line it has just threaded.
+  const past = f.shot.rings >= BOW.axes ? easeOut(clamp01((f.t - arrowTime(1)) / 800)) : 0;
+  const back = 1.5 + 0.7 * settle + 2.6 * past, lift = 0.22 + 0.12 * settle + 0.75 * past;
+  return { eye: add(anchor, { x: 0, y: lift, z: back }), look: add(anchor, { x: 0, y: -0.04, z: -3 }), fov: lerp(54, 46, settle) };
 }
 
-/** The gallery view, panning to keep Antinous' arrow in frame as it flies. */
+/** The gallery view, travelling with Antinous' arrow to keep it in frame as it flies. */
 function galleryCamera(f: Flight | null): HallCamera {
   if (!f) return GALLERY;
-  const arrow = arrowPoint(f.shot, f.z), follow = clamp01(f.z / BOW.doorway);
-  return { eye: add(GALLERY.eye, { x: 0, y: 0, z: arrow.z * 0.45 }), look: mix3(GALLERY.look, add(arrow, { x: 0, y: -0.1, z: -1.5 }), 0.65), fov: lerp(GALLERY.fov, 44, follow) };
+  const arrow = arrowPoint(f.shot, Math.min(f.z, 1)), follow = clamp01(f.z / BOW.doorway);
+  return { eye: add(GALLERY.eye, { x: 0, y: 0, z: arrow.z * 0.5 }), look: mix3(GALLERY.look, add(arrow, { x: 0, y: -0.1, z: -1.5 }), 0.6), fov: lerp(GALLERY.fov, 46, follow) };
 }
 
 /**

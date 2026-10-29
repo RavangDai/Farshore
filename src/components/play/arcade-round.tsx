@@ -8,6 +8,7 @@ import {
   gameAction,
   tickGame,
   isAdventure,
+  isBow,
   isCave,
   demonstrate,
   type GameAction,
@@ -21,6 +22,7 @@ import type { VoiceId } from "../../lib/arcade/rivals";
 import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
 import { CaveGame } from "./cave-game";
+import { HallGame } from "./hall-game";
 import { GameStage } from "./game-stage";
 import { ArcadeHUD } from "./arcade-hud";
 import { AIInspector, nextMode, type InspectorMode } from "../ai/ai-inspector";
@@ -117,7 +119,7 @@ export function ArcadeRound({
   phaseRef.current = phase;
   const director = useRef<CommentaryDirector | null>(null);
 
-  const perspective = isCave(round);
+  const perspective = isCave(round) || isBow(round);
   const trial = originalCave
     ? {
         ...trialFor(id),
@@ -204,6 +206,8 @@ export function ArcadeRound({
   function release() {
     held.current.clear();
     if (current.current.id === "scylla") commit(gameAction(current.current, { type: "row", held: false }));
+    // Pausing mid-draw lets the string down rather than loosing an arrow nobody aimed.
+    if (current.current.id === "bow") commit(gameAction(current.current, { type: "letdown" }));
   }
   function pause() {
     release();
@@ -277,6 +281,13 @@ export function ArcadeRound({
             const direction = Number(held.current.has("arrowdown") || held.current.has("s")) - Number(held.current.has("arrowup") || held.current.has("w"));
             if (direction) next = gameAction(next, { type: "paddle", y: next.paddle + direction * 310 * pending / 1000 });
           }
+          if (isBow(next) && next.phase === "player") {
+            // Held arrows or WASD steer the sight; Shift steadies it for fine adjustment.
+            const dx = Number(held.current.has("arrowright") || held.current.has("d")) - Number(held.current.has("arrowleft") || held.current.has("a"));
+            const dy = Number(held.current.has("arrowup") || held.current.has("w")) - Number(held.current.has("arrowdown") || held.current.has("s"));
+            const step = (held.current.has("shift") ? 2.5 : 8) * pending / 1000;
+            if (dx || dy) next = gameAction(next, { type: "sight", aim: next.aim.aim + dx * step, elevation: next.aim.elevation + dy * step });
+          }
           if (demo) next = demonstrate(next);
           commit(tickGame(next, pending));
           pending = 0;
@@ -335,6 +346,10 @@ export function ArcadeRound({
         e.preventDefault();
         held.current.add(k);
       }
+      if (isBow(state) && ["arrowleft", "arrowright", "arrowup", "arrowdown", "w", "a", "s", "d", "shift"].includes(k)) {
+        e.preventDefault();
+        held.current.add(k);
+      }
       if (e.repeat) return;
       if (isCave(state)) {
         // A / D or arrows change lane, W / Up / Space jump, S / Down slide.
@@ -390,12 +405,14 @@ export function ArcadeRound({
         act({ type: "note", lane: /^[1-4]$/.test(k) ? Number(k) - 1 : ["a", "s", "d", "f"].indexOf(k) });
       } else if (state.id === "bow" && k === " ") {
         e.preventDefault();
-        act({ type: "shoot" });
+        act({ type: "draw", held: true });
       }
     }
     function keyUp(e: KeyboardEvent) {
       held.current.delete(e.key.toLowerCase());
       if (e.key === " " && current.current.id === "scylla") act({ type: "row", held: false });
+      // Letting go of Space looses the arrow.
+      if (e.key === " " && current.current.id === "bow") act({ type: "draw", held: false });
     }
     window.addEventListener("keydown", key);
     window.addEventListener("keyup", keyUp);
@@ -549,7 +566,16 @@ export function ArcadeRound({
         aria-label={`${trial.kind}. ${trial.controls}`}
         data-trial={id}
       >
-        {perspective ? (
+        {isBow(round) ? (
+          <HallGame
+            state={round}
+            active={phase === "active"}
+            still={still}
+            shakeStrength={shake}
+            effectStrength={effects}
+            onAction={act}
+          />
+        ) : perspective && isCave(round) ? (
           <CaveGame
             state={round}
             active={phase === "active"}

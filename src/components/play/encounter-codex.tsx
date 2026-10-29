@@ -62,7 +62,7 @@ export function trackersFor(s: GameState): Track[] {
   ];
   if (s.id === "bow") return [
     { icon: <Target size={13} />, label: "Shot", value: `${Math.min(5, s.shots.length + (s.phase === "player" ? 1 : 0))} / 5`, pips: [s.shots.length, 5] },
-    { icon: <Sparkles size={13} />, label: "Your rings", value: String(sum(s.shots)) },
+    { icon: <Sparkles size={13} />, label: "Your axes", value: String(sum(s.shots)) },
     { icon: <BrainCircuit size={13} />, label: "Antinous", value: String(sum(s.rivalShots)), warn: sum(s.rivalShots) > sum(s.shots) },
     { icon: <Wind size={13} />, label: "Wind", value: s.wind === 0 ? "Calm" : `${Math.abs(s.wind)} ${s.wind > 0 ? "east" : "west"}` },
   ];

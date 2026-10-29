@@ -1,7 +1,7 @@
 import { useFarshoreAtlas, useFarshoreSprites, drawFarshoreTile, drawFarshoreSprite } from "../../lib/render/farshore-rendering";
-import { sceneFrame, torchlight, motes } from "../../lib/render/scene-details";
+import { sceneFrame } from "../../lib/render/scene-details";
 import { useEffect, useRef, type CSSProperties } from "react";
-import { archeryShot, columnHeight, rotatePiece, songBeat, tierOf, TILE_NAMES, type Action, type BowState, type GridState, type MythicState, type PotionState, type SongState, type StraitState, type Tile } from "../../lib/encounters/mythic";
+import { columnHeight, rotatePiece, songBeat, tierOf, TILE_NAMES, type Action, type GridState, type MythicState, type PotionState, type SongState, type StraitState, type Tile } from "../../lib/encounters/mythic";
 
 type Controls = { active: boolean; act: (action: Action) => void };
 function Sheep() { return <svg viewBox="0 0 40 32" aria-hidden="true"><path fill="#d9d7bd" d="M5 8h25v18H5zM10 3h16v7H10z"/><path fill="#66727a" d="M26 9h11v14H26zM8 24h5v8H8zM22 24h5v8h-5z"/><path fill="#142732" d="M33 12h3v3h-3z"/></svg>; }
@@ -87,34 +87,11 @@ export function StraitGame({ state: s, active, act, still }: { state: StraitStat
   return <div className="m-strait-game"><canvas ref={canvas} width={800} height={400} className="m-canvas m-strait-canvas" aria-label={`Shield at ${Math.round(s.paddle)}. Ship distance from vortex ${Math.round(s.boat)}. ${s.strikes.filter(a => !a.reflected).length} strikes incoming. Move with Up and Down; hold Space to row.`} onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); paddle(e); }} onPointerMove={e => { if (e.buttons) paddle(e); }}>Twin-paddle game board. Use the controls below.</canvas><div className="m-vortex-meter"><span>Vortex</span><meter min="0" max="85" value={s.boat}/><span>Open sea</span></div><div className="m-controls m-button-row"><button className="a-btn" disabled={!active} onClick={() => act({ type: "paddle", y: s.paddle - 32 })}>Shield ↑</button><button className={"a-btn a-primary m-row-hold" + (s.rowing ? " m-held" : "")} disabled={!active} onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); act({ type: "row", held: true }); }} onPointerUp={() => act({ type: "row", held: false })} onPointerCancel={() => act({ type: "row", held: false })} onLostPointerCapture={() => act({ type: "row", held: false })} onKeyDown={e => { if ([" ", "Enter"].includes(e.key)) { e.preventDefault(); act({ type: "row", held: true }); } }} onKeyUp={e => { if ([" ", "Enter"].includes(e.key)) { e.preventDefault(); act({ type: "row", held: false }); } }} onBlur={() => act({ type: "row", held: false })}>{s.rowing ? "Rowing!" : "Hold to row"}<kbd>SPACE</kbd></button><button className="a-btn" disabled={!active} onClick={() => act({ type: "paddle", y: s.paddle + 32 })}>Shield ↓</button></div><p className="m-help">Up / Down for shield · Hold Space to row · Drag on the sea to aim the shield</p></div>;
 }
 
-export function BowGame({ state: s, active, act, still = false }: { state: BowState; still?: boolean } & Controls) {
-  const atlas = useFarshoreAtlas(), sprites = useFarshoreSprites();
-  const preview = archeryShot(s.aim, s.wind, s.blocked, "player", s.difficulty), shot = s.phase === "player" ? preview : s.shot || preview;
-  const canvas = useCanvas(ctx => {
-    const g = ctx.createLinearGradient(0, 0, 0, 400); g.addColorStop(0, "#263848"); g.addColorStop(1, "#493e38"); ctx.fillStyle = g; ctx.fillRect(0, 0, 800, 400);
-    ctx.fillStyle = "#152939"; ctx.fillRect(285, 80, 230, 140); ctx.fillStyle = "#deb879"; ctx.fillRect(370, 98, 60, 80);
-    ctx.strokeStyle = "#b79b7160"; ctx.lineWidth = 2; for (const x of [0, 120, 260, 540, 680, 800]) { ctx.beginPath(); ctx.moveTo(x, 400); ctx.lineTo(400 + (x - 400) * .13, 180); ctx.stroke(); }
-    for (const x of [28, 124, 642, 738]) { ctx.fillStyle = "#5d6260"; ctx.fillRect(x, 15, 34, 252); ctx.fillStyle = "#a5a493"; ctx.fillRect(x - 5, 12, 44, 10); }
-    drawFarshoreTile(ctx, atlas, 7, 0, 0, 800, 400, .58);
-    torchlight(ctx, 186, 149, still ? 0 : s.elapsed); torchlight(ctx, 612, 149, still ? 0 : s.elapsed);
-    if (sprites) drawFarshoreSprite(ctx, sprites, 2, 35, 168, 140, 140);
-    // Twelve aligned rings, projected from near to far in the hall.
-    for (let i = 12; i >= 1; i--) { const scale = 1 / (1 + (i - 1) * .21), y = 181 + 74 * scale, radius = 69 * scale; ctx.strokeStyle = s.blocked === i ? "#e8977c" : i <= shot.rings && s.phase !== "player" ? "#a8dbb6" : "#dbb978"; ctx.lineWidth = 3 + scale * 3; ctx.beginPath(); ctx.ellipse(400, y, radius, radius * .75, 0, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = "#87928b"; ctx.fillRect(400 + radius, y - 9 * scale, 30 * scale, 26 * scale); ctx.fillStyle = "#765747"; ctx.fillRect(400 + radius + 7 * scale, y + 12 * scale, 5 * scale, 74 * scale); ctx.font = `${Math.max(10, 14 * scale)}px monospace`; ctx.fillStyle = "#f4deaf"; ctx.fillText(String(i), 396 + radius, y - 14 * scale); }
-    ctx.beginPath(); ctx.strokeStyle = s.phase === "player" ? "#bfe4df" : shot.owner === "player" ? "#f8dd9a" : "#e2a390"; ctx.lineWidth = 3; ctx.setLineDash(s.phase === "player" ? [5, 5] : []); ctx.moveTo(400, 360);
-    const progress = s.phase === "player" ? 12 : Math.ceil(Math.min(1, s.timer / 850) * 12);
-    shot.path.slice(0, progress).forEach((p, i) => { const scale = 1 / (1 + i * .21); ctx.lineTo(400 + p.x * 310 * scale, 181 + 74 * scale - p.y * 310 * scale); }); ctx.stroke(); ctx.setLineDash([]);
-    // End-on inspection makes the effect of aim and wind legible.
-    ctx.fillStyle = "#0d2430ee"; ctx.fillRect(18, 290, 125, 96); ctx.strokeStyle = "#d5b67a"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(80, 338, 26, 0, Math.PI * 2); ctx.stroke(); ctx.strokeStyle = "#779997"; ctx.beginPath(); ctx.moveTo(45, 338); ctx.lineTo(115, 338); ctx.moveTo(80, 303); ctx.lineTo(80, 373); ctx.stroke(); const p = shot.path.at(-1)!; ctx.fillStyle = "#bce3d5"; ctx.beginPath(); ctx.arc(clampCanvas(80 + p.x * 110, 23, 137), clampCanvas(338 - p.y * 110, 299, 380), 4, 0, Math.PI * 2); ctx.fill(); ctx.font = "11px monospace"; ctx.fillStyle = "#c7d9d1"; ctx.fillText("FAR RING", 51, 305);
-    ctx.fillStyle = "#e0c086"; ctx.font = "16px monospace"; ctx.fillText(s.phase === "player" ? "TRAJECTORY PREVIEW" : `${shot.owner === "player" ? "ODYSSEUS" : "ANTINOUS"}: ${shot.rings} / 12 RINGS`, 250, 31);
-    motes(ctx, still ? 0 : s.elapsed, "embers"); sceneFrame(ctx, 800, 400);
-  });
-  return <div className="m-bow-game"><div className="m-board-heading"><span>WIND {s.wind === 0 ? "CALM" : `${Math.abs(s.wind)} ${s.wind > 0 ? "→" : "←"}`}</span><span>{s.blocked ? `RING ${s.blocked} BLOCKED` : "12 OPEN RINGS"}</span></div><canvas ref={canvas} width={800} height={400} className="m-canvas" aria-label={`Twelve axe rings in the hall. ${s.phase === "player" ? "Predicted" : shot.owner + " shot"}: ${shot.rings} rings.`}>Axe-ring trajectory gallery.</canvas><div className="m-aim-controls">{(["aim", "elevation", "tension"] as const).map(field => <label key={field} htmlFor={`archery-${field}`}><span>{field === "aim" ? "Wind aim" : field === "elevation" ? "Elevation" : "String tension"}<output>{s.aim[field]}{field !== "tension" ? "°" : "%"}</output></span><input id={`archery-${field}`} type="range" min={field === "tension" ? 45 : -20} max={field === "tension" ? 100 : 20} step={1} value={s.aim[field]} disabled={!active || s.phase !== "player"} onChange={e => act({ type: "aim", field, value: Number(e.target.value) })}/></label>)}</div><div className="m-shot-row"><span aria-live="polite">{s.phase === "player" ? `Preview: ${preview.rings} / 12 rings` : `Antinous ${s.phase === "rival" ? "is lining up his shot..." : `shot ${s.rivalShots.at(-1)} rings.`}`}</span><button className="a-btn a-primary" disabled={!active || s.phase !== "player"} onClick={() => act({ type: "shoot" })}>Release arrow <kbd>SPACE</kbd></button></div><div className="m-shot-history"><span>YOU {s.shots.map((n, i) => <b key={i}>{n}</b>)}</span><span>ANTINOUS {s.rivalShots.map((n, i) => <b key={i}>{n}</b>)}</span></div><p className="m-help">Aim against the wind · Higher tension flattens the arc · Most rings after five shots wins</p></div>;
-}
-const clampCanvas = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 export function MythicGame({ state, active, act, still }: { state: MythicState; still: boolean } & Controls) {
   if (state.id === "cyclops") return <GridGame state={state} active={active} act={act}/>;
   if (state.id === "circe") return <PotionGame state={state} active={active} act={act}/>;
   if (state.id === "sirens") return <SongGame state={state} active={active} act={act}/>;
   if (state.id === "scylla") return <StraitGame state={state} active={active} act={act} still={still}/>;
-  return <BowGame state={state} active={active} act={act} still={still}/>;
+  // The bow is drawn in the 3D hall (hall-game.tsx), never here.
+  return null;
 }

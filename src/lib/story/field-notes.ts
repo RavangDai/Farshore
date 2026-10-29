@@ -1,5 +1,6 @@
 import { isAdventure, isCave, type GameState } from "../arcade/arcade-runtime.ts";
 import { AVOIDANCE, caveProgress } from "../encounters/cave-runner.ts";
+import { BOW, arrowTime, strikeZ } from "../encounters/mythic.ts";
 import type { TrialId } from "../arcade/arcade.ts";
 
 export const fieldNotes: Record<TrialId, { region: string; bonus: string; lesson: string; keys: string[] }> = {
@@ -10,7 +11,7 @@ export const fieldNotes: Record<TrialId, { region: string; bonus: string; lesson
   sirens: { region: "THE SINGING ROCKS", bonus: "Echo five melodies with no missed notes", lesson: "Listen first, then repeat the sequence. Skip rests. The numbered strings keep every cue visible without sound.", keys: ["A", "S", "D", "F"] },
   scylla: { region: "THE STRAIT OF TWO TERRORS", bonus: "Center a parry · +200 and a rowing boost", lesson: "Gold lines reveal the next attack. Catch a strike at the shield's center for a perfect parry. Keep rowing away from Charybdis.", keys: ["↑ / ↓", "SPACE", "DRAG"] },
   calypso: { region: "THE STORM BEYOND OGYGIA", bonus: "Three driftwood pieces repair one life at shore", lesson: "Hop toward the bright driftwood bundles. Each current offers one bundle per crossing. Red marks warn of a locked lightning strike.", keys: ["WASD", "SPACE"] },
-  bow: { region: "THE GREAT HALL OF ITHACA", bonus: "Thread all twelve axe rings in one shot", lesson: "Use the trajectory and far-ring sights together. Aim against the wind; string tension changes the arc. Antinous wins ties.", keys: ["AIM SLIDERS", "SPACE"] },
+  bow: { region: "THE GREAT HALL OF ITHACA", bonus: "Send one arrow through all twelve axes", lesson: "Aim into the draught: the gauge shows which way it blows. Draw fully for the flattest flight, and let go before your arm trembles. Antinous wins ties.", keys: ["AIM: MOUSE / ARROWS", "DRAW: HOLD CLICK / SPACE"] },
 };
 
 export function encounterCue(s: GameState): { title: string; detail: string; value: string; fill: number; danger?: boolean } {
@@ -64,6 +65,17 @@ export function encounterCue(s: GameState): { title: string; detail: string; val
   if (s.id === "circe") return { title: s.bank > 0 ? "CURSES READY TO SEND" : "BREAK CIRCE'S SPELL", detail: "Match three, purify swine with moly, and chain clears to pressure Circe.", value: `${s.chains} chains · ${s.bank} curses`, fill: Math.min(1, s.bank / 4) };
   if (s.id === "sirens") return { title: s.phase === "listen" ? "LISTEN · REMEMBER THE ORDER" : s.phase === "reply" ? "YOUR REPLY · ECHO THE MELODY" : "THE SHIP ROWS ON", detail: s.phase === "listen" ? "Watch the numbered strings. Remember the notes and skip the rests." : "A / S / D / F or tap the four strings. A wrong note raises temptation.", value: `${s.entered.length}/${s.notes.filter(n => !n.rest).length} echoed`, fill: s.entered.length / Math.max(1, s.notes.filter(n => !n.rest).length), danger: s.temptation >= 70 };
   if (s.id === "scylla") return { title: s.telegraph ? `HEAD ${s.head + 1} IS AIMING` : s.rowing ? "OARS IN THE WATER" : "KEEP ROWING · SPACE", detail: "Meet a strike at the shield's center for a perfect parry and a burst of distance.", value: `${s.successes} deflected`, fill: s.boat / 85, danger: s.boat < 22 };
-  if (s.id === "bow") return { title: s.phase === "player" ? "THE BOW REMEMBERS ITS KING" : "WATCH YOUR RIVAL'S SHOT", detail: s.wind ? `Wind blows ${s.wind > 0 ? "right" : "left"}. Counter it with your aim, then check the far-ring sight.` : "Calm air. Refine elevation and tension to thread all twelve rings.", value: `${s.shots.filter(n => n === 12).length} perfect shots`, fill: s.shots.length / (s.practice ? 1 : 5) };
+  if (s.id === "bow") {
+    const turns = s.practice ? 1 : BOW.turns, value = `You ${s.score} · Antinous ${s.rivalScore}`, fill = (s.shots.length + s.rivalShots.length) / (turns * 2);
+    if (s.phase === "player") return {
+      title: s.drawing ? (s.draw >= 1 ? "FULL DRAW · LET GO" : "DRAWING THE BOW") : s.blocked ? `AXE ${s.blocked} IS NARROWED` : "THREAD ALL TWELVE AXES",
+      detail: s.drawing ? "Let go to loose. Hold a full draw too long and your arm trembles." : s.wind ? `The draught blows ${s.wind > 0 ? "right" : "left"}, strength ${Math.abs(s.wind)}. Aim a little ${s.wind > 0 ? "left" : "right"} of the line, then hold to draw.` : "Still air. Aim a touch high, then hold to draw.",
+      value, fill,
+    };
+    // The result waits until the arrow has struck, so the toast never spoils the flight.
+    const yours = s.phase === "rival" && s.timer < BOW.flightMs + BOW.resultMs, landed = !!s.shot && s.timer >= arrowTime(strikeZ(s.shot));
+    if (yours) return { title: landed ? "YOUR ARROW STRIKES" : "YOUR ARROW FLIES", detail: landed ? s.feedback : "Watch it through the axes.", value, fill };
+    return { title: "ANTINOUS SHOOTS", detail: s.phase === "review" && landed ? s.rivalLine : "His arrow flies down the same line. Ties go to him.", value, fill };
+  }
   return { title: s.phase === "warning" ? "EVADE THE MARKED SMASH" : "MOVE QUIETLY", detail: "Use sheep for cover and keep one quiet step ready when Polyphemus strikes.", value: `${s.turn} turns`, fill: s.turn / 32, danger: s.phase === "warning" };
 }

@@ -2,7 +2,7 @@
 
 Better Auth manages password hashing, verification tokens, password resets, and MongoDB-backed sessions. Private routes validate the session and require a verified email. Browser-supplied user IDs and identity headers never authorize operations. Session tokens stay in HttpOnly cookies; the Farshore auth facade returns player metadata rather than the token.
 
-Passwords require 12 to 128 characters and are hashed by Better Auth's scrypt implementation. Email confirmation is required before login. Password resets require a valid single-use token and revoke existing sessions. No guest request can read or modify another player's account settings.
+Passwords require 12 to 128 characters and are hashed by Better Auth's scrypt implementation. Email confirmation is required before login. Password resets require a valid single-use token and revoke existing sessions. Google sign-in uses PKCE and a state value stored in MongoDB and bound to a signed cookie, so a callback only completes in the browser that started it; it joins an existing account only when that account's email is already confirmed. No guest request can read or modify another player's account settings.
 
 Every MongoDB account query includes the user ID derived from the validated session. No caller can provide MongoDB filters or operators. Unique indexes enforce account email, session token, per-player campaign, and per-player request IDs. MongoDB is a server-only dependency. Database access is limited through the deployment's credentials and network settings.
 

@@ -25,10 +25,18 @@ Earlier mystery and advice modes remain available from Settings.
 2. Create a dedicated database user with `readWrite` access to the Farshore database. Limit network access to the app host or development machine.
 3. Copy [.env.example](../.env.example) to an ignored `.env.local`. Add `MONGODB_URI`, `MONGODB_DATABASE`, and `BETTER_AUTH_URL`. For a hosted app, the URL must use HTTPS.
 4. Add a random `BETTER_AUTH_SECRET` and a separate `FARSHORE_ENCRYPTION_KEY` containing 32 random bytes encoded as base64. Generate them locally; never send them in a chat or commit them.
-5. Add your email provider's SMTP host, port, credentials, and sender address. Account verification and password recovery require real email delivery. Use port 465 with `SMTP_SECURE=true`, or your provider's STARTTLS settings on port 587.
+5. Add your email provider's SMTP host, port, credentials, and sender address, Google sign-in (below), or both. Email accounts need real email delivery for verification and password recovery. Use port 465 with `SMTP_SECURE=true`, or your provider's STARTTLS settings on port 587.
 6. Restart Farshore. The first account request creates the required unique and expiry indexes. Better Auth uses the same MongoDB database as the game.
 
-Preserve the encryption key: replacing it makes existing saved provider keys unreadable. Keep the MongoDB URI, authentication secret, SMTP password, and encryption key in the host's server secret settings.
+Preserve the encryption key: replacing it makes existing saved provider keys unreadable. Keep the MongoDB URI, authentication secret, SMTP password, Google client secret, and encryption key in the host's server secret settings.
+
+## Add Google sign-in
+
+1. In Google Cloud Console, create a project and configure the OAuth consent screen (app name and support email). While the app is in testing, only the test users you list can sign in.
+2. Create an OAuth client of type **Web application**. Add `http://localhost:3000` as an authorized JavaScript origin and `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI. Add the same pair for your public HTTPS origin when you deploy.
+3. Put the client ID and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, then restart Farshore. The account dialog shows **Continue with Google**.
+
+With Google configured, accounts work without SMTP; the email form appears only when SMTP is also set. Farshore asks Google only for the player's name and email address. A Google sign-in joins an existing Farshore account with the same email only if that account's email is already confirmed; otherwise the player is asked to confirm it first, so an unconfirmed sign-up cannot capture someone else's Google identity.
 
 ## Accounts and saving
 
@@ -67,11 +75,11 @@ The app listens on port 3000 by default; the host can set `PORT`. `/api/health` 
 
 The included [Dockerfile](../Dockerfile) produces a standalone Next.js server and runs it as a non-root user. Supply secrets at runtime. Do not copy a local environment file into the image.
 
-After deployment, check signup and email confirmation, login/logout, password reset, saving across two devices, rejected anonymous/private requests, and a real request with the chosen AI provider. Set up database backups and monitor server errors without logging passwords, reset links, or API keys.
+After deployment, check signup and email confirmation, Google sign-in if configured, login/logout, password reset, saving across two devices, rejected anonymous/private requests, and a real request with the chosen AI provider. Set up database backups and monitor server errors without logging passwords, reset links, or API keys.
 
 ## What is tested
 
-The integration suite starts a temporary real MongoDB replica set and exercises the production indexes, transactions, concurrent saves, idempotency, rate limiting, encrypted keys, and Better Auth's email/session/reset behavior. Test emails are captured in memory; they do not prove your SMTP provider delivers email. The first test run may download a MongoDB test binary into ignored `.tmp/mongodb-binaries`.
+The integration suite starts a temporary real MongoDB replica set and exercises the production indexes, transactions, concurrent saves, idempotency, rate limiting, encrypted keys, Better Auth's email/session/reset behavior, and the Google sign-in flow against a stand-in for Google's token endpoint. Test emails are captured in memory; they do not prove your SMTP provider delivers email. The first test run may download a MongoDB test binary into ignored `.tmp/mongodb-binaries`.
 
 The tests do not provision your Atlas account or publish the app. Live SMTP delivery and deployment checks remain dependent on your later configuration.
 

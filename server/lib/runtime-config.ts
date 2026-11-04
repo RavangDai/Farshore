@@ -13,13 +13,20 @@ export function runtimeConfig() {
     smtpUser: env.SMTP_USER,
     smtpPassword: env.SMTP_PASSWORD,
     mailFrom: env.MAIL_FROM,
+    googleClientId: env.GOOGLE_CLIENT_ID,
+    googleClientSecret: env.GOOGLE_CLIENT_SECRET,
     localModelUrl: local ? env.FARSHORE_MODEL_URL : undefined,
     localModelName: local ? env.FARSHORE_MODEL_NAME : undefined,
     localModelKey: local ? env.FARSHORE_API_KEY : undefined,
     local,
   };
 }
-export function accountsConfigured() {
+// Email accounts need mail delivery for confirmation and resets; Google confirms its own addresses.
+export function authMethods() {
   const c = runtimeConfig();
-  return !!(c.mongoUri && c.authSecret && c.authSecret.length >= 32 && c.appUrl && c.smtpHost && c.mailFrom);
+  return { email: !!(c.smtpHost && c.mailFrom), google: !!(c.googleClientId && c.googleClientSecret) };
+}
+export function accountsConfigured() {
+  const c = runtimeConfig(), methods = authMethods();
+  return !!(c.mongoUri && c.authSecret && c.authSecret.length >= 32 && c.appUrl && (methods.email || methods.google));
 }

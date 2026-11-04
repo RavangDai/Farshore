@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { standardPlan } from "../src/lib/arcade/arcade.ts";
 import { BOW, axeZ, mythicAction, newMythic, tickMythic } from "../src/lib/encounters/mythic.ts";
 import { VIEW_H, VIEW_W } from "../src/lib/render/stage.ts";
-import { arrowPoint, axeAt, flightOf, hallCamera, projector, sightPoint } from "../src/lib/render/hall-view.ts";
+import { arrowPoint, axeAt, flightOf, hallCamera, projector, sightAt, sightPoint } from "../src/lib/render/hall-view.ts";
 
 function advance(s, ms) { for (let t = 0; t < ms && !s.done; t += 50) s = tickMythic(s, 50); return s; }
 function loosed(aim = { aim: 0, elevation: 0 }, wind = 0) {
@@ -40,6 +40,31 @@ test("while aiming, the sight is drawn where it points: centred when level, righ
   const right = projector(hallCamera(aimed))(sightPoint(aimed.aim));
   assert.ok(Math.abs(level.x - VIEW_W / 2) < 2, `level sight at ${level.x}`);
   assert.ok(right.x > level.x + 10, "aiming right moves the sight right");
+});
+
+test("the holes a player sees line up under the sight, so aiming into them threads the line", () => {
+  let s = { ...newMythic("bow", "normal", standardPlan("bow")), wind: 0 };
+  s = advance(s, 2000);
+  const view = projector(hallCamera(s)), level = view(sightPoint({ aim: 0, elevation: 0 }));
+  for (let i = 1; i <= 12; i++) {
+    const hole = view(axeAt(i));
+    assert.ok(Math.hypot(hole.x - level.x, hole.y - level.y) < 1, `axe ${i}'s hole is drawn ${Math.round(hole.y - level.y)} px from the level sight`);
+  }
+  // Put the sight where the player sees the holes, draw fully and loose.
+  const into = sightAt(view(axeAt(1)).x, view(axeAt(1)).y);
+  s = mythicAction(s, { type: "sight", ...into });
+  s = mythicAction(s, { type: "draw", held: true }); s = advance(s, 1000); s = mythicAction(s, { type: "draw", held: false });
+  assert.equal(s.shot.rings, 12, "aiming into the visible holes in still air threads every axe");
+});
+
+test("the sight sits exactly under the pointer", () => {
+  let s = newMythic("bow", "normal", standardPlan("bow"));
+  s = advance(s, 2000);
+  for (const [x, y] of [[800, 450], [760, 470], [905, 380]]) {
+    s = mythicAction(s, { type: "sight", ...sightAt(x, y) });
+    const p = projector(hallCamera(s))(sightPoint(s.aim));
+    assert.ok(Math.hypot(p.x - x, p.y - y) < 0.5, `pointer at ${x},${y} drew the sight at ${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+  }
 });
 
 test("an arrow flies down the line until it strikes the axe it misses, and stays there", () => {

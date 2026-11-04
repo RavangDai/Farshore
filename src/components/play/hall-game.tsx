@@ -1,19 +1,30 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { BOW, statusLabel, type BowState } from "../../lib/encounters/mythic";
+import { statusLabel, type BowState } from "../../lib/encounters/mythic";
 import { HallOverlay, drawFlatHall, type HallOverlayOptions } from "../../lib/render/hall-overlay";
-import { hallCamera } from "../../lib/render/hall-view";
+import { SIGHT_PER_PX, hallCamera, sightAt } from "../../lib/render/hall-view";
 import type { HallWorld } from "../../lib/render/hall-world";
-import { VIEW_H, VIEW_W, prepareCanvas } from "../../lib/render/stage";
+import { VIEW_H, VIEW_W } from "../../lib/render/stage";
 
 export type HallAction = { type: "sight"; aim: number; elevation: number } | { type: "draw"; held: boolean };
 
 /**
- * Sight units per logical stage pixel. The bow's whole sight range spans the
- * middle of the hall, so a mouse moves it like a heavy, precise cursor rather
- * than a twitchy one, and a finger drags it the same distance.
+ * The overlay canvas as a transparent 2D context in the logical stage space.
+ * It must stay transparent: a canvas keeps the first context it is given, and
+ * the 3D hall draws beneath this one once it has loaded.
  */
-const SIGHT_PER_PX = BOW.sightLimit / 450;
+function flatContext(node: HTMLCanvasElement) {
+  const c = node.getContext("2d");
+  if (!c) return null;
+  const ratio = Math.min(2.5, Math.max(1, window.devicePixelRatio || 1)), box = node.getBoundingClientRect();
+  const w = Math.max(1, Math.round((box.width || VIEW_W) * ratio)), h = Math.max(1, Math.round((box.height || VIEW_H) * ratio));
+  if (node.width !== w || node.height !== h) {
+    node.width = w;
+    node.height = h;
+  }
+  c.setTransform(w / VIEW_W, 0, 0, h / VIEW_H, 0, 0);
+  return c;
+}
 
 /**
  * The great hall of Ithaca: Penelope's contest of the twelve axes.
@@ -71,6 +82,9 @@ export function HallGame({
     let disposed = false;
     let world: HallWorld | null = null;
     let flat: HallOverlay | null = null;
+    // Until three.js has loaded (or if it never can), the flat hall stands in,
+    // so the player is never aiming at an empty frame.
+    const standIn = new HallOverlay();
     let handle = 0;
     let previous = 0;
     let decorative = 0;
@@ -82,11 +96,11 @@ export function HallGame({
           world = new HallWorld(host, node);
         } catch {
           host.querySelector(".fs-cave-gl")?.remove();
-          flat = new HallOverlay();
+          flat = standIn;
         }
       })
       .catch(() => {
-        if (!disposed) flat = new HallOverlay();
+        if (!disposed) flat = standIn;
       });
 
     const frame = (now: number) => {
@@ -98,12 +112,12 @@ export function HallGame({
       options.current.stageHeight = node.clientHeight || VIEW_H;
       const view = { now: decorative, dt };
       if (world) world.render(latest.current, view, options.current);
-      else if (flat) {
-        const context = prepareCanvas(node);
+      else {
+        const context = flatContext(node);
         if (context) {
           const cam = hallCamera(latest.current);
           drawFlatHall(context, latest.current, cam);
-          flat.draw(context, latest.current, cam, view, options.current);
+          (flat ?? standIn).draw(context, latest.current, cam, view, options.current);
         }
       }
       handle = requestAnimationFrame(frame);
@@ -113,7 +127,7 @@ export function HallGame({
       disposed = true;
       cancelAnimationFrame(handle);
       world?.dispose();
-      flat?.reset();
+      standIn.reset();
     };
   }, []);
 
@@ -126,10 +140,11 @@ export function HallGame({
     if (!live.current) return;
     const p = at(e);
     if (e.pointerType === "mouse") {
-      pending.current = { aim: (p.x - VIEW_W / 2) * SIGHT_PER_PX, elevation: -(p.y - VIEW_H / 2) * SIGHT_PER_PX };
+      // The sight sits exactly under the mouse: point at the holes and that is where the arrow is aimed.
+      pending.current = sightAt(p.x, p.y);
       return;
     }
-    // A finger drags the sight by how far it travels, so it never covers the sight itself.
+    // A finger drags the sight as far as it travels, so it never covers the sight itself.
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     const from = pending.current ?? latest.current.aim;

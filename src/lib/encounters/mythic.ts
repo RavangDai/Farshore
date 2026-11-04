@@ -195,14 +195,15 @@ export const BOW = {
   opening: [0.25, 0.19, 0.145] as readonly number[],
   /** An opening with Antinous' arrow lodged in it keeps this share of its radius. */
   blockedShare: 0.58,
-  sightLimit: 20,
+  /** How far the sight can stray from the line either way: wide enough for the reticle to follow a pointer anywhere around the axes. */
+  sightLimit: 60,
   /** Empty to full draw. Letting go below `minDraw` lets the string down instead. */
   drawMs: 900,
   minDraw: 0.3,
   /** A full draw is steady this long, then trembles up to `swayMax` sight units over `trembleMs`. */
-  steadyMs: 1600,
+  steadyMs: 2500,
   trembleMs: 2400,
-  swayMax: 2.4,
+  swayMax: 1.6,
   /** An arrow reaches the twelfth axe this long after it is loosed, then flies on to the doorway. */
   reachMs: 1050,
   doorway: 1.2,
@@ -253,6 +254,20 @@ export function bestAim(wind: number, blocked = 0, difficulty: Difficulty = "nor
     if (value > best) { best = value; choice = aim; }
   }
   return choice;
+}
+/**
+ * How far to aim into the draught, in widths of the far hole, rounded to what
+ * a player can judge by eye: a touch, half a hole, a hole, or more. At full
+ * draw this aims the curve back through the line.
+ */
+export function draughtAllowance(wind: number, difficulty: Difficulty): { holes: number; size: "touch" | "half" | "one" | "more"; words: string } {
+  const exact = Math.abs(wind) * BOW.push / (2 * BOW.opening[tierOf(difficulty)]);
+  if (!wind) return { holes: 0, size: "touch", words: "a touch high" };
+  if (exact < 0.375) return { holes: 0.25, size: "touch", words: "a touch" };
+  if (exact < 0.75) return { holes: 0.5, size: "half", words: "half a hole" };
+  if (exact < 1.25) return { holes: 1, size: "one", words: "about a hole" };
+  const holes = Math.round(exact * 2) / 2;
+  return { holes, size: "more", words: `about ${holes === 1.5 ? "1½" : holes} holes` };
 }
 /** The sight's tremble once a full draw has been held past `steadyMs`, in sight units. */
 export function bowSway(s: BowState) {

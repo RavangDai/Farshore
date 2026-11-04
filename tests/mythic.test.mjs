@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { adaptivePlan, assistTrial, finishAttempt, newArcade, readArcade, standardPlan, trials as campaignTrials, unlocked } from "../src/lib/arcade/arcade.ts";
-import { BOW, archeryShot, bestAim, bowScoreShown, bowSway, columnHeight, dropPiece, mythicAction, mythicSummary, newMythic, potionChoice, resolveBoard, songBeat, tickMythic } from "../src/lib/encounters/mythic.ts";
+import { BOW, archeryShot, bestAim, bowScoreShown, bowSway, columnHeight, draughtAllowance, dropPiece, mythicAction, mythicSummary, newMythic, potionChoice, resolveBoard, songBeat, tickMythic } from "../src/lib/encounters/mythic.ts";
 
 const trials = campaignTrials.filter(t => ["cyclops", "circe", "sirens", "scylla", "bow"].includes(t.id));
 function advance(s, ms) { for (let elapsed = 0; elapsed < ms && !s.done; elapsed += 50) s = tickMythic(s, Math.min(50, ms - elapsed)); return s; }
@@ -138,7 +138,7 @@ test("the bow must be drawn before it shoots: letting go early, or pausing, lets
 });
 test("the sight moves on both axes at once, within its limits, and ignores nonsense", () => {
   const s = newMythic("bow", "normal", standardPlan("bow"));
-  const moved = mythicAction(s, { type: "sight", aim: 35, elevation: -4.5 });
+  const moved = mythicAction(s, { type: "sight", aim: 95, elevation: -4.5 });
   assert.equal(moved.aim.aim, BOW.sightLimit); assert.equal(moved.aim.elevation, -4.5);
   const junk = mythicAction(moved, { type: "sight", aim: Number.NaN, elevation: 3 });
   assert.equal(junk.aim.aim, BOW.sightLimit); assert.equal(junk.aim.elevation, -4.5);
@@ -197,6 +197,19 @@ test("winds punish aiming straight down the line on every tier, but compensating
     if (difficulty !== "easy") assert.ok(examples.some(s => archeryShot(full, s.wind, 0, "player", s.difficulty).rings < 12), difficulty);
     for (const s of examples) assert.equal(archeryShot(bestAim(s.wind, 0, s.difficulty), s.wind, 0, "player", s.difficulty).rings, 12, `${difficulty} wind ${s.wind}`);
   }
+});
+test("the draught gauge's allowance, in hole widths, is enough to thread all twelve on every tier", () => {
+  for (const difficulty of ["easy", "normal", "hard"]) {
+    const opening = BOW.opening[["easy", "normal", "hard"].indexOf(difficulty)];
+    for (let wind = -55; wind <= 55; wind++) {
+      const allowance = draughtAllowance(wind, difficulty);
+      assert.ok(["touch", "half", "one", "more"].includes(allowance.size), `${difficulty} ${wind}`);
+      // Aim upwind by that many hole widths at the far axe, and up by the drop, at full draw.
+      const aim = { aim: -Math.sign(wind) * allowance.holes * 2 * opening / BOW.perSight, elevation: BOW.drop / BOW.perSight, tension: 100 };
+      assert.equal(archeryShot(aim, wind, 0, "player", difficulty).rings, 12, `${difficulty} wind ${wind}: aim ${allowance.words}`);
+    }
+  }
+  assert.equal(draughtAllowance(0, "normal").holes, 0);
 });
 test("after a miss the hall says which way to correct, and an imperfect arrow counts against the medal", () => {
   const drifted = loose({ ...newMythic("bow", "normal", standardPlan("bow")), wind: 40 });

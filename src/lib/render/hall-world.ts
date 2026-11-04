@@ -45,7 +45,7 @@ const CANT = 0.5;
  */
 const BOW_FRAME = { x: 0.52, y: -0.5, depth: 0.62 };
 /** The field of view the bow is modelled at; narrower views scale it down to keep its size on screen. */
-const BOW_FOV = 34;
+const BOW_FOV = 30;
 /** Arrow shaft length, and how far the nock comes back at full draw (brace height to anchor). */
 const ARROW = 0.76;
 const BRACE = 0.2;

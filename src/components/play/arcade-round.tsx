@@ -23,6 +23,7 @@ import { AdventureGame } from "./adventure-game";
 import { MythicGame } from "./mythic-games";
 import { CaveGame } from "./cave-game";
 import { HallGame } from "./hall-game";
+import { SIGHT_PER_PX } from "../../lib/render/hall-view";
 import { GameStage } from "./game-stage";
 import { ArcadeHUD } from "./arcade-hud";
 import { AIInspector, nextMode, type InspectorMode } from "../ai/ai-inspector";
@@ -282,10 +283,10 @@ export function ArcadeRound({
             if (direction) next = gameAction(next, { type: "paddle", y: next.paddle + direction * 310 * pending / 1000 });
           }
           if (isBow(next) && next.phase === "player") {
-            // Held arrows or WASD steer the sight; Shift steadies it for fine adjustment.
+            // Held arrows or WASD steer the sight about 90 stage pixels a second; Shift slows it to 22 for fine adjustment.
             const dx = Number(held.current.has("arrowright") || held.current.has("d")) - Number(held.current.has("arrowleft") || held.current.has("a"));
             const dy = Number(held.current.has("arrowup") || held.current.has("w")) - Number(held.current.has("arrowdown") || held.current.has("s"));
-            const step = (held.current.has("shift") ? 2.5 : 8) * pending / 1000;
+            const step = (held.current.has("shift") ? 22 : 90) * SIGHT_PER_PX * pending / 1000;
             if (dx || dy) next = gameAction(next, { type: "sight", aim: next.aim.aim + dx * step, elevation: next.aim.elevation + dy * step });
           }
           if (demo) next = demonstrate(next);

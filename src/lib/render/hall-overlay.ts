@@ -4,7 +4,7 @@
 // so the sight, the guide line and the axe numbers sit exactly on the scene.
 // The flat fallback for machines without WebGL draws the hall itself here too.
 
-import { BOW, archeryShot, arrowTime, axeZ, bowScoreShown, bowSway, openingOf, shotAdvice, strikeZ, tierOf, type BowState, type Shot } from "../encounters/mythic.ts";
+import { BOW, archeryShot, arrowTime, axeZ, bowScoreShown, bowSway, draughtAllowance, openingOf, shotAdvice, strikeZ, tierOf, type BowState, type Shot } from "../encounters/mythic.ts";
 import { LINE_Y, arrowPoint, axeAt, flightOf, onLine, projector, sightPoint, type HallCamera, type ScreenPoint, type Vec3 } from "./hall-view.ts";
 import { EventStamp, Particles, VIEW_H, VIEW_W, clamp01, roundedRect, type StageFrame } from "./stage.ts";
 
@@ -18,7 +18,7 @@ const DANGER = "#f0745c";
 const PANEL = "rgba(5,19,33,0.8)";
 const EDGE = "rgba(214,178,104,0.6)";
 
-/** How much of the predicted flight the sight shows: all of it on easy, the first axes on medium, none on hard. */
+/** How much of the predicted flight is shown: the landing point and its verdict on easy, the landing point on medium, nothing on hard. */
 export type GuideReach = "full" | "near" | "none";
 export const guideFor = (s: BowState): GuideReach => (["full", "near", "none"] as const)[tierOf(s.difficulty)];
 
@@ -246,34 +246,52 @@ export class HallOverlay {
     c.restore();
   }
 
-  /** Where this draw would carry the arrow: all the way on easy, the first axes on medium. */
+  /**
+   * Where this draw will carry the arrow by the twelfth axe, on easy and
+   * medium: the draught and a short draw pull it off the sight, and the task
+   * is to put this marker in the far hole. Seen down the line, a path would
+   * shrink to a dot behind the sight, so the landing point is what is shown.
+   * Easy also says whether the arrow will clear every axe on the way.
+   */
   private guide(c: CanvasRenderingContext2D, s: BowState, project: Project) {
     const reach = guideFor(s);
     if (reach === "none") return;
     const sway = bowSway(s);
-    // Undrawn, the guide shows a full draw: what the player gets by drawing all the way.
+    // Undrawn, the marker shows a full draw: what the player gets by drawing all the way.
     const aim = { aim: s.aim.aim + sway.aim, elevation: s.aim.elevation + sway.elevation, tension: s.drawing ? Math.max(25, Math.round(s.draw * 100)) : 100 };
-    const preview = archeryShot(aim, s.wind, s.blocked, "player", s.difficulty), end = strikeZ(preview);
-    const stop = reach === "full" ? end : Math.min(end, axeZ(4));
+    const preview = archeryShot(aim, s.wind, s.blocked, "player", s.difficulty);
+    const sight = project(sightPoint(aim)), land = project(arrowPoint(preview, 1));
+    if (!sight.on || !land.on) return;
+    const clean = preview.rings >= BOW.axes, colour = reach === "full" ? (clean ? GOLD : DANGER) : CREAM;
     c.save();
-    c.strokeStyle = "rgba(242,210,126,0.85)";
-    c.lineWidth = 3;
-    c.setLineDash([2, 9]);
-    c.lineCap = "round";
-    this.path(c, preview, 0.04, stop, project);
+    c.strokeStyle = colour;
+    c.globalAlpha *= 0.75;
+    c.lineWidth = 2;
+    c.setLineDash([3, 5]);
+    c.beginPath();
+    c.moveTo(sight.x, sight.y);
+    c.lineTo(land.x, land.y);
+    c.stroke();
+    c.setLineDash([]);
+    c.globalAlpha /= 0.75;
+    // A dark halo keeps the marker readable against the bright bronze around the holes.
+    const diamond = () => {
+      c.beginPath();
+      c.moveTo(land.x, land.y - 10); c.lineTo(land.x + 10, land.y); c.lineTo(land.x, land.y + 10); c.lineTo(land.x - 10, land.y); c.closePath();
+    };
+    c.lineJoin = "round";
+    c.strokeStyle = "rgba(10,6,2,0.75)";
+    c.lineWidth = 6;
+    diamond();
+    c.stroke();
+    c.strokeStyle = colour;
+    c.lineWidth = 2.5;
+    diamond();
+    c.stroke();
+    c.fillStyle = colour;
+    c.beginPath(); c.arc(land.x, land.y, 3, 0, Math.PI * 2); c.fill();
     c.restore();
-    if (reach === "full") {
-      const p = project(arrowPoint(preview, stop));
-      if (p.on && stop < BOW.doorway) {
-        c.save();
-        c.strokeStyle = DANGER;
-        c.lineWidth = 3;
-        c.beginPath();
-        c.arc(p.x, p.y, 7, 0, Math.PI * 2);
-        c.stroke();
-        c.restore();
-      }
-    }
+    if (reach === "full") shadowed(c, clean ? "THROUGH ALL 12" : `STRIKES AXE ${preview.rings + 1}`, land.x, land.y - 22, `9px ${PIXEL}`, colour);
   }
 
   private path(c: CanvasRenderingContext2D, shot: Pick<Shot, "aim" | "wind">, from: number, to: number, project: Project) {
@@ -438,7 +456,8 @@ export class HallOverlay {
       c.beginPath(); c.moveTo(tip, cy); c.lineTo(tip - dir * 14 * t, cy - 9 * t); c.lineTo(tip - dir * 14 * t, cy + 9 * t); c.closePath(); c.fill();
     }
     c.restore();
-    const hint = strength ? (L.compact ? `aim ${s.wind > 0 ? "left" : "right"} to meet it` : `Blows ${s.wind > 0 ? "right" : "left"}  ·  aim ${s.wind > 0 ? "left" : "right"} to meet it`) : "Still air  ·  aim a touch high";
+    const into = `aim ${draughtAllowance(s.wind, s.difficulty).words} ${s.wind > 0 ? "left" : "right"}`;
+    const hint = strength ? (L.compact ? into : `Blows ${s.wind > 0 ? "right" : "left"}  ·  ${into}`) : "Still air  ·  aim a touch high";
     text(c, hint, x + w / 2, y + h - 20 * t, `${Math.round(15 * t)}px ${SANS}`, CREAM, "center");
   }
 
@@ -487,7 +506,7 @@ export class HallOverlay {
       text(c, "HOW TO SHOOT", x + 20, y + 26, `11px ${PIXEL}`, GOLD);
       const steps: [string, string][] = options.touch
         ? [["AIM", "Drag anywhere on the hall"], ["DRAW", "Hold the DRAW button"], ["LOOSE", "Let go. A full draw flies flattest"]]
-        : [["AIM", "Move the mouse, or arrow keys / WASD"], ["DRAW", "Hold the mouse button or SPACE"], ["LOOSE", "Let go. A full draw flies flattest"]];
+        : [["AIM", "Point down the line of holes (mouse / arrows)"], ["DRAW", "Hold the mouse button or SPACE"], ["LOOSE", "Let go. A full draw flies flattest"]];
       steps.forEach(([verb, how], i) => {
         const sy = y + 66 + i * 40;
         c.save();

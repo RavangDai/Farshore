@@ -8,7 +8,7 @@
 // is to the archer's right. Path offsets from the rules (see `BOW`) become
 // metres through `BOW.unitM`.
 
-import { BOW, arrowTime, axeZ, bowSway, strikeZ, trajectoryAt, type BowState, type Shot } from "../encounters/mythic.ts";
+import { BOW, arrowTime, axeZ, strikeZ, trajectoryAt, type BowState, type Shot } from "../encounters/mythic.ts";
 import { VIEW_H, VIEW_W, clamp01, easeInOut, easeOut, lerp } from "./stage.ts";
 
 export type Vec3 = { x: number; y: number; z: number };
@@ -20,11 +20,15 @@ export const LINE_Y = 1.42;
 /** Metres from the bow to the twelfth axe. */
 export const LINE_M = BOW.firstAxeM + (BOW.axes - 1) * BOW.axeGapM;
 /**
- * The aiming eye: above and behind the bow rather than at the string, so the
- * axe heads stack into a visible staircase rising to the twelfth instead of
- * the first hiding the other eleven.
+ * The aiming eye: on the line of openings, behind the bow. From here the
+ * twelve holes nest into one tunnel, so the hole the player sees and the hole
+ * the arrow must pass are the same place on screen. (Raised above the line,
+ * the nearest hole showed well below the true aim, and aiming into it sent
+ * every arrow into the first axe.)
  */
-export const EYE: Vec3 = { x: 0, y: LINE_Y + 0.42, z: 1.55 };
+export const EYE: Vec3 = { x: 0, y: LINE_Y, z: 1.55 };
+/** The aiming view's field of view. It stays fixed while aiming so the sight never drifts from under the pointer. */
+const AIM_FOV = 30;
 /**
  * Looking down the line from above the lamps, between the axes and the
  * colonnade, the way a guest at the feast sees the contest. Nothing stands
@@ -77,6 +81,7 @@ const add = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x + b.x, y: a.y + b.y, z: a.z + 
 const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
 const cross = (a: Vec3, b: Vec3): Vec3 => ({ x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x });
 const unit = (a: Vec3): Vec3 => { const n = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / n, y: a.y / n, z: a.z / n }; };
+const scale3 = (a: Vec3, k: number): Vec3 => ({ x: a.x * k, y: a.y * k, z: a.z * k });
 export const mix3 = (a: Vec3, b: Vec3, t: number): Vec3 => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) });
 const mixCamera = (a: HallCamera, b: HallCamera, t: number): HallCamera => ({ eye: mix3(a.eye, b.eye, t), look: mix3(a.look, b.look, t), fov: lerp(a.fov, b.fov, t) });
 
@@ -97,16 +102,32 @@ export function projector(cam: HallCamera, width = VIEW_W, height = VIEW_H) {
   };
 }
 
+/**
+ * The sight that draws the reticle at stage point (x, y) in the settled aiming
+ * view: the ray from the eye through that point, met at the twelfth axe. It is
+ * the exact inverse of drawing the sight, so the reticle sits under the pointer.
+ */
+export function sightAt(x: number, y: number): { aim: number; elevation: number } {
+  const cam = AIM_VIEW;
+  const forward = unit(sub(cam.look, cam.eye));
+  const right = unit(cross(forward, { x: 0, y: 1, z: 0 }));
+  const up = cross(right, forward);
+  const focal = VIEW_H / 2 / Math.tan((cam.fov * Math.PI) / 360);
+  const ray = add(forward, add(scale3(right, (x - VIEW_W / 2) / focal), scale3(up, -(y - VIEW_H / 2) / focal)));
+  const far = onLine(1), t = (far.z - cam.eye.z) / ray.z;
+  const hit = add(cam.eye, scale3(ray, t));
+  const perUnit = BOW.perSight * BOW.unitM;
+  return { aim: hit.x / perUnit, elevation: (hit.y - LINE_Y) / perUnit };
+}
+
 // ---------------------------------------------------------------------------
 // Camera
 // ---------------------------------------------------------------------------
 
-/** Behind the bow: the view leans a quarter of the way toward the sight and narrows as the string comes back. */
-function aimCamera(s: BowState): HallCamera {
-  const sway = bowSway(s);
-  const sight = sightPoint({ aim: s.aim.aim + sway.aim, elevation: s.aim.elevation + sway.elevation });
-  return { eye: EYE, look: mix3(onLine(1), sight, 0.25), fov: lerp(34, 24, easeOut(s.draw)) };
-}
+/** Behind the bow, looking straight down the line. It holds still while aiming: the sight moves, not the hall. */
+const AIM_VIEW: HallCamera = { eye: EYE, look: onLine(1), fov: AIM_FOV };
+/** Sight units per stage pixel in the aiming view, for dragging and steering the sight by screen distance. */
+export const SIGHT_PER_PX = (EYE.z + LINE_M) / (VIEW_H / 2 / Math.tan((AIM_FOV * Math.PI) / 360)) / (BOW.perSight * BOW.unitM);
 
 /**
  * Riding behind an arrow, then easing back once it has struck so the axe it
@@ -135,7 +156,7 @@ function galleryCamera(f: Flight | null): HallCamera {
  * down the hall; Antinous' is watched from the gallery.
  */
 export function hallCamera(s: BowState): HallCamera {
-  if (s.phase === "player") return mixCamera(GALLERY, aimCamera(s), easeInOut(clamp01(s.timer / SETTLE_MS)));
+  if (s.phase === "player") return mixCamera(GALLERY, AIM_VIEW, easeInOut(clamp01(s.timer / SETTLE_MS)));
   const f = flightOf(s);
   if (s.phase === "rival" && f) {
     const watch = BOW.flightMs + BOW.resultMs;

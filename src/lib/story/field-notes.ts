@@ -1,6 +1,6 @@
 import { isAdventure, isCave, type GameState } from "../arcade/arcade-runtime.ts";
 import { AVOIDANCE, caveProgress } from "../encounters/cave-runner.ts";
-import { BOW, arrowTime, strikeZ } from "../encounters/mythic.ts";
+import { BOW, arrowTime, draughtAllowance, strikeZ } from "../encounters/mythic.ts";
 import type { TrialId } from "../arcade/arcade.ts";
 
 export const fieldNotes: Record<TrialId, { region: string; bonus: string; lesson: string; keys: string[] }> = {
@@ -69,7 +69,7 @@ export function encounterCue(s: GameState): { title: string; detail: string; val
     const turns = s.practice ? 1 : BOW.turns, value = `You ${s.score} · Antinous ${s.rivalScore}`, fill = (s.shots.length + s.rivalShots.length) / (turns * 2);
     if (s.phase === "player") return {
       title: s.drawing ? (s.draw >= 1 ? "FULL DRAW · LET GO" : "DRAWING THE BOW") : s.blocked ? `AXE ${s.blocked} IS NARROWED` : "THREAD ALL TWELVE AXES",
-      detail: s.drawing ? "Let go to loose. Hold a full draw too long and your arm trembles." : s.wind ? `The draught blows ${s.wind > 0 ? "right" : "left"}, strength ${Math.abs(s.wind)}. Aim a little ${s.wind > 0 ? "left" : "right"} of the line, then hold to draw.` : "Still air. Aim a touch high, then hold to draw.",
+      detail: s.drawing ? "Let go to loose. Hold a full draw too long and your arm trembles." : s.wind ? `The draught blows ${s.wind > 0 ? "right" : "left"}. Point at the holes, ${draughtAllowance(s.wind, s.difficulty).words} to the ${s.wind > 0 ? "left" : "right"}, then hold to draw.` : "Still air. Point at the holes, a touch high, then hold to draw.",
       value, fill,
     };
     // The result waits until the arrow has struck, so the toast never spoils the flight.

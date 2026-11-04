@@ -40,13 +40,11 @@
     "next.config.ts",
     "next-env.d.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "vite.offline.config.ts"
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".tmp",
-    "dist",
-    "dist-offline"
+    "dist"
   ]
 }

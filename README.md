@@ -26,7 +26,7 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate progress. Earlier design packets and presentation artifacts describe previous editions. The Vite edition remains available with `npm.cmd run dev:offline`.
+Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate progress. Earlier design packets and presentation artifacts describe previous editions.
 
 ## Earlier modes and original voyage notes
 
@@ -85,7 +85,7 @@ No PowerShell security policy change is needed. If npm is not recognized, instal
 
 ```text
 app/                 Next.js pages and API routes (thin wrappers around server/)
-server/              Request handlers shared by Next.js and the offline Vite server
+server/              Request handlers behind the Next.js API routes
   lib/               Server-only helpers: accounts, database, model calls, the built-in voice
 src/
   ArcadeApp.tsx      The eight-trial arcade (the default game)
@@ -178,8 +178,8 @@ npm run build
 npm run preview
 ```
 
-Build checks TypeScript and creates the production Next.js app. Preview serves that build on port 3000. Production requires server environment variables from the setup guide; machine-wide local AI is development-only. Use `build:offline` and `preview:offline` for the original Vite edition and its local model endpoint on port 4173.
+Build checks TypeScript and creates the production Next.js app. Preview serves that build on port 3000. Production requires server environment variables from the setup guide; machine-wide local AI is development-only.
 
 Guest saves and earlier-mode progress are scoped to the browser and local address. Signed-in arcade progress follows the account when both deployments use the same database. Different local ports have separate guest saves.
 
-The online edition uses React, TypeScript, Next.js, MongoDB, Better Auth, Tailwind CSS, and Radix UI. The original local edition uses Vite. Original design notes, narrative sources, HCI limitations, and art credits are in [`docs/PROJECT-NOTES.md`](docs/PROJECT-NOTES.md) and [`docs/ART-CREDITS.md`](docs/ART-CREDITS.md).
+The online edition uses React, TypeScript, Next.js, MongoDB, Better Auth, Tailwind CSS, and Radix UI. Original design notes, narrative sources, HCI limitations, and art credits are in [`docs/PROJECT-NOTES.md`](docs/PROJECT-NOTES.md) and [`docs/ART-CREDITS.md`](docs/ART-CREDITS.md).

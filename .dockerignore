@@ -8,6 +8,5 @@ node_modules
 .dev.vars*
 .tmp
 dist
-dist-offline
 docs
 *.log

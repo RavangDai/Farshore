@@ -1,10 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { loadEnv } from 'vite';
 import { POST } from '../../server/arcade.ts';
 import { validPlan } from '../../src/lib/arcade/arcade.ts';
+import { readLocalEnvironment } from '../local-online-env.mjs';
 // Standalone experiment: imports the production adapter, never runs a game UI.
-const env = loadEnv('development', process.cwd(), 'FARSHORE_');
-for (const [key, value] of Object.entries(env)) if (!process.env[key]) process.env[key] = value;
+for (const [key, value] of Object.entries(readLocalEnvironment())) if (key.startsWith('FARSHORE_') && !process.env[key]) process.env[key] = value;
 const modelUrl = process.env.FARSHORE_MODEL_URL;
 if (!modelUrl || !process.env.FARSHORE_MODEL_NAME) throw new Error('Configure the existing local model first.');
 const output = process.argv[2] || '.tmp/phase2-arcade-spike-2026-10-08.json';

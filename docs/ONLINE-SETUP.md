@@ -17,7 +17,7 @@ Open http://localhost:3000, or the address printed by the server. Use `npm.cmd r
 
 Your existing `.env` local model configuration is preserved. Development startup generates stable local authentication and encryption secrets in ignored `.dev.vars` if they are absent. It reads `.env` and `.env.local` into server configuration. Production requires explicitly configured secrets and never generates them.
 
-The original Vite edition runs with `npm.cmd run dev:offline` on port 5173. `npm.cmd run build:offline` writes `dist-offline/`; `npm.cmd run preview:offline` serves it on port 4173. Earlier mystery and advice modes remain available from Settings.
+Earlier mystery and advice modes remain available from Settings.
 
 ## Connect MongoDB later
 

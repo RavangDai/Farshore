@@ -1,0 +1,159 @@
+{
+  "summary": [
+    {
+      "task": "T1",
+      "name": "Open the Cyclops briefing",
+      "nOutcome": 5,
+      "missingOutcome": 0,
+      "yes": 5,
+      "nTime": 5,
+      "medianSeconds": 4,
+      "meanSeconds": 5,
+      "minSeconds": 2,
+      "maxSeconds": 11,
+      "nEase": 5,
+      "meanEase": 4.2,
+      "nErrors": 5,
+      "meanErrors": 0.2,
+      "reportedSuccess": 1
+    },
+    {
+      "task": "T2",
+      "name": "Locate the opponent plan",
+      "nOutcome": 4,
+      "missingOutcome": 1,
+      "yes": 4,
+      "nTime": 4,
+      "medianSeconds": 30,
+      "meanSeconds": 29.75,
+      "minSeconds": 14,
+      "maxSeconds": 45,
+      "nEase": 4,
+      "meanEase": 3.25,
+      "nErrors": 4,
+      "meanErrors": 0.75,
+      "reportedSuccess": 1
+    },
+    {
+      "task": "T3",
+      "name": "Explain a Cyclops decision",
+      "nOutcome": 4,
+      "missingOutcome": 1,
+      "yes": 4,
+      "nTime": 4,
+      "medianSeconds": 21,
+      "meanSeconds": 22.25,
+      "minSeconds": 12,
+      "maxSeconds": 35,
+      "nEase": 5,
+      "meanEase": 2.8,
+      "nErrors": 4,
+      "meanErrors": 0.25,
+      "reportedSuccess": 1
+    },
+    {
+      "task": "T4",
+      "name": "Recover from preparation failure",
+      "nOutcome": 5,
+      "missingOutcome": 0,
+      "yes": 5,
+      "nTime": 5,
+      "medianSeconds": 8,
+      "meanSeconds": 8.2,
+      "minSeconds": 4,
+      "maxSeconds": 14,
+      "nEase": 4,
+      "meanEase": 3.75,
+      "nErrors": 4,
+      "meanErrors": 0.25,
+      "reportedSuccess": 1
+    }
+  ],
+  "stats": {
+    "n": 5,
+    "susMean": 59.5,
+    "susMedian": 57.5,
+    "susSD": 21.894634045811316,
+    "susMin": 30,
+    "susMax": 87.5,
+    "trustMean": 3,
+    "trustMedian": 3,
+    "trustHigh": 1,
+    "recordedOutcomes": 18,
+    "expectedOutcomes": 20,
+    "reportedYes": 18,
+    "gameplayMedian": 40,
+    "wins": 1,
+    "recovered": 5
+  },
+  "issues": [
+    {
+      "id": "B1",
+      "issue": "AI explanations are too dense during fast play",
+      "severity": 3,
+      "participants": [
+        "P1",
+        "P2",
+        "P3",
+        "P5"
+      ],
+      "task": "T3",
+      "evidence": "P1: too much info; P2: small AI text; P3: too many words; P5: slightly wordy.",
+      "change": "Show action, target and one short reason by default. Put algorithm details behind an optional expandable section.",
+      "status": "Implemented in standalone UI prototype; game integration and retest pending",
+      "check": "A new player explains one decision without opening advanced details."
+    },
+    {
+      "id": "B2",
+      "issue": "Predictions feel like guesses or disconnected text",
+      "severity": 2,
+      "participants": [
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "task": "T2, T3",
+      "evidence": "P1: felt like it was guessing; P2: random guess after quick changes; P3: random text, hard to link to the boss.",
+      "change": "Label a prediction as a forecast. Keep target, rationale, forecast percentage and observed result together.",
+      "status": "Implemented in standalone UI prototype; game integration and retest pending",
+      "check": "Players distinguish a forecast from a guaranteed hit and can find the observed result."
+    },
+    {
+      "id": "B3",
+      "issue": "Opponent information is slow to locate",
+      "severity": 2,
+      "participants": [
+        "P2",
+        "P3",
+        "P5"
+      ],
+      "task": "T2",
+      "evidence": "P2 checked hero status first; P3 scanned many UI elements; P5 searched central graphics before the side panel.",
+      "change": "Use a single Opponent plan heading, compact lane highlights and clearer information hierarchy.",
+      "status": "Implemented in standalone UI prototype; game integration and retest pending",
+      "check": "Locate and identify the opponent plan before starting a round."
+    },
+    {
+      "id": "B4",
+      "issue": "One participant hesitated at recovery",
+      "severity": 1,
+      "participants": [
+        "P3"
+      ],
+      "task": "T4",
+      "evidence": "P3 stared at the error before recognizing the recovery action; recovery took 14 seconds.",
+      "change": "Keep one prominent retry action and ensure disabled start text matches the failure state.",
+      "status": "Implemented in standalone UI prototype; game integration and retest pending",
+      "check": "Recover from a forced preparation failure without assistance."
+    }
+  ],
+  "caveats": [
+    "P1 T2 and T3 times and outcomes are missing. They are excluded from the corresponding denominators, not treated as zero or failure.",
+    "P3 T3 outcome is reported as Yes but its notes say prompting was needed. Reported completion is not proof of independent success.",
+    "All five session dates are missing and tested versions are unconfirmed. Difficulty consistency and device equivalence are not established.",
+    "P2 structured gaming frequency is 3-4 times weekly; the raw note says daily. Both are preserved.",
+    "T4 ease was supplied for P2-P5 but not P1. It is supplementary and must not be described as a consistently administered measure.",
+    "P1 protocol and error setup evolved during the session. P1 recovery timing boundaries were not separately confirmed.",
+    "User-supplied records are analyzed as provided. The earlier SIM01-SIM06 examples and unrelated P04 fragment are excluded."
+  ]
+}

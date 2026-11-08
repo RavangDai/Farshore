@@ -4,6 +4,7 @@ import { modelConnection } from "./ai-account";
 import { progressRepository } from "./progress-repository";
 import { runtimeConfig } from "./runtime-config";
 import { canonicalRequest, checkWriteRequest, json, readJson } from "./http";
+import { mockCommentary, mockMode, mockStatus, mockStrategy } from "./mock-ai";
 import type { ModelConnection } from "../turn";
 type Get = (connection?: ModelConnection) => Promise<Response>;
 type Post = (request: Request, connection?: ModelConnection) => Promise<Response>;
@@ -16,6 +17,9 @@ export function modelApi(get: Get, post: Post, limits: { bucket: string; perMinu
       try { const body = await readJson(request, 6000); request = new Request(request.url, { method: "POST", headers: request.headers, body: JSON.stringify(body), signal: request.signal }); }
       catch (error) { return json({ error: error instanceof Error && error.message === "large_body" ? "This request is too large." : "A valid game request is required." }, error instanceof Error && error.message === "large_body" ? 413 : 400); }
     }
+    // Test mode: the mock AI service answers every state without calling a model.
+    const mock = mockMode(request);
+    if (mock) return request.method === "GET" ? mockStatus(mock) : limits.bucket === "commentary" ? mockCommentary(request, mock) : mockStrategy(request, mock);
     const config = runtimeConfig();
     try {
       const player = await verifiedPlayer(request);

@@ -570,6 +570,22 @@ test("the selected action always matches a scored candidate", () => {
   }
 });
 
+test("every decision carries a short summary for the in-play panel, on every difficulty", () => {
+  for (const difficulty of ["easy", "normal", "hard"]) {
+    let s = newCave(difficulty, adaptive, false, 4242);
+    s = run(s, 20000, next => {
+      next.hits = 0;
+      return next;
+    });
+    assert.ok(s.ai.decisions.length > 0, `no decisions were recorded on ${difficulty}`);
+    for (const decision of s.ai.decisions) {
+      assert.ok(decision.summary, `${difficulty} ${decision.id} has no summary`);
+      assert.ok(decision.summary.length <= 70, `summary too long for a glance: "${decision.summary}"`);
+      assert.ok(decision.summary.length < decision.reason.length, "the summary should be shorter than the full reason");
+    }
+  }
+});
+
 test("decision and event buffers stay bounded over a long run", () => {
   let s = newCave("hard", adaptive, false, 5);
   s = run(s, 70000, next => {

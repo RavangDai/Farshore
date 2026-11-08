@@ -4,22 +4,45 @@
 
 **Cinematic Greek Mythology + Illustrated 2.5D Arcade + modern indie polish.** Navy and cobalt seas, amber/bronze torchlight, engraved gold typography, parchment-and-bronze framing. The style is established by the original menus (`src/styles/farshore.css`, `src/styles/farshore-brand.css`, `src/styles/farshore-detail.css`) and extended, not replaced, by the new gameplay stage and AI inspector (`src/styles/farshore-stage.css`).
 
-### Colour tokens (`farshore-stage.css`)
+### Design tokens (`src/styles/tokens.css`)
 
-```
---fs-navy-900 #04080f   --fs-gold        #e9b85c
---fs-navy-800 #071523   --fs-gold-bright #ffe4a3
---fs-navy-700 #0b2033   --fs-bronze      #b18b4e
---fs-navy-600 #102e44   --fs-cyan        #32d4f5
---fs-cream    #f6f0e3   --fs-danger      #f4604f
---fs-ink      #93afc0   --fs-good        #9fe6b4
-```
+Colour, type and spacing are defined once, in `tokens.css`, and every stylesheet reads the variables. The older names in `farshore-stage.css` (`--fs-gold`, `--fs-cyan` and so on) are aliases of these tokens.
 
-Gold/bronze for structure and interactive chrome, cyan exclusively for AI/forecast data (never for gameplay hazards, so a player never confuses "the opponent is thinking" with "you are in danger"), red reserved for actual threat, green for confirmation and successful escapes.
+| Colour | Token | Value | Use |
+| --- | --- | --- | --- |
+| Background | `--fs-color-bg` | `#071523` | Page and stage background |
+| Surface | `--fs-color-surface` | `#0b2033` | Panels and cards |
+| Text | `--fs-color-text` | `#f6f0e3` | Primary text |
+| Muted text | `--fs-color-text-muted` | `#93afc0` | Secondary lines and status text |
+| Accent | `--fs-color-accent` | `#e9b85c` | The one accent: buttons, focus, interactive chrome |
+| AI | `--fs-color-ai` | `#32d4f5` | Only for AI state and AI data |
+| Error | `--fs-color-error` | `#f4604f` | Errors and real threats |
+| Success | `--fs-color-success` | `#9fe6b4` | Confirmation and successful escapes |
+
+Cyan is kept for AI data and never used for gameplay hazards, so a player never confuses "the opponent is thinking" with "you are in danger". Red is reserved for real threat, and green for confirmation and successful escapes. A few extra navy, gold and bronze tints are used for depth and highlights only.
+
+| Text size | Token | Value | Use |
+| --- | --- | --- | --- |
+| XS | `--fs-text-xs` | 12 px | Captions, status lines, labels |
+| S | `--fs-text-sm` | 14 px | Body text and buttons |
+| M | `--fs-text-md` | 16 px | Panel titles, quotes, lead text |
+| L | `--fs-text-lg` | 24 px | Section headings |
+| XL | `--fs-text-xl` | 40-72 px (scales with the window) | Screen titles |
+
+Spacing scale: `--fs-space-1` to `--fs-space-7` = 4, 8, 12, 16, 24, 32 and 48 px.
 
 ### Typography
 
-Press Start 2P (pixel, licensed SIL OFL) for arcade chrome and eyebrow labels; Georgia serif for narrative and headline text, matching the "engraved gold typography" reference. Monospace (`SFMono-Regular`/Consolas) exclusively inside the AI inspector, for algorithm names, candidate scores and timeline codes — a deliberate register shift that reads as "instrumentation" against the serif game chrome around it.
+Four families, each a token:
+
+- **Pixel** (`--fs-font-pixel`): Press Start 2P (SIL OFL), for arcade chrome and eyebrow labels.
+- **Display** (`--fs-font-display`): Georgia serif, for narrative and headline text, matching the "engraved gold typography" reference.
+- **UI** (`--fs-font-ui`): Arial, for small interface details.
+- **Mono** (`--fs-font-mono`): used only inside the AI inspector, for algorithm names, candidate scores and timeline codes. The shift in register reads as "instrumentation" against the serif game chrome around it.
+
+### Migration status
+
+The AI rival panel (all five states) and the shared page colours use only tokens. In the older stylesheets, every value that matched a token was replaced with it (179 font sizes, 244 font-family stacks, 38 colours and 393 spacing values). Values that are not on the scale remain, mostly in in-game HUD labels and minified menu rules. They will be moved onto the scale screen by screen in Phase 4.
 
 ## The immersive gameplay stage (`src/components/play/game-stage.tsx`)
 

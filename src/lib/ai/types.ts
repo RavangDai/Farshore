@@ -67,6 +67,12 @@ export type AIDecision = {
    */
   confidence?: number;
   reason: string;
+  /**
+   * One short clause for the compact in-play panel, e.g. "Your recent moves
+   * point to Right lane". The full `reason` stays available under the panel's
+   * details and in the AI Lab. Controllers without one fall back to `reason`.
+   */
+  summary?: string;
   /** Telegraph length in ms. The target is locked for this whole window. */
   commitMs?: number;
   /**

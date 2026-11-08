@@ -86,5 +86,10 @@ export function caveFeed(s: CaveState): InspectorFeed {
     });
   }
 
-  return { runtime: s.ai, difficulty: s.difficulty, metrics, distribution, headline, elapsed: s.elapsed };
+  // A compact cue for the in-play panel: the lane the player is in now and,
+  // only while a throw is locked, the lane it is aimed at.
+  const aimed = s.cyclops.state === "winding" ? s.cyclops.windLane : -1;
+  const lanes = [0, 1, 2].map(lane => ({ label: laneName(lane), target: lane === aimed, player: lane === s.lane }));
+
+  return { runtime: s.ai, difficulty: s.difficulty, metrics, distribution, headline, lanes, elapsed: s.elapsed };
 }

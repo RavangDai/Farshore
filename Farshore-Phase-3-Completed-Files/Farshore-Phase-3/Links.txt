@@ -1,0 +1,12 @@
+Farshore repository (URL supplied in the earlier project materials):
+https://github.com/RavangDai/Farshore
+Instructor access, current contents and tested-build correspondence still need verification.
+
+Figma view link:
+NOT YET PUBLISHED. Import Figma-import design frames, enable view access, then replace this line with the actual share URL.
+
+Standalone interface prototype:
+Cyclops-UI-Improvements.html in this package. This is a local display prototype, not a deployed game.
+
+Backup demo video:
+NOT YET RECORDED. Add a real recording or accessible recording URL before submission.

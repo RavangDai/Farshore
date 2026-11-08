@@ -1,0 +1,39 @@
+/* FARSHORE design tokens: the one place colour, type and spacing are defined.
+   Every stylesheet reads these variables instead of repeating values.
+   The written version is in docs/UI_DESIGN.md ("Design tokens"). */
+
+:root {
+  /* Colour. One accent (gold) for interactive chrome; cyan is reserved for AI
+     state and AI data, so "the rival is thinking" never reads as danger. */
+  --fs-color-bg: #071523;
+  --fs-color-surface: #0b2033;
+  --fs-color-text: #f6f0e3;
+  --fs-color-text-muted: #93afc0;
+  --fs-color-accent: #e9b85c;
+  --fs-color-ai: #32d4f5;
+  --fs-color-error: #f4604f;
+  --fs-color-success: #9fe6b4;
+
+  /* Type. Serif for story and headings, sans for interface details,
+     the pixel face for arcade labels, monospace inside the AI inspector. */
+  --fs-font-display: Georgia, "Palatino Linotype", serif;
+  --fs-font-ui: Arial, Helvetica, sans-serif;
+  --fs-font-pixel: Pixel, monospace;
+  --fs-font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* Five text sizes. */
+  --fs-text-xs: 12px;  /* captions, status lines, labels */
+  --fs-text-sm: 14px;  /* body and buttons */
+  --fs-text-md: 16px;  /* panel titles, quotes, lead text */
+  --fs-text-lg: 24px;  /* section headings */
+  --fs-text-xl: clamp(40px, 6vw, 72px); /* screen titles */
+
+  /* One spacing scale. */
+  --fs-space-1: 4px;
+  --fs-space-2: 8px;
+  --fs-space-3: 12px;
+  --fs-space-4: 16px;
+  --fs-space-5: 24px;
+  --fs-space-6: 32px;
+  --fs-space-7: 48px;
+}

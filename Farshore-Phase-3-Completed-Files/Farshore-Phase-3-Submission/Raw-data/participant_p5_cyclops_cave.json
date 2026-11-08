@@ -1,0 +1,114 @@
+{
+  "study": "Farshore Cyclops Cave sessions collected through this chat",
+  "participant_id": "5",
+  "pid": "P5",
+  "session_status": "Questionnaire collected; task log complete",
+  "evidence_type": "User-relayed participant responses; not simulated",
+  "date": null,
+  "build": "Local Farshore prototype; version unconfirmed",
+  "consent": true,
+  "recording_permission": true,
+  "warmup": {
+    "often": "2-3 times a week; plays Zelda, Genshin Impact, and Mario Kart",
+    "today": "Observe boss patterns after trying a couple of test runs",
+    "aiTools": "Uses ChatGPT for school/work; familiar with basic AI NPCs",
+    "interpretation_note": "Balanced gamer with practical expectations regarding UI readability."
+  },
+  "tasks": {
+    "T1": {
+      "goal": "Start a new journey and get ready for the first challenge",
+      "outcome": "Yes",
+      "seconds": 4,
+      "errors": 0,
+      "ease": 4,
+      "easeWhy": "Start button stood out clearly against background graphics",
+      "notes": "Navigated start screen smoothly."
+    },
+    "T2": {
+      "goal": "Find what the opponent plans to do and who or what decided that plan",
+      "outcome": "Yes",
+      "seconds": 32,
+      "errors": 0,
+      "ease": 3,
+      "easeWhy": "Panel was easy to read but took a few seconds to spot on the side",
+      "notes": "Located opponent panel after checking central game graphics first."
+    },
+    "T3": {
+      "goal": "Explain one Cyclops decision using the displayed AI information",
+      "outcome": "Yes",
+      "seconds": 24,
+      "errors": 0,
+      "ease": 3,
+      "easeWhy": "Information was clear enough but slightly wordy",
+      "panel_found": true,
+      "noticed_panel_without_prompt": true,
+      "participant_explanation_raw": "it said cyclops throwing rock right because left lane blocked by obstacle",
+      "participant_explanation_summary": "Participant noted that the Cyclops targeted the right lane because an obstacle obstructed the left lane.",
+      "notes": "Understood positional relationship outlined in the AI briefing."
+    },
+    "T4": {
+      "goal": "Return to a ready-to-play state after an AI preparation error without moderator help",
+      "outcome": "Yes",
+      "seconds": 9,
+      "errors": 0,
+      "ease": 4,
+      "error_state_observed": true,
+      "participant_noticed_error": true,
+      "recovered_without_help": true,
+      "action_raw": "saw error message and pressed choose another stragity button",
+      "notes": "Recovered smoothly within 9 seconds."
+    }
+  },
+  "gameplay_attempt": {
+    "encounter": "Cyclops Cave",
+    "seconds": 38,
+    "reported_completed": "No",
+    "game_result": "Lost; player died after taking 3 hit points of rock damage",
+    "health_points_lost": 3,
+    "reported_interface_errors": 0,
+    "ease": 3,
+    "notes": "Made progress past first phase, but was trapped in middle lane by fast rock sequence."
+  },
+  "sus": [
+    3,
+    3,
+    4,
+    2,
+    3,
+    3,
+    4,
+    3,
+    3,
+    3
+  ],
+  "sus_confirmation_raw": "yes accurate",
+  "susScore": 57.5,
+  "trustRating": 3,
+  "trust": {
+    "why": "It helped explain why rocks came from certain sides, but didn't prevent me from making dodge mistakes",
+    "knewGood": "When the predicted lane matched the incoming rock animation",
+    "trouble": "Thought it was a temporary bug in the loading phase",
+    "wantedChange": "Make text bullet points instead of full sentences",
+    "useInstead": "Yes, if it stays easy to read on mobile/smaller screens"
+  },
+  "debrief": {
+    "worked": "Clean visual design and error recovery button",
+    "frustrating": "Too much reading right before action starts",
+    "expected": "Expected a quick visual map showing dangerous zones",
+    "notes": "Recommends bullet points and lane highlight graphics rather than text blocks."
+  },
+  "protocol_notes": [
+    "Cyclops Cave test run conducted per protocol.",
+    "Participant 5 demonstrated moderate understanding and smooth error recovery."
+  ],
+  "raw_response_notes": [
+    "plays zelda and genshin 2-3 times week",
+    "T1 fast 4s ease 4",
+    "T2 32s ease 3",
+    "it said cyclops throwing rock right because left lane blocked by obstacle ease 3",
+    "T4 error recovered in 9s choose another stragity clicked",
+    "died at 38s lost 3hp ease 3",
+    "sus score 57.5",
+    "wants bullet points instead of long text sentences"
+  ]
+}

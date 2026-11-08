@@ -427,6 +427,11 @@ export function decideCave(
       : policy.tracking
         ? `Odysseus is in ${laneName(view.lane)} right now, so the throw tracks that lane. ${clean.length} action-free escape lane${clean.length === 1 ? "" : "s"} stay open.`
         : `Fixed rotation reached step ${(wave % 3) + 1}, which targets ${laneName(lane)}. No player history is consulted on this difficulty.`;
+    const summary = policy.predictive
+      ? `Your recent moves point to the ${laneName(lane)} lane${weakest === lane ? ", where you escape least" : ""}.`
+      : policy.tracking
+        ? `You are in the ${laneName(view.lane)} lane, so the throw follows you there.`
+        : `A fixed pattern picks the ${laneName(lane)} lane; your moves are not read.`;
     const decision = commitDecision(ai, view.at, {
       algorithm: policy.algorithm,
       state: policy.predictive ? "predicting" : "preparing",
@@ -438,6 +443,7 @@ export function decideCave(
       target: `${laneName(lane)} lane`,
       ...(confidence === undefined ? {} : { confidence }),
       reason,
+      summary,
       commitMs: policy.telegraphMs,
       safety,
     });
@@ -467,6 +473,7 @@ export function decideCave(
       selectedAction: "Roar",
       selectedCandidate: "roar",
       reason: `A roar scored highest this cycle. The gap is ${Math.round(view.gap)} m, so Polyphemus presses the chase instead of committing a boulder.${fairnessNote}`,
+      summary: `${Math.round(view.gap)} m behind you, so he presses the chase.`,
       commitMs: 700,
     });
     ai.committed = decision;
@@ -484,6 +491,7 @@ export function decideCave(
       selectedAction: "Sprint to close the gap",
       selectedCandidate: "sprint",
       reason: `At ${Math.round(view.gap)} m Polyphemus is too far back for a throw to matter, so closing distance scored highest.${fairnessNote}`,
+      summary: `${Math.round(view.gap)} m back is too far to throw, so he closes in.`,
       commitMs: 900,
     });
     ai.committed = decision;
@@ -503,6 +511,7 @@ export function decideCave(
       withheldLanes > 0
         ? `${withheldLanes} of 3 lanes were withheld because a throw there would have left Odysseus no action-free escape lane. Polyphemus waits for a fair opening.`
         : "No action outscored holding position. Polyphemus keeps watching.",
+    summary: withheldLanes > 0 ? "No fair throw is open yet, so he waits." : "Nothing beats waiting, so he keeps watching.",
   });
   ai.committed = null;
   ai.commitRemaining = 0;

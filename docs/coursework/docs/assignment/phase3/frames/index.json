@@ -1,0 +1,263 @@
+[
+  {
+    "id": "D01",
+    "title": "Splash",
+    "device": "desktop",
+    "flow": "F1 Start",
+    "file": "frames/D01.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D02",
+    "title": "Title menu",
+    "device": "desktop",
+    "flow": "F1 Start",
+    "file": "frames/D02.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D03",
+    "title": "Prologue",
+    "device": "desktop",
+    "flow": "F1 Start",
+    "file": "frames/D03.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D04",
+    "title": "Trial selection",
+    "device": "desktop",
+    "flow": "F2 Choose a trial",
+    "file": "frames/D04.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D05",
+    "title": "Voyage chart",
+    "device": "desktop",
+    "flow": "F2 Choose a trial",
+    "file": "frames/D05.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D06",
+    "title": "Briefing: the rival is preparing (states 1-2 of 5: initial and loading)",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 loading)",
+    "file": "frames/D06.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D25",
+    "title": "Briefing: slow response while asking again (state 2 of 5: loading)",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 loading)",
+    "file": "frames/D25.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D07",
+    "title": "Briefing: strategy ready (state 3 of 5: success)",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 success)",
+    "file": "frames/D07.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D24",
+    "title": "Briefing: another strategy, with undo (user control)",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 success, regenerate and undo)",
+    "file": "frames/D24.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D08",
+    "title": "Briefing: controls and start",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 success)",
+    "file": "frames/D08.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D09",
+    "title": "Briefing: AI error (state 5 of 5)",
+    "device": "desktop",
+    "flow": "F4 Recover from a failed AI plan (A1 error)",
+    "file": "frames/D09.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D10",
+    "title": "Briefing: no AI rival connected (initial state without a model)",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 unavailable)",
+    "file": "frames/D10.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D22",
+    "title": "Briefing: low-confidence result (state 4 of 5)",
+    "device": "desktop",
+    "flow": "F4 Recover from a failed AI plan (A1 uncertain)",
+    "file": "frames/D22.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D11",
+    "title": "Lotus-Eaters: playing",
+    "device": "desktop",
+    "flow": "F4 Play",
+    "file": "frames/D11.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D12",
+    "title": "Pause",
+    "device": "desktop",
+    "flow": "F4 Play",
+    "file": "frames/D12.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D13",
+    "title": "Cyclops' Cave briefing",
+    "device": "desktop",
+    "flow": "F3 Prepare the rival (A1 success)",
+    "file": "frames/D13.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D14",
+    "title": "Cyclops' Cave: AI Insights",
+    "device": "desktop",
+    "flow": "F5 Understand the rival",
+    "file": "frames/D14.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D23",
+    "title": "Cyclops' Cave: AI Insights before the first decision (state 1 of 5: empty)",
+    "device": "desktop",
+    "flow": "F5 Understand the rival",
+    "file": "frames/D23.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D15",
+    "title": "Cyclops' Cave: AI Lab panel",
+    "device": "desktop",
+    "flow": "F5 Understand the rival",
+    "file": "frames/D15.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D16",
+    "title": "Cyclops' Cave: Immersive",
+    "device": "desktop",
+    "flow": "F4 Play",
+    "file": "frames/D16.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D17",
+    "title": "Result: trial failed",
+    "device": "desktop",
+    "flow": "F4 Play",
+    "file": "frames/D17.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D18",
+    "title": "Settings",
+    "device": "desktop",
+    "flow": "F6 Settings",
+    "file": "frames/D18.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D19",
+    "title": "How to play",
+    "device": "desktop",
+    "flow": "F2 Learn",
+    "file": "frames/D19.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D20",
+    "title": "AI Lab (professor mode)",
+    "device": "desktop",
+    "flow": "F5 Understand the rival",
+    "file": "frames/D20.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "D21",
+    "title": "Sign in",
+    "device": "desktop",
+    "flow": "F7 Account",
+    "file": "frames/D21.svg",
+    "width": 2080,
+    "height": 1036
+  },
+  {
+    "id": "M01",
+    "title": "Title menu (phone)",
+    "device": "phone",
+    "flow": "F1 Start",
+    "file": "frames/M01.svg",
+    "width": 970,
+    "height": 980
+  },
+  {
+    "id": "M02",
+    "title": "Briefing (phone)",
+    "device": "phone",
+    "flow": "F3 Prepare the rival (A1 success)",
+    "file": "frames/M02.svg",
+    "width": 970,
+    "height": 980
+  },
+  {
+    "id": "M03",
+    "title": "Lotus-Eaters (phone)",
+    "device": "phone",
+    "flow": "F4 Play",
+    "file": "frames/M03.svg",
+    "width": 970,
+    "height": 980
+  },
+  {
+    "id": "M04",
+    "title": "Cyclops' Cave with AI Insights (phone)",
+    "device": "phone",
+    "flow": "F5 Understand the rival",
+    "file": "frames/M04.svg",
+    "width": 970,
+    "height": 980
+  }
+]

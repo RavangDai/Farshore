@@ -106,10 +106,10 @@ src/
     speech/          Spoken voices and dictation
     story/           Lore, cast, and the Mediterranean map
     voyage/, mystery/, online/   The earlier modes and online saves
-  styles/            Stylesheets
+  styles/            Stylesheets; tokens.css holds the design tokens
 public/              Art and fonts
 tests/               Node test suites (npm test)
-scripts/             Development and production launchers; coursework/ builds the Phase 2 packages
+scripts/             Development and production launchers; coursework/ builds the Phase 2 and 3 packages
 docs/                Design notes, credits, coursework and screenshots
 colab/               Notebook that serves the model and voice from Google Colab
 ```
@@ -143,6 +143,37 @@ On a CPU-only laptop, a rival strategy takes about 15 seconds (shown with progre
 **Online accounts.** Signed-in players add an OpenAI, Groq or OpenRouter connection under Account.
 
 Optional settings: `FARSHORE_COMMENTARY_MODEL` uses a different (smaller, faster) model for commentary than for strategy. Voices are covered in [Voices and sound](#voices-and-sound). Voice, commentary and volume can be switched off in Settings.
+
+## Mock AI service (testing every AI state)
+
+Every model request from the arcade (rival status, strategy, live commentary) goes through one module, `server/lib/model-api.ts`. It asks the mock service, `server/lib/mock-ai.ts`, first. When a mock mode is set, the mock answers and no model is called. With no mode set, normal play uses the live model.
+
+| Mode | What the player sees |
+| --- | --- |
+| `success` | A strategy after about 1.5 s. Asking again gives a different one. |
+| `slow` | The loading state for about 12 s, with elapsed time, Cancel and (after a first strategy) Keep the previous strategy. Cancel stops the request and waits for the player. |
+| `uncertain` / `uncertain-once` | The low-confidence state: the strategy did not pass the game's checks and was set aside. `-once` recovers on the retry. |
+| `error` / `error-once` | The error state, "The rival is not ready", with "Prepare the rival again". `-once` recovers on the retry. |
+| `offline` | The "No AI rival connected" state with connection steps. |
+
+Set a mode in either of two ways:
+
+- **For one browser window** (local server only): open `http://localhost:3000/api/ai-mock?mode=error-once`. The page lists every mode, and `?mode=off` returns to the live model.
+- **For the whole server**: start it with `FARSHORE_AI_MOCK=slow` (for example `$env:FARSHORE_AI_MOCK="slow"; npm.cmd run dev` in PowerShell).
+
+The mock needs no model, API key or network. `tests/mock-ai.test.mjs` covers it.
+
+**Before/after captures.** The in-play "Opponent plan" panel was reworked after the first usability round: action and target first, one short reason, the forecast labelled as a prediction, the last observed result kept apart, and the algorithm under "How it decided". Add `?ui=baseline` to the URL (for example `http://localhost:3000/?ui=baseline`) to show the panel as it was first tested.
+
+## Design tokens
+
+Colour, type and spacing are defined once in `src/styles/tokens.css`:
+
+- **Colour:** background, surface, text, muted text, one accent (gold), an AI colour (cyan), error and success.
+- **Type:** four font families and five text sizes.
+- **Spacing:** one scale (4, 8, 12, 16, 24, 32 and 48 px).
+
+The other stylesheets read these variables. `docs/UI_DESIGN.md` explains when each one is used.
 
 ## Voices and sound
 

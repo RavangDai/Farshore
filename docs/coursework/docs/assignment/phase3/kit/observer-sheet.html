@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Farshore Observer Sheet</title>
+<style>
+  body { margin: 0; padding: 24px 32px; font: 13px/1.4 Arial, sans-serif; color: #102e40; background: #fff; }
+  h1 { font: 700 19px/1.2 Georgia, serif; margin: 0 0 8px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 12px; }
+  .meta span { border-bottom: 1px solid #102e40; min-width: 110px; display: inline-block; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #9eb9c5; padding: 6px; vertical-align: top; text-align: left; }
+  th { background: #eef3f5; font-size: 12px; }
+  td.task { width: 160px; }
+  td.task small { color: #526875; display: block; }
+  td.blank { height: 96px; }
+  .legend { margin-top: 10px; color: #526875; }
+  @media print { body { padding: 10px 14px; } }
+</style>
+</head>
+<body>
+  <h1>Farshore observer sheet (paper backup for the session logger)</h1>
+  <div class="meta"><div>Participant <span></span></div><div>Date <span></span></div><div>Consent given <span></span></div><div>Age range <span></span></div><div>Games <span></span></div><div>AI chatbots <span></span></div><div>Knows Odyssey <span></span></div><div>Usual input <span></span></div></div>
+  <table>
+    <tr><th>Task</th><th style="width:70px">Outcome<br>S / A / F / T</th><th style="width:70px">Time<br>(m:ss)</th><th style="width:55px">Errors</th><th style="width:55px">Assists</th><th style="width:55px">SEQ<br>1-7</th><th>Observations and quotes</th></tr>
+    <tr><td class="task">T1 Start your journey<small>limit 3:00 · read or skipped prologue?</small></td><td></td><td></td><td></td><td></td><td></td><td class="blank"></td></tr>
+    <tr><td class="task">T2 Know your opponent<small>limit 3:00 · their words for the plan and who chose it:</small></td><td></td><td></td><td></td><td></td><td></td><td class="blank"></td></tr>
+    <tr><td class="task">T3 Read the rival's mind<small>limit 5:00 · noticed Insights unprompted? Y / N · game won / lost</small></td><td></td><td></td><td></td><td></td><td></td><td class="blank"></td></tr>
+    <tr><td class="task">T4 When the AI is away<small>limit 4:00 · their explanation:</small></td><td></td><td></td><td></td><td></td><td></td><td class="blank"></td></tr>
+  </table>
+  <p class="legend">S success without help · A success after an assist · F failed or gave up · T time limit reached. Count an error for each wrong path or wrong answer. Give a hint only after 60 s stuck or two requests.</p>
+  <table style="margin-top:10px"><tr><th>Debrief: most confusing moment / what the AI does, in their words / one change</th></tr><tr><td class="blank" style="height:150px"></td></tr></table>
+</body>
+</html>

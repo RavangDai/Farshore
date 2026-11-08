@@ -74,6 +74,8 @@ export type InspectorFeed = {
   distribution?: { label: string; value: number; highlight?: boolean }[];
   /** Headline for the compact panel, e.g. "Left lane · 1.4s". */
   headline?: string;
+  /** Compact lane cue: where the player is now and the lane a locked attack is aimed at. */
+  lanes?: { label: string; target?: boolean; player?: boolean }[];
   /** Simulation clock in ms, for the timeline. */
   elapsed: number;
 };
@@ -119,8 +121,12 @@ function CandidateTable({ decision }: { decision: AIDecision }) {
   );
 }
 
-/** The compact overlay. Every value comes from the decision record. */
-export function AIInsights({ feed, onExpand }: { feed: InspectorFeed; onExpand: () => void }) {
+/**
+ * The compact overlay as it was during the first round of usability sessions.
+ * Kept so before/after evidence can be captured from one build: add
+ * `?ui=baseline` to the URL.
+ */
+export function AIInsightsBaseline({ feed, onExpand }: { feed: InspectorFeed; onExpand: () => void }) {
   const { runtime } = feed;
   const decision = runtime.decisions[runtime.decisions.length - 1];
   return (
@@ -197,6 +203,96 @@ export function AIInsights({ feed, onExpand }: { feed: InspectorFeed; onExpand: 
     </aside>
   );
 }
+
+const lastResolved = (runtime: AIRuntime) => {
+  for (let i = runtime.decisions.length - 1; i >= 0; i--) if (runtime.decisions[i].outcome) return runtime.decisions[i];
+  return undefined;
+};
+
+/**
+ * The compact overlay. Every value comes from the decision record.
+ *
+ * Ordered for a glance mid-run (usability findings B1-B3): what the opponent
+ * is doing and where, one short reason, the forecast labelled as a forecast,
+ * and the last observed result kept apart from it. The algorithm and the full
+ * reasoning sit behind "How it decided" and in the AI Lab.
+ */
+export function AIInsights({ feed, onExpand }: { feed: InspectorFeed; onExpand: () => void }) {
+  const { runtime } = feed;
+  const latest = runtime.decisions[runtime.decisions.length - 1];
+  // A decision that has already resolved is history, not a plan: it moves to
+  // "Last result" and the headline goes back to watching.
+  const decision = latest && !latest.outcome ? latest : undefined;
+  const resolved = lastResolved(runtime);
+  const short = decision ? (decision.summary ?? decision.reason) : undefined;
+  return (
+    <aside className="ai-insights ai-plan" aria-label="Opponent plan">
+      <header>
+        <span className="ai-insights-agent">
+          <Brain size={14} /> OPPONENT PLAN
+        </span>
+        <span className="ai-insights-difficulty">
+          {runtime.agentName.toUpperCase()} · {DIFFICULTY_LABELS[feed.difficulty]}
+        </span>
+      </header>
+      <div className="ai-plan-now" aria-live="polite">
+        <strong className="ai-plan-action">{decision ? decision.selectedAction : "Watching for an opening"}</strong>
+        {decision && runtime.commitRemaining > 0 && (
+          <span className="ai-countdown">in {(runtime.commitRemaining / 1000).toFixed(1)}s</span>
+        )}
+      </div>
+      {short && <p className="ai-plan-reason">{short}</p>}
+      {feed.lanes && feed.lanes.length > 0 && (
+        <ol className="ai-plan-lanes" aria-label="Lanes">
+          {feed.lanes.map(lane => (
+            <li key={lane.label} data-target={lane.target || undefined} data-player={lane.player || undefined}>
+              <span>{lane.label}</span>
+              <small>{lane.target && lane.player ? "You · aimed here" : lane.target ? "Aimed here" : lane.player ? "You" : " "}</small>
+            </li>
+          ))}
+        </ol>
+      )}
+      {decision?.confidence !== undefined && (
+        <p className="ai-plan-forecast">
+          <b>Forecast {Math.round(decision.confidence * 100)}%</b> chance you are there when it lands. A prediction, not a
+          sure hit.
+        </p>
+      )}
+      {resolved && (
+        <div className="ai-outcome" data-outcome={resolved.outcome}>
+          <span>LAST RESULT · OBSERVED</span>
+          <p>{resolved.outcomeNote || resolved.outcome}</p>
+        </div>
+      )}
+      <details className="ai-plan-details">
+        <summary>How it decided</summary>
+        <dl>
+          <div>
+            <dt>STATE</dt>
+            <dd>{runtime.state.replace(/^./, ch => ch.toUpperCase())}</dd>
+          </div>
+          <div>
+            <dt>ALGORITHM</dt>
+            <dd className="ai-algorithm">{runtime.algorithm}</dd>
+          </div>
+          {decision && decision.confidence === undefined && (
+            <div>
+              <dt>FORECAST</dt>
+              <dd className="ai-muted">none on this difficulty</dd>
+            </div>
+          )}
+        </dl>
+        {decision && decision.summary && <p className="ai-plan-full">{decision.reason}</p>}
+      </details>
+      <button className="ai-expand" onClick={onExpand}>
+        Open AI Lab <ChevronRight size={13} />
+      </button>
+    </aside>
+  );
+}
+
+/** True when the URL asks for the panels as they were first tested (`?ui=baseline`). */
+const baselineUi = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("ui") === "baseline";
 
 /** The expanded presentation panel. */
 export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: () => void }) {
@@ -417,7 +513,12 @@ export function AIInspector({
   onMode: (mode: InspectorMode) => void;
 }) {
   if (!feed || mode === "immersive") return null;
-  if (mode === "insights") return <AIInsights feed={feed} onExpand={() => onMode("lab")} />;
+  if (mode === "insights")
+    return baselineUi() ? (
+      <AIInsightsBaseline feed={feed} onExpand={() => onMode("lab")} />
+    ) : (
+      <AIInsights feed={feed} onExpand={() => onMode("lab")} />
+    );
   return <AILab feed={feed} onCollapse={() => onMode("insights")} />;
 }
 

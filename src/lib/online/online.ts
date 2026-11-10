@@ -35,6 +35,8 @@ export type OnlineGame = {
   initialSave: ArcadeSave; initialPreferences: OnlinePreferences; storageKey: string;
   command: (command: ProgressCommand) => void;
 };
+/** The account and save status, shown by the game as a chip that opens the account dialog. */
+export type AccountChip = { name: string | null; status: string; label: string; open: () => void };
 
 export class ProgressError extends Error {}
 export function applyProgressCommand(record: OnlineRecord, command: ProgressCommand): Omit<OnlineRecord, "revision" | "updatedAt"> {

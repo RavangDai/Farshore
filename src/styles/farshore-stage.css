@@ -1552,7 +1552,7 @@ body.fs-stage-open {
 }
 
 @keyframes fs-ring-pulse {
-  50% { opacity: .35; r: 80; }
+  50% { opacity: .35; r: 64; }
 }
 
 .fs-weather-mist { animation: fs-mist 7s ease-in-out infinite; }

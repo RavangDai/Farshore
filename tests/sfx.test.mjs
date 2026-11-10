@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { env, filtered, impulseResponse, pink, pluck, rng, tone, white } from "../src/lib/audio/dsp.ts";
+import { env, filtered, impulseResponse, pink, rng, tone, white } from "../src/lib/audio/dsp.ts";
 import { sounds, soundNames } from "../src/lib/audio/sounds.ts";
 
 // Rendered at a low rate so the whole library stays fast to test.
@@ -25,19 +25,6 @@ test("a lowpass keeps lows and removes highs", () => {
   assert.ok(rms(filtered(low, "lowpass", 1000, 0.707, SR)) > 0.6);
   assert.ok(rms(filtered(high, "lowpass", 1000, 0.707, SR)) < 0.05);
   assert.ok(rms(filtered(high, "highpass", 1000, 0.707, SR)) > 0.6);
-});
-
-test("a plucked string sounds at its pitch", () => {
-  for (const f of [110, 220, 440]) {
-    const s = pluck(SR, SR, f, { decay: 2, rand: rng(1) }).subarray(SR / 10);
-    let best = 0, lag = 0;
-    for (let l = Math.floor(SR / f / 1.5); l < Math.ceil((SR / f) * 1.5); l++) {
-      let c = 0;
-      for (let i = 0; i + l < s.length; i++) c += s[i] * s[i + l];
-      if (c > best) [best, lag] = [c, l];
-    }
-    assert.ok(Math.abs(SR / lag - f) / f < 0.02, `${f} Hz string measured ${(SR / lag).toFixed(1)} Hz`);
-  }
 });
 
 test("impulse responses decay and differ between channels", () => {

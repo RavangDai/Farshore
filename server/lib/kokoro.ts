@@ -46,29 +46,40 @@ async function loadKokoro(): Promise<SpeechEngine> {
   };
 }
 
-let loader: () => Promise<SpeechEngine> = loadKokoro;
-let engine: Promise<SpeechEngine> | null = null;
-let status: EngineStatus = "idle";
-let failedAt = 0;
-let pending = 0;
-let queue: Promise<unknown> = Promise.resolve();
-const recent = new Map<string, Uint8Array<ArrayBuffer>>();
+type VoiceState = {
+  loader: () => Promise<SpeechEngine>;
+  engine: Promise<SpeechEngine> | null;
+  status: EngineStatus;
+  failedAt: number;
+  pending: number;
+  queue: Promise<unknown>;
+  recent: Map<string, Uint8Array<ArrayBuffer>>;
+};
 
-export const kokoroStatus = () => status;
+// One voice per server process. A development server evaluates this module
+// again every time it compiles a route, so state kept in the module would be
+// forgotten: the model would load again (stalling the server for seconds each
+// time) and the copies already loaded would never be freed. The state lives on
+// globalThis, where every copy of this module finds the same loaded voice.
+const STATE = Symbol.for("farshore.voice");
+const store = globalThis as unknown as Record<symbol, VoiceState | undefined>;
+const state: VoiceState = (store[STATE] ??= { loader: loadKokoro, engine: null, status: "idle", failedAt: 0, pending: 0, queue: Promise.resolve(), recent: new Map() });
+
+export const kokoroStatus = () => state.status;
 
 /** Starts loading the model if it is not loaded, loading, or recently failed. */
 export function warmKokoro() {
-  if (status === "loading" || status === "ready" || (status === "failed" && Date.now() - failedAt < RETRY_MS)) return;
-  status = "loading";
-  const load = loader();
-  engine = load;
+  if (state.status === "loading" || state.status === "ready" || (state.status === "failed" && Date.now() - state.failedAt < RETRY_MS)) return;
+  state.status = "loading";
+  const load = state.loader();
+  state.engine = load;
   load.then(
-    () => { if (engine === load) status = "ready"; },
+    () => { if (state.engine === load) state.status = "ready"; },
     error => {
-      if (engine !== load) return;
-      status = "failed";
-      failedAt = Date.now();
-      engine = null;
+      if (state.engine !== load) return;
+      state.status = "failed";
+      state.failedAt = Date.now();
+      state.engine = null;
       console.warn(`The built-in voice could not load, so the browser's voices will be used: ${error instanceof Error ? error.message : error}`);
     },
   );
@@ -76,37 +87,37 @@ export function warmKokoro() {
 
 /** A WAV of the line. Throws VoiceNotReadyError while the model loads and VoiceBusyError when the queue is full. */
 export async function speakWithKokoro(text: string, voice: string, speed: number) {
-  const key = `${voice}|${speed}|${text}`, hit = recent.get(key);
+  const key = `${voice}|${speed}|${text}`, hit = state.recent.get(key);
   if (hit) return hit;
-  if (status !== "ready" || !engine) {
+  if (state.status !== "ready" || !state.engine) {
     warmKokoro();
-    throw new VoiceNotReadyError(status);
+    throw new VoiceNotReadyError(state.status);
   }
-  if (pending >= MAX_PENDING) throw new VoiceBusyError();
-  const ready = engine;
-  pending++;
-  const job = queue.then(async () => {
+  if (state.pending >= MAX_PENDING) throw new VoiceBusyError();
+  const ready = state.engine;
+  state.pending++;
+  const job = state.queue.then(async () => {
     const e = await ready;
     return encodeWav(prepareSpeech(await e.synthesize(text, voice, speed), e.sampleRate), e.sampleRate);
   });
-  queue = job.catch(() => {});
+  state.queue = job.catch(() => {});
   try {
     const wav = await job;
-    recent.set(key, wav);
-    if (recent.size > CACHED_LINES) recent.delete(recent.keys().next().value!);
+    state.recent.set(key, wav);
+    if (state.recent.size > CACHED_LINES) state.recent.delete(state.recent.keys().next().value!);
     return wav;
   } finally {
-    pending--;
+    state.pending--;
   }
 }
 
 /** Tests swap in a fake engine; null restores Kokoro. Resets all state. */
 export function setKokoroLoader(next: (() => Promise<SpeechEngine>) | null) {
-  loader = next ?? loadKokoro;
-  engine = null;
-  status = "idle";
-  failedAt = 0;
-  pending = 0;
-  queue = Promise.resolve();
-  recent.clear();
+  state.loader = next ?? loadKokoro;
+  state.engine = null;
+  state.status = "idle";
+  state.failedAt = 0;
+  state.pending = 0;
+  state.queue = Promise.resolve();
+  state.recent.clear();
 }

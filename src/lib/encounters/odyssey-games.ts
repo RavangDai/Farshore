@@ -16,7 +16,6 @@ export type AdventureAction = { type: "move"; dx: number; dy: number } | { type:
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const tier = (s: Base) => ["easy", "normal", "hard"].indexOf(s.difficulty);
 const same = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
-function random(s: Base) { s.seed = (Math.imul(s.seed, 1664525) + 1013904223) >>> 0; return s.seed / 4294967296; }
 function end(s: Base, won: boolean, message: string) { s.done = true; s.won = won; s.feedback = message; if (won) s.score += Math.max(0, 3 - s.hits) * 150; }
 function reward(s: Base, points = 100) { s.score += points; s.successes++; s.combo++; s.bestCombo = Math.max(s.combo, s.bestCombo); }
 function damage(s: Base, message: string) { if (s.invulnerable > 0) return false; s.hits++; s.damageTaken++; s.combo = 0; s.invulnerable = 1800; s.feedback = message; if (s.hits >= 3) end(s, false, message); return true; }

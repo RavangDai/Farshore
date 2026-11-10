@@ -74,11 +74,15 @@ export class VoiceBox {
   private generation = 0;
   private poll: ReturnType<typeof setTimeout> | null = null;
   private pollUntil = 0;
+  private asked = 0;
   private disposed = false;
   private fetcher: Fetcher;
+  private pollMs: number;
 
-  constructor(fetcher: Fetcher = (input, init) => fetch(input, init)) {
+  /** pollMs: how soon the server is asked again while its answer may still change. */
+  constructor(fetcher: Fetcher = (input, init) => fetch(input, init), pollMs = 3000) {
     this.fetcher = fetcher;
+    this.pollMs = pollMs;
     if (typeof window === "undefined") return;
     const load = () => { this.browserVoices = window.speechSynthesis?.getVoices() ?? []; };
     load();
@@ -143,18 +147,35 @@ export class VoiceBox {
     void this.check();
   }
 
+  /** Asks the server which voice it has, and asks again while the answer may still change. */
   private async check() {
     if (this.poll) clearTimeout(this.poll);
     this.poll = null;
+    const asked = ++this.asked;
+    // How long to wait before asking again; 0 once the answer is settled.
+    let again = 0;
     try {
       const response = await this.fetcher("/api/voice", { signal: AbortSignal.timeout(5000) });
       const v = (await response.json()) as { neural?: boolean; engine?: string; ready?: boolean };
-      if (this.disposed) return;
-      this.setStatus(!v?.neural ? (v?.engine === "browser" ? "browser" : "unavailable") : v.ready ? "neural" : "loading");
+      if (this.disposed || asked !== this.asked) return;
+      if (v?.neural) {
+        this.setStatus(v.ready ? "neural" : "loading");
+        again = v.ready ? 0 : this.pollMs;
+      } else if (v?.engine === "browser") this.setStatus("browser");
+      else {
+        // The server tries a model that failed to load again after a minute.
+        this.setStatus("unavailable");
+        again = this.pollMs * 5;
+      }
     } catch {
-      if (!this.disposed) this.setStatus("unavailable");
+      if (this.disposed || asked !== this.asked) return;
+      // No answer is not a "no": the server stalls for a few seconds while it
+      // loads the voice model. The browser reads the lines until it answers.
+      again = this.pollMs;
     }
-    if (this.status === "loading" && !this.disposed && performance.now() < this.pollUntil) this.poll = setTimeout(() => void this.check(), 3000);
+    if (!again) return;
+    if (performance.now() < this.pollUntil) this.poll = setTimeout(() => void this.check(), again);
+    else if (this.status === "checking") this.setStatus("unavailable");
   }
 
   private async next() {

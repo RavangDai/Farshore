@@ -1,18 +1,9 @@
-import { Compass, Sparkles, AlertTriangle, Star, Trophy } from "lucide-react";
+import { Compass, Sparkles, Star, Trophy } from "lucide-react";
 import type { GameState } from "../../lib/arcade/arcade-runtime";
 import { gameSummary, isAdventure, isCave } from "../../lib/arcade/arcade-runtime";
 import { medalFor } from "../../lib/arcade/arcade";
-import { encounterCue, fieldNotes } from "../../lib/story/field-notes";
+import { fieldNotes } from "../../lib/story/field-notes";
 import { TrialArtwork } from "../farshore-art";
-
-export function EncounterIntel({ state }: { state: GameState }) {
-  const cue = encounterCue(state);
-  return <div className={`fs-tactical-cue${cue.danger ? " danger" : ""}`}>
-    <span className="fs-cue-seal" aria-hidden="true">{cue.danger ? <AlertTriangle size={20}/> : <Compass size={21}/>}</span>
-    <div><strong>{cue.title}</strong><span>{cue.detail}</span></div>
-    <div className="fs-cue-counter"><span><Sparkles size={12}/>{cue.value}</span><i><b style={{ transform: `scaleX(${Math.max(0, Math.min(1, cue.fill))})` }}/></i></div>
-  </div>;
-}
 
 export function FieldNotes({ id }: { id: GameState["id"] }) {
   const note = fieldNotes[id];

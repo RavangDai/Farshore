@@ -164,8 +164,6 @@ function Island({ id, open, cleared }: { id: TrialId; open: boolean; cleared: bo
 }
 
 export function VoyageChart({ save, selected, difficulty, still, onSelect, onOpen, onDifficulty, onBegin }: Props) {
-  const index = trials.findIndex(t => t.id === selected);
-  const trial = trials[index];
   const record = save.records[selected];
   const canPlay = unlocked(save, selected);
   const best = record.bests[difficulty];

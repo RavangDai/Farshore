@@ -96,28 +96,6 @@ export function roundedRect(
   c.closePath();
 }
 
-/** Jagged rock silhouette, deterministic for a given seed. */
-export function rockRidge(
-  c: CanvasRenderingContext2D,
-  y: number,
-  height: number,
-  seed: number,
-  fill: string,
-  offset: number,
-  step = 150,
-) {
-  c.fillStyle = fill;
-  c.beginPath();
-  c.moveTo(-step, VIEW_H);
-  for (let x = -step; x <= VIEW_W + step; x += step) {
-    const n = Math.sin((x + offset) * 0.0041 + seed) * 0.5 + Math.sin((x + offset) * 0.013 + seed * 2.3) * 0.5;
-    c.lineTo(x, y - n * height);
-  }
-  c.lineTo(VIEW_W + step, VIEW_H);
-  c.closePath();
-  c.fill();
-}
-
 export const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export const clamp01 = (n: number) => clamp(n, 0, 1);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;

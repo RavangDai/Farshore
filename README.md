@@ -28,7 +28,7 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate progress. Earlier design packets and presentation artifacts describe previous editions.
+Keep the Node server running. Earlier modes remain in **Settings > Earlier Farshore modes**: [Circe's mystery](http://localhost:3000/?mystery) and the [original advice voyage](http://localhost:3000/?voyage), each with separate progress.
 
 ## Earlier modes and original voyage notes
 
@@ -111,8 +111,8 @@ src/
   styles/            Stylesheets; tokens.css holds the design tokens
 public/              Art and fonts
 tests/               Node test suites (npm test)
-scripts/             Development and production launchers; coursework/ builds the Phase 2 and 3 packages
-docs/                Design notes, credits, coursework and screenshots
+scripts/             Development and production launchers, the model evaluation and the map builder
+docs/                Design notes, credits, model evaluation results and screenshots
 colab/               Notebook that serves the model and voice from Google Colab
 ```
 
@@ -210,7 +210,7 @@ FARSHORE_MODEL_NAME=llama3.2:3b
 FARSHORE_API_KEY=
 ```
 
-Local Llama 3.2 3B was connected and verified through the API and browser on September 23, 2026. See the [setup guide](<docs/coursework/docs/AI-SETUP.md>) and [verification record](<docs/coursework/docs/AI-VERIFICATION.md>) for timings and remaining decision-consistency limitations. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
+Local Llama 3.2 3B was connected and verified through the API and browser on September 23, 2026. Browser dictation and spoken replies depend on browser support. Voice input may use its online speech service; typing always works.
 
 Keep Ollama running while you play. Settings checks the model service's `/models` endpoint and confirms that the configured model is listed. If Ollama was closed, open it and select **Check connection again**. A successful status check confirms availability; a real turn still needs to produce a valid reply. The app allows up to 90 seconds for a reply, including loading the model. A failed turn keeps your counsel and offers **Try AI again** or **Send in Story mode**. Story mode is used only when you choose it.
 

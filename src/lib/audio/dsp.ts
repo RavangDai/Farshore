@@ -143,37 +143,6 @@ export function tone(n: number, sampleRate: number, freq: Curve, shape: Shape = 
   return out;
 }
 
-/**
- * Karplus-Strong plucked string: one period of filtered noise circulating
- * through a damped delay line, tuned with an allpass for the fractional sample.
- * `position` is where along the string it is plucked (0 to 0.5); plucking
- * near the end removes the harmonics that have a node there, as on a lyre.
- */
-export function pluck(n: number, sampleRate: number, freq: number, { decay = 2, brightness = 0.7, position = 0, rand }: { decay?: number; brightness?: number; position?: number; rand: Rand }) {
-  const out = new Float32Array(n);
-  const loop = sampleRate / freq - 0.5;
-  const N = Math.max(2, Math.floor(loop)), d = loop - N, c = (1 - d) / (1 + d);
-  const g = Math.pow(0.001, 1 / (decay * freq));
-  const excitation = new Float32Array(N), comb = Math.round(position * N);
-  let lp = 0;
-  for (let i = 0; i < N; i++) {
-    lp += brightness * (rand() * 2 - 1 - lp);
-    excitation[i] = lp;
-  }
-  let mean = 0;
-  for (let i = 0; i < N; i++) mean += (excitation[i] - (comb && i >= comb ? excitation[i - comb] : 0)) / N;
-  for (let i = 0; i < N && i < n; i++) out[i] = excitation[i] - (comb && i >= comb ? excitation[i - comb] : 0) - mean;
-  let apIn = 0, apOut = 0;
-  for (let i = N; i < n; i++) {
-    const averaged = g * 0.5 * (out[i - N] + (i - N - 1 >= 0 ? out[i - N - 1] : 0));
-    const y = c * averaged + apIn - c * apOut;
-    apIn = averaged;
-    apOut = y;
-    out[i] = y;
-  }
-  return out;
-}
-
 /** A struck resonant body (bronze, stone, wood, glass): decaying partials with random phase. */
 export function modal(n: number, sampleRate: number, modes: { freq: number; decay: number; gain: number }[], rand: Rand) {
   const out = new Float32Array(n), onset = Math.max(1, Math.round(sampleRate * 0.0006));

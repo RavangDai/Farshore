@@ -141,7 +141,6 @@ export class CaveScene {
   private pickupStamp = new EventStamp();
   private footDistance = 0;
   private lastDistance = 0;
-  private torchSeed = 0;
 
   reset() {
     this.particles.clear();
@@ -640,7 +639,6 @@ export class CaveScene {
       c.ellipse(p.x, y - 10 * scale, 7 * scale, 20 * scale * flicker, 0, 0, Math.PI * 2);
       c.fill();
     }
-    this.torchSeed = torchPhase;
   }
 
   private drawFloor(c: CanvasRenderingContext2D, tint: ZoneTint, s: CaveState, now: number) {

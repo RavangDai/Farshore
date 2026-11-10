@@ -6,8 +6,6 @@ October 8, 2026: the default game now follows the five-stop mythic arcade concep
 
 Solo and local adaptive AI start immediately. Optional model planning supports all five opponents, with explicit loading, cancellation, reviewed strategies, failures, and a local-start action. Circe's own board and Antinous' own shots are visible; the other rivals make observable searches, melodies, and attacks. Browser saves migrate to schema 2 while retaining old clears and adding the two new pending shores.
 
-The [current design record](<coursework/docs/arcade/README.md>) includes a class demonstration flow. [Current verification](<coursework/docs/arcade/trials-verification.md>) records gameplay, model integration, and browser checks. The earlier [three-trial record](<coursework/docs/arcade/three-trial-record.md>) and [original verification](<coursework/docs/arcade/verification.md>) are historical. The Phase 2 package still describes the original advice voyage. No research evidence or instructor approval is inferred from this implementation.
-
 ## Earlier implementation record
 
 The historical notes below describe the mystery and original voyage implementations.
@@ -24,7 +22,7 @@ The case is fully authored and playable without AI. `server/mystery.ts` optional
 
 Separate storage preserves the original voyage at `?voyage`. Mystery saves use `farshore-mystery-circe-v1`; drafts use `farshore-mystery-drafts-v1`. Failed or cancelled model requests retain the draft and cannot grant progress. AI requests show elapsed wait, cancellation, and retry. Suggested questions remain available during a model wait.
 
-The [case design record](<coursework/docs/MYSTERY-CASE.md>) documents the truth, dependency graph, star rules, checks, and remaining evaluation. Dedicated in-game dictation, additional cases, and Challenge mode remain proposed. The existing Phase 2 package still describes the original voyage; newcomer evaluation should precede its redesign.
+Dedicated in-game dictation, additional cases, and Challenge mode remain proposed.
 
 ## Original voyage
 
@@ -63,19 +61,13 @@ For the original local Llama plan, install Ollama from its official source, pull
 Ollama API reference: https://docs.ollama.com/api/openai-compatibility
 Structured outputs: https://docs.ollama.com/capabilities/structured-outputs
 
-Settings enables AI dialogue after checking that the model service responds and lists the configured model. A model error keeps the advice and offers retry or an explicit Story mode submission. The app does not silently substitute scripted responses for an AI request. The model deadline is 90 seconds to allow for cold loading. Local Llama 3.2 3B was verified on September 23, 2026 with real API and browser turns. The adapter requests strict JSON-schema output. See the [verification record](<coursework/docs/AI-VERIFICATION.md>) for measured timings and an unresolved dialogue/decision inconsistency. The under-one-second and total laptop memory claims remain unverified.
+Settings enables AI dialogue after checking that the model service responds and lists the configured model. A model error keeps the advice and offers retry or an explicit Story mode submission. The app does not silently substitute scripted responses for an AI request. The model deadline is 90 seconds to allow for cold loading. Local Llama 3.2 3B was verified on September 23, 2026 with real API and browser turns. The adapter requests strict JSON-schema output. The under-one-second and total laptop memory claims remain unverified.
 
 ## Simplifications from the slides
 
 One dialogue model replaces separate text semantics and personality models. Browser speech recognition replaces faster-whisper for this first version, and browser speech synthesis replaces Piper. Acoustic emotion analysis is deferred. The app uses the words in the reviewed transcript, not a claim about the speaker's emotional state. Browser dictation can require internet access and may send audio to the browser's speech provider. Typing remains available if voice support or microphone access fails.
 
 The fifteen scenes follow the chronological journey, with earlier-homecoming branches at Aeolus’s bag and Helios’s cattle. The branch changes the remaining route so surviving companions are not inexplicably replaced by a solitary shipwreck. Scenes and consequences remain authored. The model receives the canonical source context and the game adaptation for its current encounter.
-
-## HCI requirements to finish with real evidence
-
-The UI provides clear task feedback, decision explanations, transcript review before submission, text alternatives to voice, keyboard access, readable contrast, reduced-motion support, and responsive layouts. Conduct the six interviews and develop the three detailed personas required by the assignment. Do not present the slide's planned interviews as completed research.
-
-Test whether participants can complete a turn without help, understand why Odysseus refused, identify which mode they are using, and recover from a failed voice/model request. Record real results. Compare at least five pretrained models and justify the selected one or two using measured latency, input/output needs, limits, cost, and user needs. Confirm with the instructor whether reducing the originally proposed five-model stack is acceptable.
 
 ## Checks
 

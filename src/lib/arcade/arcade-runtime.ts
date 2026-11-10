@@ -7,7 +7,6 @@ import {
   caveChoice,
   tickCave,
   caveSummary,
-  caveStatus,
   type CaveInput,
   type CaveState,
 } from "../encounters/cave-runner.ts";
@@ -80,10 +79,6 @@ export const aiRuntimeOf = (s: GameState): AIRuntime | null => (isCave(s) || isB
 export function pendingMenu(s: GameState): DecisionMenu | null {
   const pending = isBow(s) || isSong(s) || isCave(s) ? s.decision : null;
   return pending && !pending.choice && !pending.failed ? pending.menu : null;
-}
-
-export function gameStatus(s: GameState): string | null {
-  return isCave(s) ? caveStatus(s) : null;
 }
 
 export function demonstrate(s: GameState): GameState {

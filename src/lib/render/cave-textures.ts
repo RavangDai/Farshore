@@ -98,7 +98,6 @@ function fbm(w: number, h: number, rand: Random, octaves = [4, 8, 16, 32]) {
 type Tone = { hue: number; sat: number; light: number; lightJitter: number; cracks: number };
 
 const SANDSTONE: Tone = { hue: 38, sat: 44, light: 60, lightJitter: 14, cracks: 0.38 };
-const WALLSTONE: Tone = { hue: 36, sat: 38, light: 50, lightJitter: 12, cracks: 0.3 };
 
 function crackLine(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rand: Random) {
   const steps = 3 + Math.floor(rand() * 4);

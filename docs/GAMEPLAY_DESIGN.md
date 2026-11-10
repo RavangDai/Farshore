@@ -20,7 +20,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 **Controls**: WASD / arrows, one tile per press (170ms move cooldown).
 
-**AI**: guardians patrol waypoints and, from Medium up, pursue with A* once they detect you. The model's plan shapes the second guardian. Under *pincer* it circles round to cut you off from the far side; under *undertow* it takes the junction ahead, or the path home while you carry a sailor. It may hold one spot for at most four steps before it patrols again. The separate controller in `src/lib/ai/lotus.ts` is not wired in.
+**AI**: guardians patrol waypoints and, from Medium up, pursue with A* once they detect you. The model's plan shapes the second guardian. Under *pincer* it circles round to cut you off from the far side; under *undertow* it takes the junction ahead, or the path home while you carry a sailor. It may hold one spot for at most four steps before it patrols again.
 
 **Win/lose**: win by delivering the required number of sailors before the duration elapses; a caught player (guardian collision without moly active) drops any carried sailor and returns to the ship, costing a life — three hits ends the attempt.
 
@@ -63,7 +63,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 **Controls**: Space / Up / W to lift; gravity pulls the ship down otherwise.
 
-**AI**: fixed wind (Easy), a time-varying wind field (Medium) and adaptive counter-gusts (Hard). The model's plan chooses the pressure: *pincer* swings the gate openings higher and lower, while *undertow* brings counter-gusts that answer your lift rhythm from Medium up. The separate controller in `src/lib/ai/aeolus.ts` is not wired in.
+**AI**: fixed wind (Easy), a time-varying wind field (Medium) and adaptive counter-gusts (Hard). The model's plan chooses the pressure: *pincer* swings the gate openings higher and lower, while *undertow* brings counter-gusts that answer your lift rhythm from Medium up.
 
 **Win/lose**: colliding with a gate's edge costs a life; three hits ends the attempt. Collecting a blessing while passing a gate untouched earns a perfect-passage bonus.
 
@@ -117,7 +117,7 @@ Eight encounters, each a distinct arcade genre, connected by a voyage from Troy 
 
 **Controls**: WASD or arrows (forward/back/strafe), Space to hop forward.
 
-**AI**: telegraphed lightning that is only thrown when a safe alternate hop is verified. The model's plan chooses the storm: *pincer* (storm watch) strikes more often at the timber you stand on; *undertow* (landing prediction) strikes where the current will carry you, from Medium up. The separate controller in `src/lib/ai/calypso.ts` is not wired in.
+**AI**: telegraphed lightning that is only thrown when a safe alternate hop is verified. The model's plan chooses the storm: *pincer* (storm watch) strikes more often at the timber you stand on; *undertow* (landing prediction) strikes where the current will carry you, from Medium up.
 
 **Win/lose**: falling into the sea (missing a timber) costs a life and returns the player to shore; a lightning strike on the player's timber costs a life. Three driftwood pieces, gathered one per crossing, repair one life at a safe shore.
 
@@ -152,4 +152,4 @@ Phase 2 (the palace battle against the suitors) is not implemented. Phase 1 is a
 
 ## Honest status summary
 
-All eight encounters are playable, with real win and lose conditions, real scoring, and a model-planned rival whose plan changes play. In three of them (Cyclops' Cave, Sirens' Passage and the Palace of Ithaca) the model also decides live from game-checked menus, and the rival gives a debrief after the round. The controllers written for Lotus, Aeolus, Calypso and Circe are not wired in; those encounters run their engines' own logic, shaped by the plan. See `AI_ARCHITECTURE.md`.
+All eight encounters are playable, with real win and lose conditions, real scoring, and a model-planned rival whose plan changes play. In three of them (Cyclops' Cave, Sirens' Passage and the Palace of Ithaca) the model also decides live from game-checked menus, and the rival gives a debrief after the round. The other five encounters run their engines' own logic, shaped by the plan. See `AI_ARCHITECTURE.md`.

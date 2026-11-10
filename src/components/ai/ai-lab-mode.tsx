@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Brain, FlaskConical, GitCompare, Play, Trash2 } from "lucide-react";
-import { difficultyNames, trials, type Difficulty, type TrialId } from "../../lib/arcade/arcade";
+import { difficultyNames, trials, type Difficulty } from "../../lib/arcade/arcade";
 import { TrialArtwork } from "../farshore-art";
 import { TrialGlyph } from "../menu/odyssey-map";
 import { DIFFICULTIES, labRunFrom, type LabRun, type LabSettings } from "../../lib/ai/lab";

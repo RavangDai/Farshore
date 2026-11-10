@@ -575,7 +575,6 @@ export function tickMythic(state: MythicState, delta: number): MythicState {
 export function mythicSummary(s: MythicState): AttemptSummary {
   return { won: s.done && s.won, source: s.plan.source, hits: clamp(s.hits, 0, 100), successes: clamp(s.successes, 0, 100), early: 0, late: 0, misses: clamp(s.misses, 0, 100), laneMs: [0, 0, 0], score: Math.round(s.score), timeMs: Math.round(s.elapsed), difficulty: s.difficulty, ...(s.id === "sirens" ? { laneMisses: [...s.laneMisses] as [number, number, number, number] } : {}) };
 }
-export function scoreLabel(s: MythicState) { return s.id === "bow" ? "axes" : s.id === "circe" ? "brew points" : "points"; }
 export function statusLabel(s: MythicState) {
   if (s.id === "cyclops") return `Turn ${s.turn}/${s.practice ? 4 : [32, 26, 22][tierOf(s.difficulty)]} · ${3 - s.hits} lives · ${s.phase === "warning" ? "Evade once" : "Your move"}`;
   if (s.id === "circe") return `${Math.ceil(((s.practice ? 25000 : 120000) - s.elapsed) / 1000)}s · Chain record ${s.chains} · Curses banked ${s.bank}`;

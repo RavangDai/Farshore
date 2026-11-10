@@ -222,6 +222,5 @@ The Colab notebook (`colab/farshore_model_server.ipynb`) runs two models: a **pl
 
 ## Not built, or not wired
 
-- The explainable controllers written for Lotus, Aeolus, Calypso and Circe (`src/lib/ai/{lotus,aeolus,calypso,circe}.ts`) are not wired in. Those encounters run their engines' own logic, shaped by the model's briefing plan.
-- Scylla has no separate controller.
-- The palace battle that would follow Ithaca's archery contest (`ithaca.ts`'s "palace" stage) is not built.
+- Lotus, Aeolus, Calypso, Circe and Scylla have no separate explainable controller. Those encounters run their engines' own logic, shaped by the model's briefing plan.
+- The palace battle that would follow Ithaca's archery contest is not built.

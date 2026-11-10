@@ -1,6 +1,0 @@
-Farshore - CMPS 4200 Phase 3 submission links
-
-Repository (README and mock AI service):
-https://github.com/RavangDai/Farshore
-
-Screen designs: submitted as a separate zip of image files.

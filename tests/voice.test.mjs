@@ -133,6 +133,21 @@ test("a failed engine reports failed, the game uses browser voices, and the rout
   });
 });
 
+test("the loaded voice survives the module being evaluated again, as a dev server does on every recompile", async () => {
+  await withVoice({}, async () => {
+    let loads = 0;
+    setKokoroLoader(async () => { loads++; return fakeEngine()(); });
+    await voiceGET();
+    await tick();
+    assert.equal(kokoroStatus(), "ready");
+    const again = await import("../server/lib/kokoro.ts?evaluated-again");
+    assert.equal(again.kokoroStatus(), "ready", "a second copy of the module sees the loaded voice");
+    const wav = await again.speakWithKokoro("Sing, Muse.", "bm_george", 0.95);
+    assert.equal(String.fromCharCode(...wav.slice(0, 4)), "RIFF");
+    assert.equal(loads, 1, "the model was loaded once");
+  });
+});
+
 test("the queue refuses a fifth line while four are pending", async () => {
   await withVoice({}, async () => {
     let release;
@@ -304,6 +319,42 @@ test("a natural line is fetched a sentence at a time and played through the char
   const context = FakeContext.instances.at(-1);
   assert.equal(context.sources.length, 2, "one source per sentence");
   assert.equal(context.sources[0].playbackRate.value, voices.cyclops.fx.pitch);
+});
+
+test("a status check that gets no answer is asked again instead of giving up on the natural voice", async (t) => {
+  withBrowser(t);
+  let checks = 0;
+  const seen = [];
+  const box = new VoiceBox(async (url, init) => {
+    assert.equal(init?.method, undefined, "only status checks are expected");
+    // The server is busy loading the voice model and the first check times out.
+    if (++checks === 1) throw new DOMException("The operation timed out.", "TimeoutError");
+    return Response.json({ neural: true, engine: "builtin", ready: true });
+  }, 5);
+  t.after(() => box.dispose());
+  box.onStatus(s => seen.push(s));
+  await until(() => box.voiceStatus === "neural");
+  assert.ok(checks >= 2, "the check was repeated");
+  assert.ok(!seen.includes("unavailable"), `statuses were ${seen.join(", ")}`);
+});
+
+test("a voice that failed to load is asked about again, because the server retries it", async (t) => {
+  withBrowser(t);
+  let checks = 0;
+  const box = new VoiceBox(async () => ++checks < 3 ? Response.json({ neural: false, engine: "builtin", ready: false }) : Response.json({ neural: true, engine: "builtin", ready: true }), 2);
+  t.after(() => box.dispose());
+  await until(() => box.voiceStatus === "unavailable");
+  await until(() => box.voiceStatus === "neural");
+});
+
+test("a server that leaves speech to the browser is not asked again", async (t) => {
+  withBrowser(t);
+  let checks = 0;
+  const box = new VoiceBox(async () => { checks++; return Response.json({ neural: false, engine: "browser", ready: false }); }, 2);
+  t.after(() => box.dispose());
+  await until(() => box.voiceStatus === "browser");
+  await new Promise(resolve => setTimeout(resolve, 40));
+  assert.equal(checks, 1);
 });
 
 test("while the natural voice downloads, lines are read by the browser at once", async (t) => {

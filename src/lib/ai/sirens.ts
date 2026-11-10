@@ -49,7 +49,6 @@ import {
   observeChoice,
   observeReaction,
   observeResolution,
-  weaknessOf,
   weakestOption,
   type PlayerModel,
 } from "./player-model.ts";
@@ -996,19 +995,6 @@ export function commitSirens(
     decisionId: decision.id,
   };
   return chosen.kind === "repeat" ? { kind: "repeat", ...payload } : { kind: "sing", ...payload };
-}
-
-/** One full cycle with the controller's own pick: evaluate, then commit the winner. */
-export function decideSirens(
-  ai: AIRuntime,
-  model: PlayerModel,
-  view: SirensPerception,
-  difficulty: Difficulty,
-  adaptive: boolean,
-  tick: number,
-  roll: () => number,
-): SirensAction {
-  return commitSirens(ai, model, evaluateSirens(ai, model, view, difficulty, adaptive, tick, roll), view);
 }
 
 /** Write a score into a proposal already pushed, keyed by its candidate id. */

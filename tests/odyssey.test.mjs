@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { trials, newArcade, standardPlan, adaptivePlan, finishAttempt, readArcade, unlocked, medalFor, totalScore } from '../src/lib/arcade/arcade.ts';
+import { trials, newArcade, standardPlan, adaptivePlan, finishAttempt, readArcade, unlocked, medalFor } from '../src/lib/arcade/arcade.ts';
 import { createGame, tickGame, gameAction, gameSummary, isAdventure, demonstrate } from '../src/lib/arcade/arcade-runtime.ts';
 import { mazePath, LOTUS_SHIP, walkable, onTimber, newAdventure, tickAdventure, adventureAction, adventureSummary } from '../src/lib/encounters/odyssey-games.ts';
 
@@ -37,7 +37,6 @@ test('every shore is open from the start of a voyage, and progress keeps medals 
     assert.equal(replay.records[id].bests.normal.score, 1200);
     assert.equal(replay.records[id].bests.normal.medal, 'gold');
   }
-  assert.equal(totalScore(save), 9600);
   assert.equal(medalFor({ hits: 1, misses: 1 }), 'silver');
 });
 test('every lotus sailor and moly pickup has a route to the ship', () => {

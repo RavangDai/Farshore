@@ -122,7 +122,6 @@ export function assistTrial(save: ArcadeSave, id: TrialId): ArcadeSave {
   return { ...save, records: { ...save.records, [id]: { ...save.records[id], cleared: "assisted" } } };
 }
 export const clearedCount = (save: ArcadeSave) => trials.filter(t => save.records[t.id].cleared !== "pending").length;
-export const totalScore = (save: ArcadeSave) => Object.values(save.records).reduce((sum, record) => sum + Math.max(0, ...Object.values(record.bests).map(best => best?.score ?? 0)), 0);
 export function challengeObjective(id: TrialId, difficulty: Difficulty) {
   const tier = ["easy", "normal", "hard"].indexOf(difficulty);
   return id === "scylla" ? `Deflect the heads and resist the pull for ${[60, 75, 90][tier]} seconds.` : trialFor(id).objective;

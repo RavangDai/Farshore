@@ -6,7 +6,7 @@
 // rest of the engine uses.
 
 import type { Difficulty, TrialId } from "../arcade/arcade.ts";
-import { averageInterval, attackSuccessRate, predictionAccuracy, type AIRuntime } from "./types.ts";
+import { averageInterval, attackSuccessRate, modelAgreement, predictionAccuracy, type AIRuntime } from "./types.ts";
 
 /**
  * One finished AI Lab run, kept for side-by-side comparison.
@@ -29,6 +29,11 @@ export type LabRun = {
   attacks: number;
   nodesExplored: number;
   coordinationEvents: number;
+  /** Menu decisions a model made, and the share that matched the game's own top option. Null when none were made. */
+  modelPicks: number;
+  agreement: number | null;
+  /** Menu decisions the game had to make because the model did not answer usably. */
+  gamePicks: number;
   score: number;
   elapsedMs: number;
   won: boolean;
@@ -59,6 +64,9 @@ export function labRunFrom(state: LabFinishedState, runtime: AIRuntime, seed: nu
     attacks: runtime.stats.attacks,
     nodesExplored: runtime.stats.nodesExplored,
     coordinationEvents: runtime.stats.coordinationEvents,
+    modelPicks: runtime.stats.modelPicks ?? 0,
+    agreement: runtime.stats.modelPicks ? modelAgreement(runtime) : null,
+    gamePicks: runtime.stats.gamePicks ?? 0,
     score: Math.round(state.score),
     elapsedMs: Math.round(state.elapsed),
     won: state.done && state.won,

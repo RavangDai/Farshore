@@ -70,16 +70,28 @@ test("Sirens listen/reply phases prevent early input; five correct melodies win"
     assert.equal(s.won, true); assert.equal(s.successes, 5); assert.equal(s.misses, 0);
   }
 });
-test("Sirens remember wrong lanes, target them next and lose to full temptation", () => {
+test("Sirens remember wrong lanes, weave them into later melodies and lose to full temptation", () => {
   let s = newMythic("sirens", "normal", adaptivePlan("sirens")); s = advance(s, 3000);
-  const expected = s.notes.filter(n => !n.rest);
+  const expected = s.notes.filter(n => !n.rest), weak = expected[0].lane;
   expected.forEach((n, i) => { s = mythicAction(s, { type: "note", lane: i === 0 ? (n.lane + 1) % 4 : n.lane }); });
-  assert.equal(s.laneMisses[expected[0].lane], 1); assert.equal(s.temptation, 20);
-  s = advance(s, 1800); assert.equal(s.notes[1].lane, expected[0].lane);
+  assert.equal(s.laneMisses[weak], 1); assert.equal(s.temptation, 20);
+  // Keep missing that lane: once it is evidenced, the weave is scored and sung.
+  for (let round = 0; round < 3 && !s.done; round++) {
+    s = advance(s, 1800);
+    s = advance(s, s.notes.length * songBeat(s) + 600);
+    s.notes.filter(n => !n.rest).forEach(n => { s = mythicAction(s, { type: "note", lane: n.lane === weak ? (n.lane + 1) % 4 : n.lane }); });
+  }
+  assert.ok(s.laneMisses[weak] >= 2);
+  s = advance(s, 1800);
+  const sung = s.ai.decisions.at(-1);
+  assert.match(sung.algorithm, /Weakness-weighted/);
+  assert.ok(sung.candidates.some(c => c.action === "sing:weave"), "the weave is on the table once the lane is evidenced");
+  const share = s.notes.filter(n => !n.rest && n.lane === weak).length / s.notes.filter(n => !n.rest).length;
+  assert.ok(share <= 0.5, "never more than half a melody in one lane");
   let lost = newMythic("sirens", "hard", adaptivePlan("sirens"));
   while (!lost.done) lost = advance(lost, 15000);
   assert.equal(lost.won, false); assert.ok(lost.temptation >= 100);
-  assert.equal(mythicSummary(s).laneMisses[expected[0].lane], 1);
+  assert.equal(mythicSummary(s).laneMisses[weak], s.laneMisses[weak]);
 });
 test("strait needs both rowing and shield defense; responding players can clear every tactic", () => {
   for (const difficulty of ["easy", "normal", "hard"]) for (const planId of trials[3].plans) {
@@ -156,12 +168,22 @@ test("a bow held at full draw is steady at first, then trembles, and the arrow f
   assert.ok(Math.abs(released.shot.aim.elevation - (s.aim.elevation + sway.elevation)) < 1e-9);
 });
 test("each turn plays out in order: your arrow lands, Antinous shoots, then fresh wind for your next arrow", () => {
-  let s = loose(newMythic("bow", "normal", { ...adaptivePlan("bow"), planId: "feint" }));
+  let s = newMythic("bow", "normal", { ...adaptivePlan("bow"), planId: "feint" });
+  const ideal = bestAim(s.wind, 0, s.difficulty);
+  s = loose(s, { ...ideal, aim: ideal.aim + 1.2 });
   assert.equal(s.phase, "rival");
+  // The model picks from the game's measured menu; here it chooses the block shot.
+  const block = s.decision.menu.options.find(o => o.id.startsWith("block-"));
+  assert.ok(block, "a line the lodged arrow would cut offers a block shot on medium");
+  s = mythicAction(s, { type: "choose", choice: { menuId: s.decision.menu.id, optionId: block.id, reason: "test", line: "", latencyMs: 1 } });
+  const axe = Number(block.id.slice(6));
+  assert.match(s.rivalLine, new RegExp(`axe ${axe}`), "the narrowed axe is announced as soon as it is chosen");
   s = advance(s, BOW.flightMs + BOW.resultMs + BOW.rivalAimMs - 50);
   assert.equal(s.rivalShots.length, 0, "Antinous waits until your arrow has landed");
   // The tick that looses his arrow starts its flight, so 50 ms of it has already passed.
-  s = advance(s, 100); assert.equal(s.rivalShots.length, 1); assert.equal(s.phase, "review"); assert.ok(s.blocked >= 4);
+  s = advance(s, 100); assert.equal(s.rivalShots.length, 1); assert.equal(s.phase, "review"); assert.equal(s.blocked, axe);
+  assert.ok(s.rivalShots[0] <= 6, "a block shot caps his own count");
+  assert.equal(s.ai.decisions.at(-1).chooser.by, "model");
   s = advance(s, BOW.flightMs + BOW.resultMs - 100); assert.equal(s.phase, "review");
   s = advance(s, 100); assert.equal(s.phase, "player"); assert.equal(s.turn, 2);
   const wind = s.wind, blocked = s.blocked;

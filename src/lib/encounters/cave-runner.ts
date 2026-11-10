@@ -16,6 +16,9 @@ import {
   tierOf,
   type AIRuntime,
   type Difficulty,
+  commitDecision,
+  logEvent,
+  recordOutcome,
 } from "../ai/types.ts";
 import {
   newPlayerModel,
@@ -33,7 +36,13 @@ import {
   type CaveAction,
   type CavePerception,
   type CaveZone,
+  DOCTRINE_ALGORITHMS,
+  DOCTRINE_LABELS,
+  doctrineOfPlan,
+  type CaveDoctrine,
 } from "../ai/cyclops.ts";
+import { NEXT_ZONE, PLAN_AT, ZONE_NAMES, ZONE_SPAN, newHazardRecord, sectionMenu, weakestHazard, type HazardKind, type HazardRecord } from "../ai/polyphemus.ts";
+import { acceptChoice, settle, type ChoiceAction, type PendingDecision } from "../arcade/decisions.ts";
 import type { AttemptSummary, OpponentPlan } from "../arcade/arcade.ts";
 
 // ---------------------------------------------------------------------------
@@ -214,6 +223,23 @@ export type CaveState = {
   lockedAt: number;
   /** Whether the player has already answered the current telegraph. */
   answered: boolean;
+
+  // Section plans. In a live round a pretrained model picks how Polyphemus
+  // hunts each section from the doctrines the difficulty allows; the engine on
+  // its own (no model) keeps the tier's fixed policy and leaves these null.
+  doctrine: CaveDoctrine | null;
+  modelDecisions: boolean;
+  decision: PendingDecision | null;
+  /** The section the open menu is for. */
+  menuZone: CaveZone | null;
+  /** The adopted section plan, and the throw counters when it began. */
+  section: { decisionId: string; zone: CaveZone; attacks: number; landed: number } | null;
+  /** Every section plan adopted this run, kept apart from the runtime's capped ring buffer. */
+  plans: { zone: CaveZone; label: string; by: "model" | "game"; outcome: string }[];
+  /** Hazards met and failed by how they are answered. */
+  hazards: HazardRecord;
+  /** Undecayed ms in each lane, for the attempt summary. */
+  laneMs: [number, number, number];
 };
 
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
@@ -236,9 +262,12 @@ export function newCave(
   plan: OpponentPlan,
   practice = false,
   seed = 4200,
+  options: { modelDecisions?: boolean } = {},
 ): CaveState {
   if (!["easy", "normal", "hard"].includes(difficulty)) throw new Error("Unsupported encounter difficulty");
   const tier = tierOf(difficulty);
+  // The briefing plan sets the first section's doctrine in a live round.
+  const doctrine = options.modelDecisions ? doctrineOfPlan(plan.planId, difficulty) : null;
   return {
     id: "cyclops",
     difficulty,
@@ -299,14 +328,81 @@ export function newCave(
     pickupAt: -9999,
     struckAt: -9999,
     pops: [],
-    ai: newRuntime("polyphemus", "Polyphemus", tier === 2 ? "Markov lane forecast + utility choice" : tier === 1 ? "Lane tracking (current position)" : "Reactive rotation (fixed sequence)"),
+    ai: newRuntime("polyphemus", "Polyphemus", doctrine ? DOCTRINE_ALGORITHMS[doctrine] : tier === 2 ? "Markov lane forecast + utility choice" : tier === 1 ? "Lane tracking (current position)" : "Reactive rotation (fixed sequence)"),
     model: newPlayerModel(3, 1),
     // Nothing is thrown until the runner has met a hazard or two. The grace is
     // longer on the gentler difficulties.
     think: byTier(difficulty, 7000, 5400, 4200),
     lockedAt: -1,
     answered: true,
+    doctrine,
+    modelDecisions: !!options.modelDecisions,
+    decision: null,
+    menuZone: null,
+    section: null,
+    plans: [],
+    hazards: newHazardRecord(),
+    laneMs: [0, 0, 0],
   };
+}
+
+/** Accept a model's pick for the section menu that is open. */
+export function caveChoice(state: CaveState, action: ChoiceAction): CaveState {
+  if (state.done || !state.decision) return state;
+  const s = structuredClone(state);
+  s.decision = acceptChoice(s.decision, action);
+  return s;
+}
+
+const readingsOf = (facts: Record<string, string | number>) => Object.entries(facts).map(([key, value]) => ({ key, label: key.replace(/^./, c => c.toUpperCase()), value: String(value) }));
+
+/** Close the adopted section plan's record with what it actually achieved. */
+function closeSection(s: CaveState) {
+  const open = s.section;
+  if (!open) return;
+  const thrown = s.ai.stats.attacks - open.attacks, landed = s.ai.stats.attacksLanded - open.landed;
+  const outcome = `${thrown} throw${thrown === 1 ? "" : "s"}, ${landed} landed`;
+  recordOutcome(s.ai, s.elapsed, open.decisionId, landed > 0 ? "hit" : thrown > 0 ? "dodged" : "expired", `In ${ZONE_NAMES[open.zone]}: ${outcome}.`);
+  const plan = [...s.plans].reverse().find(p => p.zone === open.zone);
+  if (plan) plan.outcome = outcome;
+  s.section = null;
+}
+
+/**
+ * Section planning. Most of the way through a section the next one's menu
+ * opens, so the model has the rest of the section to answer; at the boundary
+ * the pick (or, without an answer, the game's own) takes over. The runner
+ * never waits for the model: the cave keeps moving.
+ */
+function planSections(s: CaveState, progress: number, previous: CaveZone) {
+  const next = NEXT_ZONE[s.zone];
+  const [from, to] = ZONE_SPAN[s.zone];
+  if (next && !s.decision && s.menuZone !== next && progress >= from + (to - from) * PLAN_AT) {
+    const menu = sectionMenu({ difficulty: s.difficulty, zone: next, lane: s.lane, gap: s.cyclops.gap, hits: s.hits, sheep: s.sheepSaved, hazards: s.hazards, current: s.doctrine ?? "hunt" }, s.model, `cave-${next}`, s.elapsed);
+    s.decision = { menu, choice: null, failed: null };
+    s.menuZone = next;
+    logEvent(s.ai, s.elapsed, "evaluate", `Planning ${ZONE_NAMES[next]}: ${menu.options.map(o => o.label).join(", ")}`);
+  }
+  if (s.zone === previous || !s.decision || s.menuZone !== s.zone) return;
+  closeSection(s);
+  const pending = s.decision, { option, chooser, reason, line } = settle(pending);
+  s.doctrine = option.id as CaveDoctrine;
+  const decision = commitDecision(s.ai, s.elapsed, {
+    algorithm: DOCTRINE_ALGORITHMS[s.doctrine],
+    state: "adapting",
+    observations: readingsOf(pending.menu.facts),
+    memory: [],
+    candidates: pending.menu.options.map(o => ({ action: o.label, score: Math.round(o.score * 10) / 10, note: Object.entries(o.features).map(([k, v]) => `${k} ${v}`).join(" · ") })),
+    selectedAction: `Plan for ${ZONE_NAMES[s.zone]}: ${option.label}`,
+    selectedCandidate: option.label,
+    reason,
+    summary: chooser.by === "model" ? (line || reason) : `Game's pick: ${option.label}`,
+    chooser,
+  });
+  s.section = { decisionId: decision.id, zone: s.zone, attacks: s.ai.stats.attacks, landed: s.ai.stats.attacksLanded };
+  s.plans.push({ zone: s.zone, label: option.label, by: chooser.by, outcome: "in progress" });
+  s.rivalLine = line || `Polyphemus changes his hunt: ${DOCTRINE_LABELS[s.doctrine].toLowerCase()}.`;
+  s.decision = null;
 }
 
 export const caveProgress = (s: CaveState) => clamp(s.elapsed / s.duration, 0, 1);
@@ -376,9 +472,14 @@ function buildPattern(s: CaveState, tier: number): Pattern {
   const blockKinds: ObstacleKind[] = ["pillar", "boulder", "debris"];
   const blockKind = blockKinds[Math.floor(random(s) * blockKinds.length)];
 
+  // Under the weak-spot doctrine single hazards lean toward the kind the
+  // player fails most. Each is still one hazard in one lane: two lanes stay clear.
+  const lean = s.doctrine === "press" ? weakestHazard(s.hazards) : null;
   // A single hazard: always trivially survivable.
   if (r < 0.34 || tier === 0) {
-    return { lanes: [{ lane: base, kind: random(s) < 0.5 ? jumpKind : blockKind }], sheepLane: (base + 1) % 3, coinLane: (base + 2) % 3 };
+    const roll = random(s);
+    const kind: ObstacleKind = lean === "jump" ? (roll < 0.78 ? jumpKind : blockKind) : lean === "lane" ? (roll < 0.22 ? jumpKind : blockKind) : lean === "slide" ? (roll < 0.6 ? "beam" : blockKind) : roll < 0.5 ? jumpKind : blockKind;
+    return { lanes: [{ lane: base, kind }], sheepLane: (base + 1) % 3, coinLane: (base + 2) % 3 };
   }
   // Two lanes blocked, one lane free. The free lane is the counterplay.
   if (r < 0.68) {
@@ -655,6 +756,11 @@ function resolveObstacle(s: CaveState, o: Obstacle) {
   o.resolved = true;
   const rule = AVOIDANCE[o.kind];
   const sameLane = occupiesLane(s, o.lane);
+  // A jump or slide hazard is met only in its own lane; a blocker is met by
+  // being out of its lane when it arrives.
+  const type: HazardKind = rule.jump ? "jump" : rule.slide ? "slide" : "lane";
+  if (sameLane || type === "lane") s.hazards[type].met++;
+  if (sameLane && !((rule.jump && s.jump > 0) || (rule.slide && s.slide > 0))) s.hazards[type].failed++;
   if (!sameLane) {
     reward(s, 100, "+100");
     observeResolution(s.model, o.lane, true);
@@ -691,6 +797,7 @@ export function tickCave(state: CaveState, delta: number): CaveState {
   s.elapsed += dt;
   const progress = caveProgress(s);
   s.zone = zoneFor(progress);
+  if (s.modelDecisions) planSections(s, progress, state.zone);
 
   // Speed ramps across the escape so the final stretch feels desperate.
   const topSpeed = byTier(s.difficulty, 22, 25.5, 28.5);
@@ -729,6 +836,7 @@ export function tickCave(state: CaveState, delta: number): CaveState {
   }
 
   observeDwell(s.model, s.lane, dt);
+  s.laneMs[s.lane] += dt;
 
   // --- World scroll ------------------------------------------------------
   for (const o of s.obstacles) o.z -= metres;
@@ -836,6 +944,7 @@ export function tickCave(state: CaveState, delta: number): CaveState {
       s.plan.source === "ai",
       s.wave,
       () => random(s),
+      s.doctrine ?? undefined,
     );
     applyAction(s, action);
     s.think = byTier(s.difficulty, 3400, 2750, 2300);
@@ -846,6 +955,7 @@ export function tickCave(state: CaveState, delta: number): CaveState {
   if (!s.done && s.elapsed >= s.duration) {
     finish(s, true, "Daylight. The cave mouth opens and the sea air takes you.");
   }
+  if (s.done) { closeSection(s); s.decision = null; }
   return s;
 }
 
@@ -863,7 +973,8 @@ export function caveSummary(s: CaveState): AttemptSummary {
     misses: clamp(Math.round(s.misses), 0, 100),
     early: 0,
     late: 0,
-    laneMs: [0, 0, 0],
+    // Real time in each lane: the briefing's habit read for the next attempt.
+    laneMs: [0, 1, 2].map(lane => clamp(Math.round(s.laneMs?.[lane] ?? 0), 0, 60000)) as [number, number, number],
     score: clamp(Math.round(s.score), 0, 1000000),
     timeMs: clamp(Math.round(s.elapsed), 0, 3600000),
     difficulty: s.difficulty,

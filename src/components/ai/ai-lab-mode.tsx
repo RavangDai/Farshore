@@ -176,6 +176,7 @@ export function AILabMode({
                     <th scope="col">Decisions</th>
                     <th scope="col">Forecast accuracy</th>
                     <th scope="col">Attacks landed</th>
+                    <th scope="col">Model picks</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,6 +200,15 @@ export function AILabMode({
                           : run.attackRate === null
                             ? "—"
                             : `${Math.round(run.attackRate * 100)}% of ${run.attacks}`}
+                      </td>
+                      <td>
+                        {!run ? (
+                          "—"
+                        ) : run.modelPicks + run.gamePicks === 0 ? (
+                          <em className="ai-muted">plan chosen before the round</em>
+                        ) : (
+                          `${run.modelPicks} by the model${run.agreement === null ? "" : `, ${Math.round(run.agreement * 100)}% agreeing with the game`}${run.gamePicks ? `; ${run.gamePicks} by the game` : ""}`
+                        )}
                       </td>
                     </tr>
                   ))}

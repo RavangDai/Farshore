@@ -8,6 +8,9 @@
 // Reading this data NEVER changes opponent behaviour. The inspector UI consumes
 // the same records the engine already produced for its own decisions.
 
+import type { Chooser } from "../arcade/decisions.ts";
+export type { Chooser };
+
 export type Difficulty = "easy" | "normal" | "hard";
 
 /** Named tiers, so policies read as intent rather than array indexes. */
@@ -84,6 +87,12 @@ export type AIDecision = {
    * given, and lets the inspector state the promise the opponent kept.
    */
   safety?: { escapes: number; actionFree: number };
+  /**
+   * Set when a pretrained model picked this action from the game's checked
+   * menu (or the game picked because the model could not). The candidates are
+   * then the menu, scored by the game, and `chosen` marks the executed option.
+   */
+  chooser?: Chooser;
   /** Filled in by the learn stage once the action resolves. */
   outcome?: DecisionOutcome;
   outcomeNote?: string;
@@ -107,6 +116,11 @@ export type AIStats = {
   /** Search effort, for controllers that search (A*, trajectory sweeps, lookahead). */
   nodesExplored: number;
   coordinationEvents: number;
+  /** Menu decisions a pretrained model picked, and how many matched the game's own top option. */
+  modelPicks: number;
+  modelAgreed: number;
+  /** Menu decisions the game had to pick because the model did not answer usably. */
+  gamePicks: number;
 };
 
 export type AIRuntime = {
@@ -153,6 +167,9 @@ export function newRuntime(agentId: string, agentName: string, algorithm: string
       lastDecisionAt: 0,
       nodesExplored: 0,
       coordinationEvents: 0,
+      modelPicks: 0,
+      modelAgreed: 0,
+      gamePicks: 0,
     },
     perception: [],
     memory: [],
@@ -189,6 +206,12 @@ export function commitDecision(
     ai.stats.intervalCount++;
   }
   ai.stats.lastDecisionAt = at;
+  if (stored.chooser) {
+    if (stored.chooser.by === "model") {
+      ai.stats.modelPicks++;
+      if (stored.chooser.agreed) ai.stats.modelAgreed++;
+    } else ai.stats.gamePicks++;
+  }
   const winner = stored.selectedCandidate ?? stored.selectedAction;
   for (const candidate of stored.candidates) candidate.chosen = candidate.action === winner;
   logEvent(ai, at, "decide", `${stored.selectedAction}${stored.target ? ` → ${stored.target}` : ""}`, stored.id);
@@ -217,6 +240,10 @@ export const averageInterval = (ai: AIRuntime) =>
 
 export const predictionAccuracy = (ai: AIRuntime) =>
   ai.stats.predictions > 0 ? ai.stats.predictionsCorrect / ai.stats.predictions : null;
+
+/** Share of model picks that matched the game's own top option; null before the model has chosen. */
+export const modelAgreement = (ai: AIRuntime) =>
+  ai.stats.modelPicks > 0 ? ai.stats.modelAgreed / ai.stats.modelPicks : null;
 
 export const attackSuccessRate = (ai: AIRuntime) =>
   ai.stats.attacks > 0 ? ai.stats.attacksLanded / ai.stats.attacks : null;

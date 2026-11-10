@@ -1,9 +1,10 @@
 import { type TrialId, type LegacyTrialId, type Difficulty, type OpponentPlan, type AttemptSummary } from "./arcade.ts";
-import { newMythic, mythicAction, tickMythic, mythicSummary, type BowState, type MythicState, type Action } from "../encounters/mythic.ts";
+import { newMythic, mythicAction, tickMythic, mythicSummary, type BowState, type MythicState, type SongState, type Action } from "../encounters/mythic.ts";
 import { newAdventure, adventureAction, tickAdventure, adventureSummary, mazePath, LOTUS_SHIP, type AdventureState, type AdventureAction, type AdventureId } from "../encounters/odyssey-games.ts";
 import {
   newCave,
   caveAction,
+  caveChoice,
   tickCave,
   caveSummary,
   caveStatus,
@@ -11,6 +12,7 @@ import {
   type CaveState,
 } from "../encounters/cave-runner.ts";
 import type { AIRuntime } from "../ai/types.ts";
+import type { ChoiceAction, DecisionMenu } from "./decisions.ts";
 
 export type GameState = MythicState | AdventureState | CaveState;
 export type GameAction = Action | AdventureAction | CaveInput;
@@ -29,14 +31,16 @@ export function createGame(
   practice: boolean,
   seed: number,
   originalCave = false,
+  /** A live round, where a pretrained model makes the rival's in-game decisions. */
+  modelDecisions = false,
 ): GameState {
   // The cave is the perspective runner. Its predecessors stay reachable: the
   // original grid-stealth tactics remain playable from the briefing, and the
   // earlier lane engine is still covered by its own regression tests.
-  if (id === "cyclops" && !originalCave) return newCave(difficulty, plan, practice, seed);
+  if (id === "cyclops" && !originalCave) return newCave(difficulty, plan, practice, seed, { modelDecisions });
   return usesAdventure(id) && !(originalCave && id === "cyclops")
     ? newAdventure(id as AdventureId, difficulty, plan, practice, seed)
-    : newMythic(id as LegacyTrialId, difficulty, plan, practice, seed);
+    : newMythic(id as LegacyTrialId, difficulty, plan, practice, seed, { modelDecisions });
 }
 
 export const tickGame = (s: GameState, delta: number): GameState =>
@@ -46,7 +50,8 @@ export function gameAction(s: GameState, action: GameAction): GameState {
   if (isCave(s)) {
     // The cave takes lateral intent, a jump, or a slide. Vertical `move`
     // actions from the shared input layer map onto jump and slide.
-    const a = action as AdventureAction | CaveInput;
+    const a = action as AdventureAction | CaveInput | ChoiceAction;
+    if (a.type === "choose" || a.type === "choose-failed") return caveChoice(s, a);
     if (a.type === "jump" || a.type === "slide") return caveAction(s, a);
     if (a.type === "move") {
       const move = a as { type: "move"; dx: number; dy?: number };
@@ -68,7 +73,14 @@ export function gameSummary(s: GameState): AttemptSummary {
 }
 
 /** The AI runtime for engines that expose one, for the inspector to read. */
-export const aiRuntimeOf = (s: GameState): AIRuntime | null => (isCave(s) ? s.ai : null);
+export const isSong = (s: GameState): s is SongState => s.id === "sirens";
+export const aiRuntimeOf = (s: GameState): AIRuntime | null => (isCave(s) || isBow(s) || isSong(s) ? s.ai : null);
+
+/** The menu an engine is waiting on the model to choose from, if any. */
+export function pendingMenu(s: GameState): DecisionMenu | null {
+  const pending = isBow(s) || isSong(s) || isCave(s) ? s.decision : null;
+  return pending && !pending.choice && !pending.failed ? pending.menu : null;
+}
 
 export function gameStatus(s: GameState): string | null {
   return isCave(s) ? caveStatus(s) : null;

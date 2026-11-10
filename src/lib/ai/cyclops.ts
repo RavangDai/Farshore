@@ -106,6 +106,38 @@ export type CaveAction =
       decisionId: string;
     };
 
+/**
+ * How Polyphemus hunts for one section of the cave. Difficulty decides which
+ * doctrines are on the menu; a pretrained model picks one per section. Every
+ * doctrine runs through the same fairness vetoes and the tier's own timings.
+ */
+export type CaveDoctrine = "rotation" | "hunt" | "cutoff" | "press";
+export const DOCTRINE_LABELS: Record<CaveDoctrine, string> = {
+  rotation: "Lane rotation",
+  hunt: "Hunt your lane",
+  cutoff: "Cut off your next move",
+  press: "Press your weak spot",
+};
+export const DOCTRINE_ALGORITHMS: Record<CaveDoctrine, string> = {
+  rotation: "Reactive rotation (fixed sequence)",
+  hunt: "Lane tracking (current position)",
+  cutoff: "Markov lane forecast + utility choice",
+  press: "Markov forecast + weak-spot pressure",
+};
+/** The doctrines a difficulty allows, gentlest first. */
+export const doctrinesFor = (difficulty: Difficulty): CaveDoctrine[] =>
+  byTier<CaveDoctrine[]>(difficulty, ["rotation", "hunt"], ["hunt", "cutoff"], ["hunt", "cutoff", "press"]);
+/**
+ * The briefing plan sets the first section's doctrine: the Cave patrol is the
+ * rotation, Lane pursuit hunts the current lane, Lane prediction cuts off the
+ * next move. A doctrine the difficulty does not allow falls back to the hunt,
+ * which every difficulty allows.
+ */
+export function doctrineOfPlan(planId: string, difficulty: Difficulty): CaveDoctrine {
+  const wanted: CaveDoctrine = planId === "alternating" ? "rotation" : planId === "focused" ? "hunt" : "cutoff";
+  return doctrinesFor(difficulty).includes(wanted) ? wanted : "hunt";
+}
+
 export type CavePolicy = {
   algorithm: string;
   /** ms between decision cycles. */
@@ -118,11 +150,27 @@ export type CavePolicy = {
   predictive: boolean;
   /** Whether the policy consults the player's current position at all. */
   tracking: boolean;
+  /** Bonus for the lane the player has escaped worst; doubled by the weak-spot doctrine. */
+  weakBonus: number;
+  /** The section doctrine in force, when a model planned one. */
+  doctrine?: CaveDoctrine;
 };
 
-export function cavePolicy(difficulty: Difficulty, adaptive: boolean): CavePolicy {
+export function cavePolicy(difficulty: Difficulty, adaptive: boolean, doctrine?: CaveDoctrine): CavePolicy {
   const tier = tierOf(difficulty);
   const predictive = tier === 2 || (adaptive && tier >= 1);
+  if (doctrine) {
+    return {
+      algorithm: DOCTRINE_ALGORITHMS[doctrine],
+      cooldownMs: byTier(difficulty, 3400, 2750, 2300),
+      telegraphMs: byTier(difficulty, 2050, 1550, 1250),
+      flightMs: byTier(difficulty, 900, 780, 700),
+      predictive: doctrine === "cutoff" || doctrine === "press",
+      tracking: doctrine !== "rotation",
+      weakBonus: doctrine === "press" ? 24 : 12,
+      doctrine,
+    };
+  }
   return {
     algorithm: predictive
       ? "Markov lane forecast + utility choice"
@@ -134,6 +182,7 @@ export function cavePolicy(difficulty: Difficulty, adaptive: boolean): CavePolic
     flightMs: byTier(difficulty, 900, 780, 700),
     predictive,
     tracking: tier >= 1 || adaptive,
+    weakBonus: 12,
   };
 }
 
@@ -300,8 +349,9 @@ export function decideCave(
   adaptive: boolean,
   wave: number,
   roll: () => number,
+  doctrine?: CaveDoctrine,
 ): CaveAction {
-  const policy = cavePolicy(difficulty, adaptive);
+  const policy = cavePolicy(difficulty, adaptive, doctrine);
   const observations = perceptionReadings(view);
   const memory = memoryReadings(model, policy);
   logEvent(ai, view.at, "perceive", `Odysseus in ${laneName(view.lane)}, gap ${Math.round(view.gap)} m`);
@@ -357,8 +407,8 @@ export function decideCave(
       score = p * 100;
       note = `P(lane) ${pct(p)}`;
       if (weakest === lane) {
-        score += 12;
-        note += " +12 weakest lane";
+        score += policy.weakBonus;
+        note += ` +${policy.weakBonus} weakest lane`;
       }
       // Favour a lane the layout is already squeezing: fewer alternatives for
       // the player means a throw there is worth more.

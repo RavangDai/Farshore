@@ -4,7 +4,7 @@ import { modelConnection } from "./ai-account";
 import { progressRepository } from "./progress-repository";
 import { runtimeConfig } from "./runtime-config";
 import { canonicalRequest, checkWriteRequest, json, readJson } from "./http";
-import { mockCommentary, mockMode, mockStatus, mockStrategy } from "./mock-ai";
+import { mockAthena, mockCommentary, mockDecision, mockMode, mockStatus, mockStrategy } from "./mock-ai";
 import type { ModelConnection } from "../turn";
 type Get = (connection?: ModelConnection) => Promise<Response>;
 type Post = (request: Request, connection?: ModelConnection) => Promise<Response>;
@@ -19,7 +19,11 @@ export function modelApi(get: Get, post: Post, limits: { bucket: string; perMinu
     }
     // Test mode: the mock AI service answers every state without calling a model.
     const mock = mockMode(request);
-    if (mock) return request.method === "GET" ? mockStatus(mock) : limits.bucket === "commentary" ? mockCommentary(request, mock) : mockStrategy(request, mock);
+    if (mock) {
+      if (request.method === "GET") return mockStatus(mock);
+      const answer = { commentary: mockCommentary, decide: mockDecision, athena: mockAthena }[limits.bucket] ?? mockStrategy;
+      return answer(request, mock);
+    }
     const config = runtimeConfig();
     try {
       const player = await verifiedPlayer(request);

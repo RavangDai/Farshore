@@ -72,6 +72,39 @@ export async function mockStrategy(request: Request, mode: MockMode) {
   return Response.json({ plan, description: planDescription(body.trialId, plan), taunt: trial.quote, source: "ai", mock: true }, { headers });
 }
 
+/**
+ * An in-game decision: each success takes the menu's next option in turn, so a
+ * moderator can watch the model's pick differ from the game's own. "slow"
+ * outlasts every engine's wait, so the game's own pick and its label show.
+ */
+let decisionTurn = 0;
+export async function mockDecision(request: Request, mode: MockMode) {
+  const body = await request.json().catch(() => null) as { kind?: string; options?: { id: string; label: string }[] } | null;
+  if (!body || (body.kind !== "choose" && body.kind !== "debrief")) return Response.json({ error: "Unsupported decision request." }, { status: 400 });
+  try { await wait(mode === "slow" ? SLOW_MS : 600, request.signal); }
+  catch { return Response.json({ error: "Decision cancelled.", code: "cancelled" }, { status: 499 }); }
+  if (mode === "offline" || mode === "error" || mode === "error-once") return Response.json({ error: "The model is not reachable.", code: "unreachable" }, { status: 503 });
+  if (mode === "uncertain" || mode === "uncertain-once") return Response.json({ error: "The model's answer could not be verified.", code: "invalid_choice" }, { status: 422 });
+  const headers = { "Cache-Control": "no-store" };
+  if (body.kind === "debrief") return Response.json({ text: "Mock debrief (test mode). The rival reviewed its choices and will remember how you played.", model: "mock-ai (test mode)" }, { headers });
+  const options = body.options ?? [];
+  if (options.length < 1) return Response.json({ error: "Unsupported decision request." }, { status: 400 });
+  const pick = options[decisionTurn++ % options.length];
+  return Response.json({ optionId: pick.id, reason: `Mock pick (test mode): ${pick.label}.`, line: "You will not pass so easily.", model: "mock-ai (test mode)" }, { headers });
+}
+
+/** Athena's counsel in test mode: it names the one fact it used, so the source chips can be checked. */
+export async function mockAthena(request: Request, mode: MockMode) {
+  const body = await request.json().catch(() => null) as { facts?: Record<string, string | number> } | null;
+  if (!body?.facts) return Response.json({ error: "Ask a question about this shot." }, { status: 400 });
+  try { await wait(mode === "slow" ? SLOW_MS : 700, request.signal); }
+  catch { return Response.json({ error: "Question cancelled.", code: "cancelled" }, { status: 499 }); }
+  if (mode === "offline" || mode === "error" || mode === "error-once") return Response.json({ error: "Athena cannot be reached.", code: "unreachable" }, { status: 503 });
+  if (mode === "uncertain" || mode === "uncertain-once") return Response.json({ error: "Athena's answer could not be checked against the hall, so it was set aside.", code: "invalid_answer" }, { status: 422 });
+  const key = "draught" in body.facts ? "draught" : Object.keys(body.facts)[0];
+  return Response.json({ answer: `Mock counsel (test mode). Mind the ${key}: ${body.facts[key]}.`, usedFacts: key ? [key] : [], model: "mock-ai (test mode)" }, { headers: { "Cache-Control": "no-store" } });
+}
+
 const lines = {
   bard: ["The mock bard watches the trial unfold.", "Steady now, the sea is listening.", "A test of nerve, and a test of the game."],
   rival: ["You will not pass so easily.", "I have seen this move before.", "Again, Odysseus. Again."],

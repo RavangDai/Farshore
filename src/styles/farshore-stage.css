@@ -2120,3 +2120,277 @@ body.fs-stage-open {
   font: var(--fs-text-xs)/1.5 var(--fs-font-display);
   color: #c3d3de;
 }
+
+/* Model decisions: who chose, against the game's own top option, and the live menu. */
+
+.ai-chooser {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 4px;
+  background: #0d2433;
+  border-left: 2px solid var(--fs-color-ai);
+  font: var(--fs-text-xs)/1.45 var(--fs-font-ui);
+  color: #c6d4de;
+}
+
+.ai-chooser[data-by="game"] { border-left-color: var(--fs-gold); }
+.ai-chooser > svg { flex: none; margin-top: 2px; color: var(--fs-color-ai); }
+.ai-chooser[data-by="game"] > svg { color: var(--fs-gold); }
+.ai-chooser b { color: var(--fs-cream); font-weight: 700; }
+.ai-chooser em { display: block; margin-top: 2px; font-style: normal; color: var(--fs-gold); }
+
+.ai-pending {
+  display: grid;
+  gap: 6px;
+  padding: 7px 9px;
+  border: 1px dashed #4fb3d988;
+  border-radius: 4px;
+  background: #0a2031;
+}
+
+.ai-pending-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 9px/1.4 var(--fs-font-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fs-color-ai);
+}
+
+.ai-pending-head svg { animation: ai-pending-pulse 1.4s ease-in-out infinite; }
+
+.ai-pending ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.ai-pending li { display: grid; gap: 1px; }
+.ai-pending strong { font: 600 var(--fs-text-xs)/1.35 var(--fs-font-display); color: var(--fs-cream); }
+.ai-pending small { font: 10px/1.4 var(--fs-font-mono); color: var(--fs-color-text-muted); }
+.ai-pending-note { margin: 0; font: 10px/1.45 var(--fs-font-ui); color: var(--fs-color-text-muted); }
+
+.ai-candidate-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.ai-candidate-tags i {
+  padding: 1px 5px;
+  border-radius: 99px;
+  font: 700 8px/1.4 var(--fs-font-ui);
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #1d4a35;
+  color: #bfe9cf;
+}
+.ai-candidate-tags i[data-tag="engine"] { background: #3d3216; color: var(--fs-gold-bright); }
+
+@keyframes ai-pending-pulse { 50% { opacity: 0.35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-pending-head svg { animation: none; }
+}
+
+/* Ask Athena: the player's own line to the model, in the hall's lower left. */
+
+.fs-athena-toggle {
+  position: absolute;
+  left: 14px;
+  bottom: 150px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid #b18b4e99;
+  border-radius: 99px;
+  background: #0a1d2bdd;
+  color: var(--fs-gold-bright);
+  font: 700 var(--fs-text-xs)/1 var(--fs-font-ui);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.fs-athena-toggle small { font-weight: 600; color: var(--fs-color-text-muted); }
+.fs-athena-toggle:hover:not(:disabled) { background: #11384fee; }
+.fs-athena-toggle:disabled { opacity: 0.5; cursor: default; }
+
+.fs-athena {
+  position: absolute;
+  left: 14px;
+  bottom: 150px;
+  z-index: 6;
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100% - 28px));
+  max-height: calc(100% - 300px);
+  overflow: auto;
+  padding: 10px 12px 12px;
+  border: 1px solid #b18b4e88;
+  border-radius: 6px;
+  background: #081a27ee;
+  color: #d4e0e8;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px #0008;
+}
+
+.fs-athena header { display: flex; align-items: center; gap: 8px; }
+.fs-athena-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 10px/1.3 var(--fs-font-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fs-gold-bright);
+}
+.fs-athena header small { flex: 1; font: 10px/1.3 var(--fs-font-ui); color: var(--fs-color-text-muted); }
+.fs-athena-close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fs-color-text-muted);
+  cursor: pointer;
+}
+.fs-athena-close:hover { background: #ffffff14; color: var(--fs-cream); }
+
+.fs-athena-answer {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--fs-gold);
+  border-radius: 4px;
+  background: #0d2433;
+}
+.fs-athena-answer p { margin: 0; font: var(--fs-text-sm)/1.45 var(--fs-font-display); color: var(--fs-cream); }
+.fs-athena-answer .fs-athena-question { font: 10px/1.4 var(--fs-font-ui); color: var(--fs-color-text-muted); }
+
+.fs-athena-used { display: grid; gap: 4px; }
+.fs-athena-used > span {
+  font: 700 8px/1.4 var(--fs-font-ui);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fs-color-text-muted);
+}
+.fs-athena-used ul { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.fs-athena-used li {
+  padding: 2px 7px;
+  border: 1px solid #b18b4e66;
+  border-radius: 99px;
+  background: #1b1a12;
+  font: 10px/1.4 var(--fs-font-ui);
+  color: #e9d9b0;
+}
+.fs-athena-used b { color: var(--fs-gold-bright); font-weight: 700; }
+.fs-athena-meta { font: 10px/1.4 var(--fs-font-ui); color: var(--fs-color-text-muted); }
+
+.fs-athena-busy,
+.fs-athena-error,
+.fs-athena-muted { margin: 0; font: var(--fs-text-xs)/1.45 var(--fs-font-ui); }
+.fs-athena-busy { color: var(--fs-color-ai); }
+.fs-athena-error { color: #ffb4a6; }
+.fs-athena-muted { color: var(--fs-color-text-muted); }
+
+.fs-athena-suggest { display: flex; flex-wrap: wrap; gap: 5px; }
+.fs-athena-suggest button {
+  padding: 4px 9px;
+  border: 1px solid #365365;
+  border-radius: 99px;
+  background: #0a2031;
+  color: #c6d4de;
+  font: 10px/1.35 var(--fs-font-ui);
+  cursor: pointer;
+}
+.fs-athena-suggest button:hover:not(:disabled) { border-color: var(--fs-gold); color: var(--fs-cream); }
+.fs-athena-suggest button:disabled { opacity: 0.45; cursor: default; }
+
+.fs-athena-form { display: flex; gap: 5px; }
+.fs-athena-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid #365365;
+  border-radius: 4px;
+  background: #061522;
+  color: var(--fs-cream);
+  font: var(--fs-text-xs)/1.3 var(--fs-font-ui);
+}
+.fs-athena-form input:focus-visible { outline: 2px solid var(--fs-color-ai); outline-offset: 1px; }
+.fs-athena-mic,
+.fs-athena-send {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  border: 1px solid #b18b4e88;
+  border-radius: 4px;
+  background: #0a2031;
+  color: var(--fs-gold-bright);
+  cursor: pointer;
+}
+.fs-athena-mic[aria-pressed="true"] { background: #3a1a1c; color: #ffc2b4; }
+.fs-athena-send:disabled { opacity: 0.45; cursor: default; }
+
+@media (max-width: 720px) {
+  .fs-athena-toggle, .fs-athena { bottom: 120px; }
+  .fs-athena { max-height: calc(100% - 220px); }
+}
+
+/* The rival's debrief on the results screen. */
+
+.fs-debrief {
+  display: grid;
+  gap: 10px;
+  margin: 14px auto 6px;
+  padding: 14px 16px;
+  max-width: 720px;
+  border: 1px solid #b18b4e66;
+  border-radius: 6px;
+  background: #0b1c28e6;
+  text-align: left;
+}
+
+.fs-debrief .a-eyebrow { display: inline-flex; align-items: center; gap: 6px; }
+.fs-debrief-wait { margin: 0; font: var(--fs-text-sm)/1.45 var(--fs-font-ui); color: var(--fs-color-ai); }
+.fs-debrief blockquote {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--fs-gold);
+  font: italic var(--fs-text-md)/1.5 var(--fs-font-display);
+  color: var(--fs-cream);
+}
+
+.fs-debrief-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.fs-debrief dl { display: grid; gap: 4px; margin: 0; }
+.fs-debrief dl > div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid #ffffff10; }
+.fs-debrief dt { font: 10px/1.4 var(--fs-font-ui); letter-spacing: 0.04em; color: var(--fs-color-text-muted); text-transform: capitalize; }
+.fs-debrief dd { margin: 0; font: 600 var(--fs-text-xs)/1.4 var(--fs-font-ui); color: var(--fs-cream); text-align: right; }
+
+.fs-debrief-picks { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.fs-debrief-picks li { display: grid; gap: 1px; padding: 5px 8px; border-left: 2px solid var(--fs-color-ai); border-radius: 3px; background: #0d2433; }
+.fs-debrief-picks li[data-by="game"] { border-left-color: var(--fs-gold); }
+.fs-debrief-picks b { font: 700 9px/1.4 var(--fs-font-ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--fs-color-text-muted); }
+.fs-debrief-picks span { font: 600 var(--fs-text-xs)/1.35 var(--fs-font-display); color: var(--fs-cream); }
+.fs-debrief-picks small { font: 10px/1.4 var(--fs-font-ui); color: #c6d4de; }
+
+@media (max-width: 720px) {
+  .fs-debrief-grid { grid-template-columns: 1fr; }
+}
+
+/* In the hall the compact panel sits below the draught gauge, which the player aims by. */
+.fs-insights-slot[data-trial="bow"] .ai-insights { top: 312px; max-height: calc(100% - 470px); }
+
+/* In the 2D encounters the compact panel joins the sidebar instead of covering it. */
+.fs-codex .ai-insights {
+  position: static;
+  overflow: visible;
+  width: auto;
+  max-height: none;
+  margin-bottom: 10px;
+}
+
+/* The hall's coach box spans 62-86% of the stage height on the left until the first arrow. */
+.fs-athena-toggle[data-coach],
+.fs-athena[data-coach] { bottom: calc(37.8% + 10px); }
+.fs-athena[data-coach] { max-height: calc(62.2% - 250px); }

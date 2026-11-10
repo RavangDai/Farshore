@@ -1,0 +1,193 @@
+{
+  "summary": {
+    "model": "qwen3:4b-instruct",
+    "requests": 18,
+    "valid": "100%",
+    "grounded": "—",
+    "agreement": "—",
+    "refusals": "100%",
+    "answered": "100%",
+    "debriefs": "—",
+    "p50": "5.2 s",
+    "p95": "18.1 s",
+    "byTrial": {
+      "bow": {
+        "valid": "—",
+        "agreement": "—"
+      },
+      "sirens": {
+        "valid": "—",
+        "agreement": "—"
+      },
+      "cyclops": {
+        "valid": "—",
+        "agreement": "—"
+      }
+    },
+    "measured": "2026-11-08T17:02:16.153Z"
+  },
+  "results": [
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 18.131718399999997,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 6.729894100000001,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.146798100000003,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.960371899999998,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.9622456999999995,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.581474600000002,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.5911388,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.691800000000003,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.1965187,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 11.006297600000005,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.300164300000004,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.9704457000000115,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.777783500000005,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.932954700000002,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.755296900000001,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.197439399999988,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.949201199999996,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.910453499999989,
+      "offTopic": true,
+      "refused": true
+    }
+  ]
+}

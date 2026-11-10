@@ -1,0 +1,688 @@
+{
+  "summary": {
+    "model": "qwen3:4b-instruct",
+    "requests": 81,
+    "valid": "62%",
+    "grounded": "89%",
+    "agreement": "26%",
+    "refusals": "100%",
+    "answered": "50%",
+    "debriefs": "83%",
+    "p50": "18.3 s",
+    "p95": "21.4 s",
+    "byTrial": {
+      "bow": {
+        "valid": "88%",
+        "agreement": "5%"
+      },
+      "sirens": {
+        "valid": "0%",
+        "agreement": "—"
+      },
+      "cyclops": {
+        "valid": "50%",
+        "agreement": "100%"
+      }
+    },
+    "measured": "2026-11-08T16:57:05.972Z"
+  },
+  "results": [
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.065013699999998
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.0141956
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.577987599999993,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.439347799999997,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.593014900000009,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.246956999999995,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.132174100000004,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.372676100000012,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.592579500000006,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 13.914563200000003,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.62807209999999,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 15.369642099999997,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 14.596318800000008,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 13.072156600000017,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.465225899999991,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.752062399999994,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 16.38519020000001,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 14.185006699999999,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.781005400000023,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 18.947640599999986,
+      "agreed": false,
+      "grounded": false
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 11.435620300000009,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 19.331107400000036,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 14.310856299999985,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.02225059999997
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.012501099999994
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.010666800000006
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.014326300000015
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.0094963
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.003467600000032
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.018810999999985
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.007873599999993
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.005651599999982
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.01377000000002
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.002618099999964
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.0158321
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.015213700000082
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.006110400000004
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.010267100000057
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.036634700000054
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.018459999999962
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.04620399999991
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.010672299999978
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.007363000000012
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.012056299999937
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.006894700000064
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.011906899999943
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 13.564264800000004,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 23.211566499999957
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.015353400000023
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.288640999999945,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 24.989152899999986
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.00233010000002
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 12.351955799999995,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 20.948146000000065
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.003158000000052
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 18.275111900000017,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 23.372944099999962
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.014356200000037
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 18.8635527,
+      "agreed": true,
+      "grounded": false
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 21.371501700000138
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 504,
+      "seconds": 20.020288699999917
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 17.170217900000047,
+      "agreed": true,
+      "grounded": false
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": false,
+      "status": 422,
+      "seconds": 24.719659400000005
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 21.360900800000177,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.192093899999978,
+      "offTopic": false,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 6.256987599999877,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.387929400000023,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.0760974000000862,
+      "offTopic": false,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.327784500000067,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.0973212000001222,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.527904099999927,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.375844299999997,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 14.319730500000063,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 7.8588125,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.4555826000000818,
+      "offTopic": false,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.436271399999969,
+      "offTopic": false,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.4619490000000224,
+      "offTopic": false,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.730974000000162,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.5039521000001113,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.7206040000000504,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.8723862000000664,
+      "offTopic": true,
+      "refused": true
+    }
+  ]
+}

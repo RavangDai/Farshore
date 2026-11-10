@@ -43,6 +43,7 @@ import {
   type Difficulty,
   type Reading,
 } from "./types.ts";
+import { openMenu, type Chooser, type DecisionMenu, type DecisionOption, type Facts } from "../arcade/decisions.ts";
 import {
   meanReaction,
   observeChoice,
@@ -494,7 +495,7 @@ function sampleLane(weights: number[], roll: () => number): number {
 
 // ---- Proposals ------------------------------------------------------------
 
-type Proposal = {
+export type SirensProposal = {
   /** Candidate id, and the key the inspector marks the winner by. */
   id: string;
   kind: "sing" | "repeat";
@@ -656,7 +657,33 @@ function memoryReadings(
  * seeded RNG and is consulted only by the weighted tier's weave, so the easy and
  * normal tiers compose deterministically.
  */
-export function decideSirens(
+/** Everything the evaluate stage measured, kept so the pick can be committed later. */
+export type SirensEvaluation = {
+  difficulty: Difficulty;
+  adaptive: boolean;
+  algorithm: string;
+  observations: Reading[];
+  memory: Reading[];
+  proposals: SirensProposal[];
+  candidates: Candidate[];
+  weakest: number | null;
+  weakestMissed: number;
+  weakestAsked: number;
+  perNoteMs: number;
+  complexityTarget: number;
+  adaptationNote: string;
+  withheldNote: string;
+  round: number;
+  tick: number;
+  previous: SirenNote[];
+};
+
+/**
+ * Stages 1-3: perceive, remember, evaluate. Every proposal is scored and every
+ * fairness bound applied; nothing is committed. The weave consumes the seeded
+ * roll here, once, so the evaluation is kept rather than recomputed.
+ */
+export function evaluateSirens(
   ai: AIRuntime,
   model: PlayerModel,
   view: SirensPerception,
@@ -664,7 +691,7 @@ export function decideSirens(
   adaptive: boolean,
   tick: number,
   roll: () => number,
-): SirensAction {
+): SirensEvaluation {
   const policy = sirensPolicy(difficulty, adaptive);
   const algorithm = sirensAlgorithm(policy, model);
   const records = laneRecords(model);
@@ -693,7 +720,7 @@ export function decideSirens(
 
   // ---- Stage 3: evaluate -------------------------------------------------
   const targetLength = Math.min(policy.maxNotes, Math.max(policy.minNotes, view.round + 2));
-  const proposals: Proposal[] = [];
+  const proposals: SirensProposal[] = [];
 
   const push = (id: string, kind: "sing" | "repeat", label: string, notes: SirenNote[], wantedBeat: number, describe: (settled: ReturnType<typeof settle>, complexity: number) => string) => {
     if (notes.length === 0) return;
@@ -794,21 +821,102 @@ export function decideSirens(
   ai.stats.nodesExplored += proposals.length;
   logEvent(ai, view.at, "evaluate", candidates.map(c => `${c.action} ${c.score}`).join("  "));
 
-  // ---- Stage 4: decide ---------------------------------------------------
-  const winner = argmax(candidates);
-  const chosen = proposals.find(proposal => proposal.id === winner.action);
   const withheld = proposals.filter(proposal => proposal.withheld);
-  const withheldNote =
-    withheld.length > 0
-      ? ` ${withheld.length} of ${proposals.length} melodies were withheld because the reply window they would open does not admit the notes they ask for.`
-      : "";
+  return {
+    difficulty,
+    adaptive,
+    algorithm,
+    observations,
+    memory: memoryReadings(model, policy, tempo, adaptationNote),
+    proposals,
+    candidates,
+    weakest,
+    weakestMissed: weakest === null ? 0 : records[weakest].missed,
+    weakestAsked: weakest === null ? 0 : records[weakest].asked,
+    perNoteMs,
+    complexityTarget,
+    adaptationNote,
+    withheldNote:
+      withheld.length > 0
+        ? ` ${withheld.length} of ${proposals.length} melodies were withheld because the reply window they would open does not admit the notes they ask for.`
+        : "",
+    round: view.round,
+    tick,
+    previous: view.notes.map(note => ({ ...note })),
+  };
+}
+
+/** How many melodies a menu offers the model, best-scored first. */
+export const MENU_SIZE = 4;
+
+/**
+ * The model's menu: the best fair melodies, each with the numbers that
+ * describe it. Withheld melodies never appear. Null when fewer than two remain,
+ * because one option is not a choice.
+ */
+export function sirensMenu(evaluation: SirensEvaluation, model: PlayerModel, id: string, openedAt: number): DecisionMenu | null {
+  const fair = evaluation.proposals.filter(p => !p.withheld).sort((a, b) => b.score - a.score).slice(0, MENU_SIZE);
+  if (fair.length < 2) return null;
+  const weak = evaluation.weakest;
+  const options: DecisionOption[] = fair.map(proposal => {
+    const sung = melodyOf(proposal.notes);
+    const forecast = missForecast(model, proposal.notes);
+    const features: Facts = {
+      notes: sung.length,
+      lanes: noteLine(proposal.notes),
+      "ms per note": proposal.beatMs,
+      complexity: round1(proposal.complexity * 10) / 10,
+      "change from last melody": pct(laneNovelty(proposal.notes, evaluation.previous)),
+    };
+    if (weak !== null) features[`share on ${noteName(weak)}`] = pct(sung.filter(n => n.lane === weak).length / Math.max(1, sung.length));
+    if (forecast.grounded && forecast.expectedMisses !== null) features["forecast misses"] = round1(forecast.expectedMisses);
+    if (proposal.notes.some(n => n.rest)) features.rests = proposal.notes.filter(n => n.rest).length;
+    return { id: proposal.id.replace(/[^a-z0-9-]/g, "-"), label: proposal.kind === "repeat" ? "Sing the same melody again" : `Sing a ${proposal.label}`, features, score: round1(proposal.score) };
+  });
+  const facts: Facts = {
+    melody: `${evaluation.round} of 5`,
+    "your weakest lane": weak === null ? "none yet" : `${noteName(weak)} (${evaluation.weakestMissed} of ${evaluation.weakestAsked} missed)`,
+    "your pace": `${Math.round(evaluation.perNoteMs)} ms per note`,
+    adaptation: evaluation.adaptationNote,
+  };
+  return openMenu(id, `The Sirens' melody ${evaluation.round}`, facts, options, openedAt);
+}
+
+/** The proposal behind a menu option id. */
+export const proposalFor = (evaluation: SirensEvaluation, optionId: string) =>
+  evaluation.proposals.find(p => p.id.replace(/[^a-z0-9-]/g, "-") === optionId);
+
+/**
+ * Stages 4-5: decide and telegraph. With no `pick`, the highest-scored
+ * proposal wins, as the controller always has. With one (a model's choice from
+ * the menu), that proposal is sung, but only if it was fair: a withheld or
+ * unknown id falls back to the controller's own winner.
+ */
+export function commitSirens(
+  ai: AIRuntime,
+  model: PlayerModel,
+  evaluation: SirensEvaluation,
+  view: SirensPerception,
+  pick?: { optionId: string; chooser: Chooser; reason?: string; summary?: string },
+): SirensAction {
+  const policy = sirensPolicy(evaluation.difficulty, evaluation.adaptive);
+  const { proposals, candidates, perNoteMs, weakest, withheldNote, complexityTarget, adaptationNote, tick } = evaluation;
+  const algorithm = evaluation.algorithm;
+  const observations = evaluation.observations;
+  const memory = evaluation.memory;
+
+  // ---- Stage 4: decide ---------------------------------------------------
+  const picked = pick ? proposalFor(evaluation, pick.optionId) : undefined;
+  const winner = argmax(candidates);
+  const chosen = picked && !picked.withheld ? picked : proposals.find(proposal => proposal.id === winner.action);
+  const withheld = proposals.filter(proposal => proposal.withheld);
 
   if (!chosen || chosen.withheld) {
     commitDecision(ai, view.at, {
       algorithm,
       state: "observing",
       observations,
-      memory: memoryReadings(model, policy, tempo, adaptationNote),
+      memory,
       candidates,
       selectedAction: "Hold — no melody issued",
       selectedCandidate: "hold",
@@ -831,20 +939,22 @@ export function decideSirens(
 
   const windowSentence = `Sung at ${chosen.beatMs} ms per note: ${ms(listenMs)} of listening, then a ${ms(replyMs)} reply window, which admits ${chosen.answerable} taps against the ${asks} asked.`;
 
-  const reason = grounded
-    ? `${noteName(weakest as number)} is the lane you have answered worst (${records[weakest as number].missed} of ${records[weakest as number].asked} missed), and this ${chosen.label} scored highest on the model's own forecast: ${forecast?.expectedMisses?.toFixed(2)} expected misses of ${asks} (${pct(forecast?.expectedShare ?? 0)}), complexity ${chosen.complexity.toFixed(2)}. ${windowSentence}${withheldNote}`
+  const ownReason = grounded
+    ? `${noteName(weakest as number)} is the lane you have answered worst (${evaluation.weakestMissed} of ${evaluation.weakestAsked} missed), and this ${chosen.label} scored highest on the model's own forecast: ${forecast?.expectedMisses?.toFixed(2)} expected misses of ${asks} (${pct(forecast?.expectedShare ?? 0)}), complexity ${chosen.complexity.toFixed(2)}. ${windowSentence}${withheldNote}`
     : policy.weighted
-      ? `${adaptationNote}, so the weighting had nothing to weight with and complexity alone decided: this ${chosen.label} measured ${chosen.complexity.toFixed(2)} against the round-${view.round} target of ${complexityTarget.toFixed(2)}, and differs from the melody just played. ${windowSentence}${withheldNote}`
+      ? `${adaptationNote}, so the weighting had nothing to weight with and complexity alone decided: this ${chosen.label} measured ${chosen.complexity.toFixed(2)} against the round-${evaluation.round} target of ${complexityTarget.toFixed(2)}, and differs from the melody just played. ${windowSentence}${withheldNote}`
       : policy.varied
-        ? `Round ${view.round} targets complexity ${complexityTarget.toFixed(2)}; this ${chosen.label} measured ${chosen.complexity.toFixed(2)}, the closest of ${proposals.length} melodies scored, and changes ${pct(laneNovelty(chosen.notes, view.notes))} of the positions from the melody just played. Your per-lane record is not read on this difficulty. ${windowSentence}${withheldNote}`
+        ? `Round ${evaluation.round} targets complexity ${complexityTarget.toFixed(2)}; this ${chosen.label} measured ${chosen.complexity.toFixed(2)}, the closest of ${proposals.length} melodies scored, and changes ${pct(laneNovelty(chosen.notes, evaluation.previous))} of the positions from the melody just played. Your per-lane record is not read on this difficulty. ${windowSentence}${withheldNote}`
         : `Fixed rotation step ${((tick - 1) % NOTE_NAMES.length) + 1} sings ${noteLine(chosen.notes)}. No player history is consulted on this difficulty and the tempo stays at ${chosen.beatMs} ms per note. ${windowSentence}`;
+  // A model's reason leads; the window the game promises always follows it.
+  const reason = pick?.reason ? `${pick.reason} ${windowSentence}` : ownReason;
 
   const state: AIState = grounded ? "predicting" : policy.varied ? "evaluating" : "preparing";
   const decision = commitDecision(ai, view.at, {
     algorithm,
     state,
     observations,
-    memory: memoryReadings(model, policy, tempo, adaptationNote),
+    memory,
     candidates,
     selectedAction:
       chosen.kind === "repeat"
@@ -854,6 +964,8 @@ export function decideSirens(
     ...(grounded && weakest !== null ? { target: `${noteName(weakest)} lane` } : {}),
     ...(confidence === undefined ? {} : { confidence }),
     reason,
+    ...(pick?.summary ? { summary: pick.summary } : {}),
+    ...(pick ? { chooser: { ...pick.chooser, engineAction: winner.action } } : {}),
     // The listen phase is the telegraph: the melody is heard in full before any
     // answer is asked for, and neither the notes nor the tempo move inside it.
     commitMs: listenMs,
@@ -886,8 +998,21 @@ export function decideSirens(
   return chosen.kind === "repeat" ? { kind: "repeat", ...payload } : { kind: "sing", ...payload };
 }
 
+/** One full cycle with the controller's own pick: evaluate, then commit the winner. */
+export function decideSirens(
+  ai: AIRuntime,
+  model: PlayerModel,
+  view: SirensPerception,
+  difficulty: Difficulty,
+  adaptive: boolean,
+  tick: number,
+  roll: () => number,
+): SirensAction {
+  return commitSirens(ai, model, evaluateSirens(ai, model, view, difficulty, adaptive, tick, roll), view);
+}
+
 /** Write a score into a proposal already pushed, keyed by its candidate id. */
-function proposalScore(proposals: Proposal[], id: string, score: number) {
+function proposalScore(proposals: SirensProposal[], id: string, score: number) {
   const proposal = proposals.find(entry => entry.id === id);
   if (proposal && !proposal.withheld) proposal.score = score;
 }

@@ -10,6 +10,7 @@ import {
   History,
   Lightbulb,
   ListTree,
+  Sparkles,
   Target,
   Timer,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import {
   STAGES,
   averageInterval,
   attackSuccessRate,
+  modelAgreement,
   predictionAccuracy,
   type AIDecision,
   type AIMetric,
@@ -24,6 +26,7 @@ import {
   type AIStage,
   type Difficulty,
 } from "../../lib/ai/types";
+import type { DecisionMenu } from "../../lib/arcade/decisions";
 
 export type InspectorMode = "immersive" | "insights" | "lab";
 export const INSPECTOR_MODES: InspectorMode[] = ["immersive", "insights", "lab"];
@@ -78,7 +81,64 @@ export type InspectorFeed = {
   lanes?: { label: string; target?: boolean; player?: boolean }[];
   /** Simulation clock in ms, for the timeline. */
   elapsed: number;
+  /** The game's checked menu a model is choosing from right now, if any. */
+  pending?: DecisionMenu;
 };
+
+const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+
+/**
+ * Who chose an action: a pretrained model picking from the game's menu, or the
+ * game itself when the model could not answer. Always beside the game's own
+ * top option, so the two can be compared at a glance.
+ */
+function ChooserLine({ decision }: { decision: AIDecision }) {
+  const c = decision.chooser;
+  if (!c) return null;
+  return (
+    <p className="ai-chooser" data-by={c.by}>
+      <Sparkles size={12} aria-hidden="true" />
+      <span>
+        {c.by === "model" ? (
+          <>
+            <b>Model&rsquo;s pick</b>
+            {c.model ? ` · ${c.model}` : ""}
+            {c.latencyMs !== undefined ? ` · ${seconds(c.latencyMs)}` : ""}
+            <br />
+            {c.agreed ? "Matches the game's own top option." : `The game's own top option was ${c.enginePick}.`}
+          </>
+        ) : (
+          <>
+            <b>Game&rsquo;s pick</b> · {c.note}
+          </>
+        )}
+        {c.by === "model" && c.note && <em>{c.note}</em>}
+      </span>
+    </p>
+  );
+}
+
+/** The menu a model is weighing right now, with the numbers the game measured for each option. */
+function PendingMenu({ menu, compact = false }: { menu: DecisionMenu; compact?: boolean }) {
+  return (
+    <div className="ai-pending" aria-live="polite">
+      <span className="ai-pending-head">
+        <Sparkles size={12} aria-hidden="true" /> {menu.point}: the model is choosing
+      </span>
+      <ul>
+        {menu.options.map(option => (
+          <li key={option.id}>
+            <strong>{option.label}</strong>
+            {!compact && (
+              <small>{Object.entries(option.features).map(([k, v]) => `${k} ${v}`).join(" · ")}</small>
+            )}
+          </li>
+        ))}
+      </ul>
+      {!compact && <p className="ai-pending-note">Every option was checked for fairness and measured by the game. The model only sees these numbers, not the game&rsquo;s own scores.</p>}
+    </div>
+  );
+}
 
 function ReadingList({ readings }: { readings: { key: string; label: string; value: string; hint?: string }[] }) {
   if (readings.length === 0) return <p className="ai-empty">Nothing observed yet.</p>;
@@ -106,9 +166,18 @@ function CandidateTable({ decision }: { decision: AIDecision }) {
     <ul className="ai-candidates">
       {decision.candidates.map(candidate => {
         const withheld = candidate.score <= -1000;
+        const enginePick = decision.chooser && candidate.action === (decision.chooser.engineAction ?? decision.chooser.enginePick);
         return (
           <li key={candidate.action} className={`${candidate.chosen ? "chosen" : ""} ${withheld ? "withheld" : ""}`}>
-            <span className="ai-candidate-name">{candidate.action}</span>
+            <span className="ai-candidate-name">
+              {candidate.action}
+              {decision.chooser && (candidate.chosen || enginePick) && (
+                <span className="ai-candidate-tags">
+                  {candidate.chosen && <i data-tag="executed">{decision.chooser.by === "model" ? "model's pick" : "played"}</i>}
+                  {enginePick && <i data-tag="engine">game&rsquo;s top</i>}
+                </span>
+              )}
+            </span>
             <span className="ai-candidate-bar" aria-hidden="true">
               <i style={{ width: withheld ? "0%" : `${Math.max(2, ((candidate.score - min) / span) * 100)}%` }} />
             </span>
@@ -242,6 +311,8 @@ export function AIInsights({ feed, onExpand }: { feed: InspectorFeed; onExpand: 
         )}
       </div>
       {short && <p className="ai-plan-reason">{short}</p>}
+      {feed.pending && <PendingMenu menu={feed.pending} compact />}
+      {decision && <ChooserLine decision={decision} />}
       {feed.lanes && feed.lanes.length > 0 && (
         <ol className="ai-plan-lanes" aria-label="Lanes">
           {feed.lanes.map(lane => (
@@ -262,6 +333,8 @@ export function AIInsights({ feed, onExpand }: { feed: InspectorFeed; onExpand: 
         <div className="ai-outcome" data-outcome={resolved.outcome}>
           <span>LAST RESULT · OBSERVED</span>
           <p>{resolved.outcomeNote || resolved.outcome}</p>
+          {resolved.chooser && <p className="ai-plan-full">{resolved.reason}</p>}
+          <ChooserLine decision={resolved} />
         </div>
       )}
       <details className="ai-plan-details">
@@ -327,6 +400,15 @@ export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: (
       detail: `${runtime.stats.attacksLanded} of ${runtime.stats.attacks} committed attacks`,
     },
   ];
+  const agreement = modelAgreement(runtime);
+  if (runtime.stats.modelPicks + runtime.stats.gamePicks > 0) {
+    coreMetrics.push({
+      key: "agreement",
+      label: "Model–game agreement",
+      value: agreement === null ? "—" : `${Math.round(agreement * 100)}%`,
+      detail: `${runtime.stats.modelAgreed} of ${runtime.stats.modelPicks} model picks matched the game's top option${runtime.stats.gamePicks ? `; the game picked ${runtime.stats.gamePicks} time${runtime.stats.gamePicks === 1 ? "" : "s"}` : ""}`,
+    });
+  }
   if (runtime.stats.nodesExplored > 0) {
     coreMetrics.push({
       key: "nodes",
@@ -381,7 +463,13 @@ export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: (
                 {stage === "perceive" && <ReadingList readings={runtime.perception} />}
                 {stage === "remember" && <ReadingList readings={runtime.memory} />}
                 {stage === "evaluate" &&
-                  (decision ? <CandidateTable decision={decision} /> : <p className="ai-empty">No cycle has run yet.</p>)}
+                  (feed.pending ? (
+                    <PendingMenu menu={feed.pending} />
+                  ) : decision ? (
+                    <CandidateTable decision={decision} />
+                  ) : (
+                    <p className="ai-empty">No cycle has run yet.</p>
+                  ))}
                 {stage === "decide" &&
                   (decision ? (
                     <div className="ai-decision">
@@ -392,6 +480,7 @@ export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: (
                         {timecode(decision.at)} · {decision.algorithm}
                         {decision.confidence !== undefined && ` · forecast ${Math.round(decision.confidence * 100)}%`}
                       </small>
+                      <ChooserLine decision={decision} />
                     </div>
                   ) : (
                     <p className="ai-empty">Observing. No committed action.</p>

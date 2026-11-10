@@ -41,15 +41,17 @@ export async function POST(request: Request, connection?: ModelConnection) {
   // The taunt is the rival's opening line, spoken as the encounter starts. It is
   // flavour only: it never feeds back into the plan or the rules.
   const schema = { type: "object", properties: { planId: { type: "string", enum: aiPlans }, focus: { type: "string", enum: [expectedFocus] }, taunt: { type: "string", minLength: 2, maxLength: 140 } }, required: ["planId", "focus", "taunt"], additionalProperties: false };
+  // Each line describes what the plan really does in that engine, so the model
+  // is choosing between real behaviours. Prefer the gentler plan after losses.
   const policyGuide = {
-    lotus: "pincer pursues through the maze; undertow intercepts junctions. All moves obey walls and fixed warning times.",
-    aeolus: "pincer varies visible wind-gate altitude; undertow strengthens telegraphed currents. Neither changes collision windows.",
-    calypso: "pincer coordinates drifting timbers; undertow uses alternating currents. Safe landings remain reachable.",
-    cyclops: "focused attacks the runner's current lane; sweep estimates the next lane from recent lane choices. Every attack locks 3100 ms before impact and always leaves two clear lanes. Prefer focused for repeated losses, otherwise sweep.",
+    lotus: "From Medium up, pincer sends the second guardian round to cut Odysseus off from the far side; undertow sends it to the junction ahead, or onto the path home while he carries a sailor. On Easy the guardians patrol. All moves obey walls and fixed step times. Prefer pincer for repeated losses, otherwise undertow.",
+    aeolus: "pincer swings the wind-gate openings higher and lower; undertow adds counter-gusts that answer the player's lift rhythm, from Medium up. Neither changes collision windows. Prefer pincer for repeated losses, otherwise undertow.",
+    calypso: "pincer, the storm watch, strikes more often at the timber where Odysseus stands; undertow, landing prediction, strikes where the current will carry him, from Medium up. Every strike keeps a verified safe hop. Prefer pincer for repeated losses, otherwise undertow.",
+    cyclops: "focused hunts the runner's current lane through the first section of the cave; sweep forecasts his next lane from his lane history. Each later section is re-planned live. Every throw is warned and leaves an escape lane that needs no jump or slide. Prefer focused for repeated losses, otherwise sweep.",
     circe: "chain previews the next potion for multi-chain matches; hoard uses the same planning but banks curses until the other board is crowded. Prefer chain for repeated losses, otherwise hoard.",
-    sirens: "swell repeats the weakest missed sound lane in new melodies; echo also adds visible rests and changes tempo between melodies. Choose a melody strategy using the missed-lane history.",
+    sirens: "swell leans each melody toward the lane Odysseus misses most; echo leans toward melodies with rests and changes. Each melody is then chosen live from fair options. Choose using the missed-lane history.",
     scylla: "pincer sends heads around the shield and synchronizes moderate whirlpool pull; undertow adds stronger synchronized pull during approaching attacks. Prefer pincer for repeated losses, otherwise undertow.",
-    bow: "surge reads the draught fully when aiming at the twelve axe openings; feint can sacrifice axes to lodge an arrow that narrows one opening for the player's next shot. Prefer surge for repeated losses, otherwise feint.",
+    bow: "surge, the wind reader, reads the full draught; feint, the block-shot gambit, favours lodging an arrow to narrow an opening for Odysseus' next shot. Each arrow is then chosen live from measured shots. Prefer surge for repeated losses, otherwise feint.",
   }[data.trialId];
   try {
     const response = await fetch(url, {

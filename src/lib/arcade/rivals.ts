@@ -4,7 +4,7 @@ import type { Space } from "../audio/dsp.ts";
 // Who speaks during an encounter. The model writes the words; the game decides
 // who is speaking, when, and from which facts. Voices are presentation only.
 export type Speaker = "bard" | "rival";
-export type VoiceId = "bard" | "odysseus" | TrialId;
+export type VoiceId = "bard" | "odysseus" | "athena" | TrialId;
 
 /** How a neural line is placed in the scene once it reaches the browser. */
 export type VoiceFx = {
@@ -39,6 +39,8 @@ export type VoiceProfile = {
 export const voices: Record<VoiceId, VoiceProfile> = {
   bard: { name: "The Bard", kokoro: "bm_george", speed: 0.95, browser: { pitch: 0.95, rate: 0.95 }, fx: { space: "hall", wet: 0.12, low: 1.5 } },
   odysseus: { name: "Odysseus", kokoro: "am_michael", speed: 0.95, browser: { pitch: 0.95, rate: 0.95 }, fx: { space: "hall", wet: 0.08 } },
+  // Athena counsels Odysseus in his own hall; Aoede is named for a Muse.
+  athena: { name: "Athena", kokoro: "af_aoede", speed: 0.95, browser: { pitch: 1.02, rate: 0.95 }, fx: { space: "hall", wet: 0.2, high: 1.5 } },
   lotus: { name: "Lotus Guardians", kokoro: "af_heart", speed: 0.9, browser: { pitch: 1.05, rate: 0.9 }, fx: { space: "ethereal", wet: 0.28, high: 2 } },
   cyclops: { name: "Polyphemus", kokoro: "am_fenrir", speed: 0.95, browser: { pitch: 0.85, rate: 0.9 }, fx: { pitch: 0.88, low: 5, space: "cave", wet: 0.3 } },
   aeolus: { name: "The Unbound Winds", kokoro: "am_puck", speed: 1.05, browser: { pitch: 1, rate: 1.05 }, fx: { space: "ethereal", wet: 0.22, high: 3 } },

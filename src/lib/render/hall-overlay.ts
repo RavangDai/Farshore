@@ -488,10 +488,12 @@ export class HallOverlay {
       return;
     }
     if (watching) {
-      const since = s.timer - BOW.flightMs - BOW.resultMs, a = fade(since, BOW.rivalAimMs + 300);
+      // He holds the aim while the model decides, so the banner stays until he looses.
+      const since = s.timer - BOW.flightMs - BOW.resultMs, a = clamp01(since / 250);
+      const deciding = !!s.decision && !s.decision.choice && !s.decision.failed;
       band(c, y - 46 * t, 128 * t, a);
-      shadowed(c, "ANTINOUS DRAWS", VIEW_W / 2, y, `bold ${Math.round(46 * t)}px ${SERIF}`, COPPER, "center", a);
-      shadowed(c, "His arrow flies down the same line. Watch where it strikes.", VIEW_W / 2, y + 54 * t, `${Math.round(21 * t)}px ${SANS}`, CREAM, "center", a);
+      shadowed(c, deciding ? "ANTINOUS STUDIES THE DRAUGHT" : "ANTINOUS DRAWS", VIEW_W / 2, y, `bold ${Math.round((deciding ? 38 : 46) * t)}px ${SERIF}`, COPPER, "center", a);
+      shadowed(c, deciding ? "He weighs his shots. Watch where his arrow strikes." : s.rivalLine || "His arrow flies down the same line. Watch where it strikes.", VIEW_W / 2, y + 54 * t, `${Math.round(21 * t)}px ${SANS}`, CREAM, "center", a);
     }
   }
 

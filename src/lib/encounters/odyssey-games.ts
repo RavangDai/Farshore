@@ -4,7 +4,7 @@ export type AdventureId = "lotus" | "cyclops" | "aeolus" | "calypso";
 type Point = { x: number; y: number };
 export type AIDebug = { algorithm: string; state: string; target: string; prediction: string; confidence: number; pathLength: number; decision: string };
 type Base = { id: AdventureId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; elapsed: number; done: boolean; won: boolean; feedback: string; rivalLine: string; score: number; rivalScore: number; hits: number; damageTaken: number; successes: number; misses: number; combo: number; bestCombo: number; invulnerable: number; duration: number; debug: AIDebug };
-export type LotusState = Base & { id: "lotus"; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number };
+export type LotusState = Base & { id: "lotus"; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number; camp?: number };
 export type Obstacle = { lane: number; kind: "rock" | "crate" | "beam" | "gap" | "sheep" | "coin"; remaining: number; warning: number };
 export type RunnerState = Base & { id: "cyclops"; lane: number; history: number[]; jump: number; slide: number; gap: number; obstacles: Obstacle[]; spawn: number; wave: number; coins: number; precision: number };
 export type WindGate = { x: number; center: number; gap: number; passed: boolean; pickup: "wind" | "repair"; collected: boolean; hit?: boolean };
@@ -115,13 +115,28 @@ export function tickAdventure(state: AdventureState, delta: number): AdventureSt
       s.guardians = s.guardians.map((guard, i) => {
         const detected = Math.abs(guard.x - s.player.x) + Math.abs(guard.y - s.player.y) <= 7;
         let target = waypoints[(Math.floor(s.patrol / 9) + i * 2) % waypoints.length];
-        if (t >= 1 && detected) {
+        // The model's plan shapes the second guardian from Medium up: the
+        // pincer cuts you off from the far side, the undertow takes the
+        // junction ahead or the path home. It may hold a spot only briefly.
+        const plan = s.plan.source === "ai" ? s.plan.planId : "patrol";
+        // A guardian that has held one spot for 4 steps patrols for the next 6.
+        const camping = i === 1 && ((s.camp ?? 0) >= 4 || (s.camp ?? 0) < 0);
+        if (t >= 1 && detected && !camping) {
           target = s.player;
-          if (t === 2 && i === 1) { const prediction = { x: s.player.x + s.player.x - s.previous.x, y: s.player.y + s.player.y - s.previous.y }; target = walkable(prediction) ? prediction : s.player; }
-          s.rivalLine = t === 2 ? "Intercept · a guardian is heading for your next junction." : "Pursuit · detected! The guardian follows the shortest open path.";
+          if (i === 1 && plan === "pincer") {
+            const lead = s.guardians[0], dx = Math.sign(s.player.x - lead.x), dy = Math.sign(s.player.y - lead.y);
+            const flank = { x: s.player.x + dx * 2, y: s.player.y + dy * 2 };
+            target = walkable(flank) ? flank : s.player;
+          } else if (i === 1 && (plan === "undertow" || t === 2)) {
+            const home = s.carrying && plan === "undertow" ? mazePath(s.player, LOTUS_SHIP)[2] : undefined;
+            const prediction = { x: s.player.x + s.player.x - s.previous.x, y: s.player.y + s.player.y - s.previous.y };
+            target = home ?? (walkable(prediction) ? prediction : s.player);
+          }
+          s.rivalLine = plan === "pincer" ? "Pincer · one guardian follows, the other circles to cut you off." : plan === "undertow" || t === 2 ? (s.carrying && plan === "undertow" ? "Undertow · a guardian moves to block your way back to the ship." : "Intercept · a guardian is heading for your next junction.") : "Pursuit · detected! The guardian follows the shortest open path.";
         } else s.rivalLine = "Patrol · guardians follow the garden paths. Walls block their movement.";
         const path = mazePath(guard, target);
         s.debug = { algorithm: t === 0 ? "Patrol FSM" : t === 1 ? "A* pursuit" : "A* interception", state: detected && t > 0 ? t === 2 && i === 1 ? "Intercept" : "Pursuit" : "Patrol", target: `${target.x}, ${target.y}`, prediction: `${s.player.x + s.player.x - s.previous.x}, ${s.player.y + s.player.y - s.previous.y}`, confidence: detected ? .8 : .2, pathLength: path.length, decision: s.rivalLine };
+        if (i === 1) { const held = s.camp ?? 0; s.camp = held >= 4 ? -6 : held < 0 ? held + 1 : path.length === 0 && t >= 1 && detected ? held + 1 : 0; }
         return path[0] || guard;
       });
       checkLotus(s);
@@ -156,14 +171,15 @@ export function tickAdventure(state: AdventureState, delta: number): AdventureSt
     s.gustClock -= dt;
     if (s.gustClock <= 0) {
       const interval = s.liftHistory.length > 1 ? (s.liftHistory.at(-1)! - s.liftHistory[0]) / (s.liftHistory.length - 1) : 1000;
-      s.gust = t === 0 ? 0 : Math.sin(s.elapsed / 1900) * 22 + (t === 2 || s.plan.planId === "undertow" ? clamp(-s.vy * .16 + (700 - interval) * .025, -32, 32) : 0);
+      const undertow = s.plan.source === "ai" && s.plan.planId === "undertow", reach = undertow ? 38 : 32;
+      s.gust = t === 0 ? 0 : Math.sin(s.elapsed / 1900) * 22 + (t === 2 || undertow ? clamp((-s.vy * .16 + (700 - interval) * .025) * (undertow ? 1.25 : 1), -reach, reach) : 0);
       s.gustClock = 500;
       s.debug = { algorithm: t === 0 ? "Fixed wind" : t === 1 ? "Variable wind field" : "Adaptive counter-gust", state: s.vy < 0 ? "Ascent" : "Descent", target: `Opening ${Math.round(s.lastCenter)} px`, prediction: `Lift interval ${Math.round(interval)} ms`, confidence: Math.min(.9, s.liftHistory.length / 8), pathLength: 0, decision: `Wind force ${s.gust.toFixed(1)}; adjustment bounded to 54` };
     }
     s.vy = clamp(s.vy + (440 + s.gust) * dt / 1000, -240, 270); s.y += s.vy * dt / 1000; s.spawn -= dt;
     if (s.y < 24 || s.y > 376) { if (damage(s, "The hull meets the storm. Short taps help you hold a steady course.")) { s.y = clamp(s.y, 45, 355); s.vy = 0; } else s.y = clamp(s.y, 24, 376); }
     if (s.spawn <= 0) {
-      const desired = 200 + Math.sin(s.wave * .85) * (s.plan.source === "ai" ? 90 : 65);
+      const desired = 200 + Math.sin(s.wave * .85) * (s.plan.source === "ai" && s.plan.planId === "pincer" ? 90 : 65);
       const center = clamp(desired, s.lastCenter - 54, s.lastCenter + 54); s.lastCenter = center;
       s.gates.push({ x: 850, center, gap: [200, 175, 155][t], passed: false, pickup: s.wave % 4 === 3 ? "repair" : "wind", collected: false }); s.wave++; s.spawn = 2900;
       s.rivalLine = `Wind gate ${s.wave} · the clear passage is ${center < 170 ? "high" : center > 230 ? "low" : "central"}. Read ahead.`;
@@ -185,12 +201,13 @@ export function tickAdventure(state: AdventureState, delta: number): AdventureSt
     s.stormClock -= dt;
     if (s.stormClock <= 0 && !s.lightning) {
       const warning = [2400, 2000, 1700][t], row = s.row, predicted = row > 0 && row < 8 ? s.x + s.rows[row - 1].speed * warning / 1000 : s.x;
-      const x = t === 2 ? predicted : s.x;
+      const watch = s.plan.source === "ai" && s.plan.planId === "pincer", predicts = t === 2 || (s.plan.source === "ai" && s.plan.planId === "undertow" && t >= 1);
+      const x = watch ? s.x : predicts ? predicted : s.x;
       const alternatives = [-1, 1].map(dx => s.x + dx).filter(next => next > .3 && next < 6.7 && onTimber(s, next, row, warning) && Math.abs(next - x) > .75);
       // Never target either resting shore or a landing without a verified escape.
       if (row > 0 && row < 8 && alternatives.length > 0) s.lightning = { x, row, warning, age: 0 };
       s.debug = { algorithm: t === 0 ? "Telegraphed storm" : t === 1 ? "Current-aware storm FSM" : "Landing prediction + reachability", state: s.lightning ? "Strike locked" : "Withholding strike", target: `Row ${row}; x ${x.toFixed(2)}`, prediction: `Landing ${predicted.toFixed(2)}`, confidence: t === 2 ? .85 : .4, pathLength: alternatives.length, decision: s.lightning ? "Safe alternate verified before warning" : "No safe alternate; no strike" };
-      s.stormClock = [10000, 8000, 6500][t];
+      s.stormClock = [10000, 8000, 6500][t] * (s.plan.source === "ai" && s.plan.planId === "pincer" ? 0.8 : 1);
     }
     if (s.lightning) {
       s.lightning.warning -= dt;

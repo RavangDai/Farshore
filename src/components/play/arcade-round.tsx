@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, LogOut, Play, RotateCcw, Settings as SettingsIcon } from "lucide-react";
 import { difficultyNames, planLabel, planNames, trialFor, trials, type Difficulty, type OpponentPlan, type TrialId } from "../../lib/arcade/arcade";
 import { statusLabel } from "../../lib/encounters/mythic";
@@ -10,10 +10,14 @@ import {
   isAdventure,
   isBow,
   isCave,
+  isSong,
   demonstrate,
+  pendingMenu,
   type GameAction,
   type GameState,
 } from "../../lib/arcade/arcade-runtime";
+import { DecisionDirector, type ChoiceAction } from "../../lib/arcade/decisions";
+import { AthenaCounsel } from "./athena-counsel";
 import { adventureStatus } from "../../lib/encounters/odyssey-games";
 import { caveStatus } from "../../lib/encounters/cave-runner";
 import { audioFrame, type AudioFrame } from "../../lib/audio/cues";
@@ -27,7 +31,7 @@ import { SIGHT_PER_PX } from "../../lib/render/hall-view";
 import { GameStage } from "./game-stage";
 import { ArcadeHUD } from "./arcade-hud";
 import { AIInspector, nextMode, type InspectorMode } from "../ai/ai-inspector";
-import { caveFeed } from "../../lib/ai/feeds";
+import { PLAN_EFFECTS, bowFeed, caveFeed, planFeed, planRuntime, songFeed } from "../../lib/ai/feeds";
 import { CharacterPortrait, TrialArtwork } from "../farshore-art";
 import { CommentarySubtitle, EncounterCodex } from "./encounter-codex";
 
@@ -75,6 +79,8 @@ type Props = {
   opening?: Promise<string>;
   /** Live model commentary during play. */
   commentary?: boolean;
+  /** A connected model makes the rival's in-game decisions from the game's checked menus. */
+  decisions?: boolean;
   onSpeak?: (text: string, voice: VoiceId) => void;
   onSilence?: () => void;
 };
@@ -99,10 +105,11 @@ export function ArcadeRound({
   taunt,
   opening: openingLine,
   commentary = false,
+  decisions = false,
   onSpeak,
   onSilence,
 }: Props) {
-  const [round, setRound] = useState(() => createGame(id, difficulty, plan, practice, seed, originalCave));
+  const [round, setRound] = useState(() => createGame(id, difficulty, plan, practice, seed, originalCave, decisions));
   const current = useRef(round), finished = useRef(false), held = useRef(new Set<string>());
   const [phase, setPhase] = useState<"countdown" | "active" | "paused">("countdown");
   const [count, setCount] = useState(3);
@@ -119,6 +126,8 @@ export function ArcadeRound({
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
   const director = useRef<CommentaryDirector | null>(null);
+  const decider = useRef<DecisionDirector | null>(null);
+  const spoken = useRef(-100);
 
   const perspective = isCave(round) || isBow(round);
   const trial = originalCave
@@ -132,6 +141,7 @@ export function ArcadeRound({
     : trialFor(id);
   const strategy = originalCave ? planNames[plan.planId] : planLabel(id, plan);
   const chapter = trials.findIndex(t => t.id === id) + 1;
+  const planned = useMemo(() => planRuntime(id, trial.character, plan.planId, strategy), [id, plan.planId, strategy, trial.character]);
 
   // A lab run opens straight into the expanded panel — that is the point of
   // the demonstration — rather than the player's own remembered preference.
@@ -162,6 +172,35 @@ export function ArcadeRound({
     };
   }, [commentary, id, difficulty]);
 
+  // In-game decisions: each time an engine opens a menu, the model is asked to
+  // pick from it. The answer comes back as an engine action, which the engine
+  // re-validates; the rival's line is spoken and shown as a subtitle.
+  useEffect(() => {
+    if (!decisions) return;
+    const d = new DecisionDirector({
+      trialId: id,
+      difficulty,
+      lab: !!labOverlay,
+      onAction: (action: ChoiceAction) => {
+        if (finished.current) return;
+        if (action.type === "choose" && action.choice.line) {
+          const text = action.choice.line;
+          director.current?.remember(text);
+          setLog(old => [...old, { id: --spoken.current, speaker: "rival" as const, text, moment: "danger" as const }].slice(-8));
+          // The Sirens' verse is shown, never spoken: the ear belongs to the melody.
+          if (id !== "sirens") callbacks.current.onSpeak?.(text, id);
+        }
+        commit(gameAction(current.current, action));
+      },
+    });
+    decider.current = d;
+    d.offer(pendingMenu(current.current));
+    return () => {
+      d.dispose();
+      decider.current = null;
+    };
+  }, [decisions, id, difficulty]);
+
   // The rival's taunt opens the encounter, once, over the title card.
   useEffect(() => {
     if (taunt) callbacks.current.onSpeak?.(taunt, id);
@@ -188,6 +227,7 @@ export function ArcadeRound({
     const old = current.current;
     current.current = next;
     setRound(next);
+    decider.current?.offer(pendingMenu(next));
     // Sound and commentary are both derived from what just changed in the
     // engine. The final word on a round belongs to the results screen.
     callbacks.current.onAudio?.(audioFrame(old, next));
@@ -218,7 +258,8 @@ export function ArcadeRound({
     setPhase("paused");
   }
   function restartRound() {
-    const next = createGame(id, difficulty, plan, practice, seed, originalCave);
+    const next = createGame(id, difficulty, plan, practice, seed, originalCave, decisions);
+    decider.current?.reset();
     current.current = next;
     finished.current = false;
     held.current.clear();
@@ -429,15 +470,20 @@ export function ArcadeRound({
     };
   }, [phase, inspector]);
 
-  const feed = isCave(round) ? caveFeed(round) : null;
+  const feed = isCave(round) ? caveFeed(round) : isBow(round) ? bowFeed(round) : isSong(round) ? songFeed(round) : planFeed(planned, difficulty, round.elapsed, [{ key: "now", label: "Right now", value: round.rivalLine || "Watching" }]);
   const status = statusOf(round);
   const latest = log.at(-1) ?? null;
+  // The 2D encounter the model steers live keeps its compact panel in the sidebar.
+  const live = isSong(round);
+  const effect = !live && !perspective ? PLAN_EFFECTS[id]?.[plan.planId] : undefined;
   const note = demo
     ? "AI demonstration · no progress is saved."
     : practice
       ? "Practice leaves your voyage progress untouched."
       : modelPrepared
-        ? "Your AI rival chose this strategy before the round and acts on it live. The game owns every collision, score and unlock."
+        ? decisions && (id === "bow" || id === "sirens" || id === "cyclops")
+          ? "Your AI rival chose this strategy before the round, and makes its in-game choices live from options the game has checked. The game owns every collision, score and unlock."
+          : `Your AI rival chose this strategy before the round.${effect ? ` ${effect}` : ""} The game carries it out and owns every collision, score and unlock. F3 opens the AI Lab.`
         : "Rival logic reacts to you during play.";
 
   const veil =
@@ -551,7 +597,19 @@ export function ArcadeRound({
         <>
           {veil}
           {phase === "active" && <CommentarySubtitle line={latest} id={id} />}
-          {inspector === "insights" && feed && <AIInspector mode="insights" feed={feed} onMode={chooseInspector} />}
+          {phase === "active" && isBow(round) && decisions && (
+            <AthenaCounsel
+              state={round}
+              active={phase === "active"}
+              onCounsel={() => act({ type: "counsel" })}
+              onSpeak={text => callbacks.current.onSpeak?.(text, "athena")}
+            />
+          )}
+          {inspector === "insights" && feed && perspective && (
+            <div className="fs-insights-slot" data-trial={id}>
+              <AIInspector mode="insights" feed={feed} onMode={chooseInspector} />
+            </div>
+          )}
         </>
       }
       inspector={
@@ -606,6 +664,7 @@ export function ArcadeRound({
       </p>
       {!perspective && (
         <aside className="fs-legacy-support fs-codex" aria-label="Encounter details">
+          {inspector === "insights" && feed && live && <AIInspector mode="insights" feed={feed} onMode={chooseInspector} />}
           <EncounterCodex
             state={round}
             character={trial.character}

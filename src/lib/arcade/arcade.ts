@@ -37,7 +37,7 @@ export const trials = [
 export const planNames: Record<PlanId, string> = { alternating: "Blind search", focused: "Noise heatmap", sweep: "Exit ambush", steady: "Repeating melody", swell: "Weak-lane refrain", echo: "Trick-note echo", patient: "Unsteady suitor", surge: "Wind reader", feint: "Block-shot gambit", brew: "Simple brew", chain: "Chain alchemist", hoard: "Banked curses", patrol: "Six-head patrol", pincer: "Shield pincer", undertow: "Synchronized undertow" };
 export function planLabel(id: TrialId, plan: OpponentPlan) {
   const names: Partial<Record<TrialId, Partial<Record<PlanId, string>>>> = {
-    lotus: { patrol: "Garden patrol", pincer: "Maze pursuit", undertow: "Junction interception" },
+    lotus: { patrol: "Garden patrol", pincer: "Pincer pursuit", undertow: "Junction interception" },
     cyclops: { alternating: "Cave patrol", focused: "Lane pursuit", sweep: "Lane prediction" },
     aeolus: { patrol: "Gentle breeze", pincer: "Shifting winds", undertow: "Counter-gusts" },
     calypso: { patrol: "Drifting currents", pincer: "Storm watch", undertow: "Landing prediction" },

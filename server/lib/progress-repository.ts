@@ -45,7 +45,8 @@ export function progressRepository(db: Db, client: MongoClient, userId: string):
       } finally { await session.endSession(); }
     },
     limit(category, max) {
-      const ceilings: Record<string, number> = { progress: 90, "ai-settings": 20, model: 6, "model-check": 8 };
+      // Live commentary, in-game decisions and Athena's counsel each have their own budget.
+      const ceilings: Record<string, number> = { progress: 90, "ai-settings": 20, model: 6, "model-check": 8, commentary: 24, decide: 30, athena: 12 };
       if (!ceilings[category]) throw new Error("Unsupported request limit.");
       return consumeLimit(db, `user:${userId}:${category}`, Math.min(max, ceilings[category]));
     },

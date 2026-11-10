@@ -1,4 +1,10 @@
 import { validPlan, type AttemptSummary, type Difficulty, type OpponentPlan, type TrialId, type LegacyTrialId } from "../arcade/arcade.ts";
+import { acceptChoice, settle, type ChoiceAction, type DecisionMenu, type PendingDecision } from "../arcade/decisions.ts";
+import { bowMenu, errorScale, intendedAim, intentOf, type BowPhysics } from "../ai/antinous.ts";
+import { BLOCK_SHOT_CAP } from "../ai/ithaca.ts";
+import { commitDecision, logEvent, newRuntime, recordOutcome, type AIRuntime, type Reading } from "../ai/types.ts";
+import { commitSirens, evaluateSirens, learnFromEcho, sirensMenu, sirensPolicy, type SirensEvaluation, type SirensPerception } from "../ai/sirens.ts";
+import { newPlayerModel, type PlayerModel } from "../ai/player-model.ts";
 
 export const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 export const tierOf = (d: Difficulty) => ["easy", "normal", "hard"].indexOf(d);
@@ -9,7 +15,14 @@ export type Tile = 0 | 1 | 2 | 3 | 4 | 5;
 export const TILE_NAMES = ["Empty", "Wine", "Moly", "Swine", "Rune", "Curse"];
 export type PotionState = Base & { id: "circe"; board: Tile[]; rivalBoard: Tile[]; piece: Tile[]; rivalPiece: Tile[]; next: Tile[]; rivalNext: Tile[]; column: number; rivalColumn: number; rivalRotation: number; timer: number; rivalTimer: number; bank: number; turn: number; chains: number };
 export type SongNote = { lane: number; rest: boolean };
-export type SongState = Base & { id: "sirens"; notes: SongNote[]; phase: "listen" | "reply" | "rest"; timer: number; beat: number; entered: number[]; temptation: number; round: number; laneMisses: [number, number, number, number]; lastLane: number; flash: number };
+export type SongState = Base & { id: "sirens"; notes: SongNote[]; phase: "listen" | "reply" | "rest"; timer: number; beat: number; entered: number[]; temptation: number; round: number; laneMisses: [number, number, number, number]; lastLane: number; flash: number } & SongMind;
+/**
+ * The Sirens' mind: the reviewed composition controller's runtime and player
+ * model, the melodies it scored for the coming round, and the model's pick
+ * from them once it arrives. `replyMs` is when the last tap of this reply
+ * landed, from which the player's pace is measured.
+ */
+export type SongMind = { ai: AIRuntime; model: PlayerModel; composition: SirensEvaluation | null; decision: PendingDecision | null; modelDecisions: boolean; melodyDecision: string; replyMs: number };
 export type Strike = { x: number; y: number; vx: number; vy: number; reflected: boolean; head: number };
 export type StraitState = Base & { id: "scylla"; paddle: number; boat: number; rowing: boolean; strikes: Strike[]; spawn: number; head: number; pull: number; duration: number; telegraph: number; targetY: number };
 /** A sight (`aim` sideways, `elevation` up, in sight units) and how far the string is drawn (`tension`, 0-100). */
@@ -20,9 +33,16 @@ export type Shot = { aim: Aim; wind: number; rings: number; path: Point[]; block
  * string has been held back, which `draw` (0-1) and the tremble both derive
  * from. `lastShot` keeps the player's previous arrow for the sight's ghost line.
  */
-export type BowState = Base & { id: "bow"; aim: Aim; wind: number; turn: number; phase: "player" | "rival" | "review"; timer: number; shot: Shot | null; blocked: number; rivalAim: Aim; shots: number[]; rivalShots: number[]; drawing: boolean; draw: number; pull: number; lastShot: Shot | null };
+export type BowState = Base & { id: "bow"; aim: Aim; wind: number; turn: number; phase: "player" | "rival" | "review"; timer: number; shot: Shot | null; blocked: number; rivalAim: Aim; shots: number[]; rivalShots: number[]; drawing: boolean; draw: number; pull: number; lastShot: Shot | null } & BowMind;
+/**
+ * Antinous' mind: his explainable runtime, and the shot menu the game measured
+ * for his next arrow with the model's pick once it arrives. `modelDecisions`
+ * is set by a live round, where a pretrained model chooses; with it off (the
+ * engine on its own, as in tests) the game's own top option plays on time.
+ */
+export type BowMind = { ai: AIRuntime; decision: PendingDecision | null; modelDecisions: boolean; counsel: number };
 export type MythicState = GridState | PotionState | SongState | StraitState | BowState;
-export type Action = { type: "move"; dx: number; dy: number } | { type: "stance"; stance: "sneak" | "dash" } | { type: "hide" } | { type: "column"; direction: number } | { type: "rotate" } | { type: "drop" } | { type: "note"; lane: number } | { type: "paddle"; y: number } | { type: "row"; held: boolean } | { type: "aim"; field: "aim" | "elevation"; value: number } | { type: "sight"; aim: number; elevation: number } | { type: "draw"; held: boolean } | { type: "shoot" } | { type: "letdown" };
+export type Action = { type: "move"; dx: number; dy: number } | { type: "stance"; stance: "sneak" | "dash" } | { type: "hide" } | { type: "column"; direction: number } | { type: "rotate" } | { type: "drop" } | { type: "note"; lane: number } | { type: "paddle"; y: number } | { type: "row"; held: boolean } | { type: "aim"; field: "aim" | "elevation"; value: number } | { type: "sight"; aim: number; elevation: number } | { type: "draw"; held: boolean } | { type: "shoot" } | { type: "letdown" } | { type: "counsel" } | ChoiceAction;
 function roll(s: Base) { s.seed = (Math.imul(s.seed, 1664525) + 1013904223) >>> 0; return s.seed / 4294967296; }
 const same = (a: Point, b: Point) => a.x === b.x && a.y === b.y;
 const covers = (t: Point, p: Point) => p.x >= t.x && p.x <= t.x + 1 && p.y >= t.y && p.y <= t.y + 1;
@@ -31,7 +51,7 @@ function end<T extends MythicState>(s: T, won: boolean, feedback: string): T { s
 function streak(s: Base, good: boolean) { s.combo = good ? s.combo + 1 : 0; s.bestCombo = Math.max(s.bestCombo, s.combo); }
 function clone<T extends MythicState>(s: T): T { return structuredClone(s); }
 
-export function newMythic(id: LegacyTrialId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200): MythicState {
+export function newMythic(id: LegacyTrialId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200, options: { modelDecisions?: boolean } = {}): MythicState {
   if (!validPlan(id, plan) || !["easy", "normal", "hard"].includes(difficulty)) throw new Error("Unsupported trial rules");
   const b: Base = { id, difficulty, plan: { ...plan }, practice, seed, elapsed: 0, done: false, won: false, feedback: "", rivalLine: "", score: 0, rivalScore: 0, hits: 0, successes: 0, misses: 0, combo: 0, bestCombo: 0 };
   if (id === "cyclops") return { ...b, id, player: { x: 0, y: 7 }, sheep: [{ x: 1, y: 7 }, { x: 3, y: 5 }, { x: 5, y: 3 }, { x: 6, y: 7 }, { x: 4, y: 0 }], walls: [{ x: 2, y: 6 }, { x: 2, y: 5 }, { x: 4, y: 4 }, { x: 4, y: 3 }, { x: 1, y: 2 }, { x: 5, y: 1 }], noise: [], heat: Array(64).fill(0), target: { x: 3, y: 3 }, turn: 0, phase: "player", timer: 0, evaded: false, stance: "sneak", hidden: false, feedback: "Sneak toward either gold exit. Sheep conceal your footsteps.", rivalLine: "Nobody... where are you?" };
@@ -40,9 +60,15 @@ export function newMythic(id: LegacyTrialId, difficulty: Difficulty, plan: Oppon
     for (let y = 8; y < 10; y++) for (let x = 0; x < 6; x++) { s.board[y * 6 + x] = ((x + y) % 4 + 1) as Tile; s.rivalBoard[y * 6 + x] = ((x * 3 + y) % 4 + 1) as Tile; }
     s.piece = [2, 2, 2]; s.next = nextPiece(s); s.rivalPiece = nextPiece(s); s.rivalNext = nextPiece(s); planPotion(s); return s;
   }
-  if (id === "sirens") { const s: SongState = { ...b, id, notes: [], phase: "listen", timer: 0, beat: 0, entered: [], temptation: 0, round: 1, laneMisses: [0, 0, 0, 0], lastLane: -1, flash: 0, feedback: "Listen first. Echo the numbered notes when YOUR REPLY appears.", rivalLine: "Come closer. Remember our song." }; compose(s); return s; }
+  if (id === "sirens") {
+    // The first melody is chosen while the title card counts down, so play opens on it.
+    const s: SongState = { ...b, id, notes: [], phase: "rest", timer: SONG_REST_MS, beat: 0, entered: [], temptation: 0, round: 1, laneMisses: [0, 0, 0, 0], lastLane: -1, flash: 0, feedback: "Listen first. Echo the numbered notes when YOUR REPLY appears.", rivalLine: "Come closer. Remember our song.", ai: newRuntime("sirens", "The Sirens", sirensPolicy(difficulty, plan.source === "ai").algorithm), model: newPlayerModel(4), composition: null, decision: null, modelDecisions: !!options.modelDecisions, melodyDecision: "", replyMs: 0 };
+    openMelodyMenu(s, 1);
+    if (!s.modelDecisions) compose(s);
+    return s;
+  }
   if (id === "scylla") return { ...b, id, paddle: 200, boat: 55, rowing: false, strikes: [], spawn: 1500, head: 0, pull: 0, duration: practice ? 12000 : [60000, 75000, 90000][tierOf(difficulty)], telegraph: 0, targetY: 200, feedback: "Move the shield up and down. Hold Row to resist the vortex.", rivalLine: "Six heads. One ship." };
-  const s: BowState = { ...b, id: "bow", aim: { aim: 0, elevation: 0, tension: 0 }, wind: 0, turn: 1, phase: "player", timer: 0, shot: null, blocked: 0, rivalAim: { aim: 0, elevation: 0, tension: 100 }, shots: [], rivalShots: [], drawing: false, draw: 0, pull: 0, lastShot: null, feedback: "Shoot through the twelve axe heads. Hold to draw, let go to loose.", rivalLine: "My hall. My contest." }; setWind(s); return s;
+  const s: BowState = { ...b, id: "bow", aim: { aim: 0, elevation: 0, tension: 0 }, wind: 0, turn: 1, phase: "player", timer: 0, shot: null, blocked: 0, rivalAim: { aim: 0, elevation: 0, tension: 100 }, shots: [], rivalShots: [], drawing: false, draw: 0, pull: 0, lastShot: null, feedback: "Shoot through the twelve axe heads. Hold to draw, let go to loose.", rivalLine: "My hall. My contest.", ai: newRuntime("antinous", "Antinous", bowAlgorithm(difficulty)), decision: null, modelDecisions: !!options.modelDecisions, counsel: 0 }; setWind(s); return s;
 }
 
 function chooseSmash(s: GridState) {
@@ -153,22 +179,57 @@ function potionDrop(s: PotionState, rival: boolean) {
   if (s.practice && s.turn >= 4 && !s.done) end(s, true, "Potion practice complete. You can now challenge Circe.");
 }
 
-export function songBeat(s: SongState) { return [820, 650, 520][tierOf(s.difficulty)] * (s.plan.source === "ai" && s.plan.planId === "echo" ? [1, .85, 1.15][(s.round - 1) % 3] : 1); }
+export function songBeat(s: SongState) { return s.beat > 0 ? s.beat : [820, 650, 520][tierOf(s.difficulty)]; }
+/** The rest between melodies lasts at least this long; with a model choosing, up to SONG_WAIT_MS longer. */
+export const SONG_REST_MS = 1700;
+export const SONG_WAIT_MS = 3500;
+const sirensView = (s: SongState, round: number): SirensPerception => ({ at: s.elapsed, phase: s.phase, phaseMs: s.timer, round, notes: s.notes, beatMs: songBeat(s), entered: s.entered, lastLane: s.lastLane, temptation: s.temptation, melodiesAnswered: s.successes, melodiesNeeded: s.practice ? 1 : 5, laneMisses: s.laneMisses, missedNotes: s.misses, combo: s.combo });
+/**
+ * Score every fair melody for the coming round and lay the best out as the
+ * model's menu. The declared plan leans the scores: the Weak-lane refrain
+ * favours the weave, the Trick-note echo the melodies with rests in them.
+ */
+function openMelodyMenu(s: SongState, round: number) {
+  const evaluation = evaluateSirens(s.ai, s.model, sirensView(s, round), s.difficulty, s.plan.source === "ai", round, () => roll(s));
+  const lean = s.plan.planId === "swell" ? "sing:weave" : s.plan.planId === "echo" ? "sing:syncopated" : "";
+  for (const proposal of evaluation.proposals) if (proposal.id === lean && !proposal.withheld) proposal.score += 12;
+  for (const candidate of evaluation.candidates) { const proposal = evaluation.proposals.find(p => p.id === candidate.action); if (proposal) candidate.score = Math.round(proposal.score * 10) / 10; }
+  const menu = sirensMenu(evaluation, s.model, `sirens-${round}`, s.elapsed);
+  s.composition = { ...evaluation, round };
+  s.decision = menu ? { menu, choice: null, failed: null } : null;
+}
+/** Sing the chosen melody: the model's pick from the menu, or the controller's own when it could not answer. */
 function compose(s: SongState) {
-  const count = Math.min(6, s.round + 2), weakest = s.laneMisses.indexOf(Math.max(...s.laneMisses));
-  s.notes = Array.from({ length: count }, (_, i) => ({ lane: s.plan.source === "ai" || s.difficulty === "hard" ? i % 2 === 1 ? weakest : Math.floor(roll(s) * 4) : (i + s.round - 1) % 4, rest: s.plan.planId === "echo" && i === count - 2 && s.round > 1 }));
-  s.rivalLine = s.plan.source === "ai" && Math.max(...s.laneMisses) > 0 ? `The ${["red", "blue", "green", "gold"][weakest]} note slips away from you. Hear it again.` : "Listen to our melody. Then sing it back.";
-  s.phase = "listen"; s.timer = 0; s.entered = []; s.lastLane = -1;
+  const evaluation = s.composition;
+  if (!evaluation) { openMelodyMenu(s, s.round); return compose(s); }
+  const view = sirensView(s, evaluation.round), pending = s.decision;
+  let spoken = "";
+  const action = pending
+    ? (() => {
+        const { option, chooser, reason, line } = settle(pending);
+        spoken = line;
+        return commitSirens(s.ai, s.model, evaluation, view, { optionId: option.id, chooser, ...(chooser.by === "model" ? { reason, summary: line || reason } : {}) });
+      })()
+    : commitSirens(s.ai, s.model, evaluation, view);
+  s.composition = null; s.decision = null;
+  if (action.kind === "hold") { s.timer = SONG_REST_MS - action.retryMs; openMelodyMenu(s, evaluation.round); return; }
+  s.round = evaluation.round;
+  s.notes = action.notes; s.beat = action.beatMs; s.melodyDecision = action.decisionId;
+  const weakest = s.laneMisses.indexOf(Math.max(...s.laneMisses));
+  s.rivalLine = spoken || (Math.max(...s.laneMisses) > 0 ? `The ${["red", "blue", "green", "gold"][weakest]} note slips away from you. Hear it again.` : "Listen to our melody. Then sing it back.");
+  s.phase = "listen"; s.timer = 0; s.entered = []; s.lastLane = -1; s.replyMs = 0;
 }
 function resolveSong(s: SongState) {
   const melody = s.notes.filter(n => !n.rest), errors = melody.reduce((n, note, i) => n + Number(s.entered[i] !== note.lane), 0);
+  learnFromEcho(s.ai, s.model, s.elapsed, s.melodyDecision, s.notes, s.entered, s.entered.length ? s.replyMs : undefined);
   if (!errors) { s.successes++; s.score += 100 + melody.length * 20; s.temptation = Math.max(0, s.temptation - 15); streak(s, true); s.feedback = "A true echo! The ship moves beyond the rocks."; }
   else { s.misses += errors; s.temptation += errors * [14, 20, 25][tierOf(s.difficulty)]; streak(s, false); s.feedback = `${errors} note${errors > 1 ? "s" : ""} missed. The song pulls at the ship.`; melody.forEach((n, i) => { if (s.entered[i] !== n.lane) s.laneMisses[n.lane]++; }); }
   if (s.temptation >= 100) { end(s, false, "Temptation filled the gauge. The ship veers toward the rocks."); return; }
   if (s.successes >= (s.practice ? 1 : 5)) { end(s, true, "The last melody fades behind your ship."); return; }
   s.phase = "rest"; s.timer = 0;
+  // The next melody is chosen now, so the model has the whole rest to answer.
+  openMelodyMenu(s, s.round + 1);
 }
-
 /**
  * The contest of the twelve axes, shared by the rules, the hall renderer and
  * the sound cues so all three agree on where an arrow is and when.
@@ -211,6 +272,8 @@ export const BOW = {
   flightMs: 1500,
   resultMs: 1100,
   rivalAimMs: 1300,
+  /** How much longer Antinous may hold his aim while the model decides, before the game picks for him. */
+  decisionWaitMs: 5000,
 };
 /** Axe `i` (1-12) as a share of the way to the twelfth. */
 export const axeZ = (i: number) => (BOW.firstAxeM + (i - 1) * BOW.axeGapM) / (BOW.firstAxeM + (BOW.axes - 1) * BOW.axeGapM);
@@ -307,31 +370,84 @@ function loose(s: BowState) {
   const rings = s.shot.rings;
   s.lastShot = s.shot; s.shots.push(rings); s.score += rings; s.successes += Number(rings >= 8); s.misses += Number(rings < BOW.axes); streak(s, rings >= 8);
   s.feedback = `${shotAdvice(s.shot)} Antinous shoots next.`;
+  learnFromBlock(s);
   s.blocked = 0; s.phase = "rival"; s.timer = 0; letDown(s);
+  openRivalMenu(s);
+}
+/** Questions Athena will answer in one contest. */
+export const ATHENA_COUNSEL = 3;
+/** The hall's flight rules on this tier, for the menu to measure shots with. */
+export function bowPhysics(s: Pick<BowState, "difficulty" | "practice">): BowPhysics {
+  const cache = new Map<number, Aim>();
+  return {
+    rings: (aim, wind, blocked) => archeryShot(aim, wind, blocked, "rival", s.difficulty).rings,
+    bestAim: wind => {
+      let aim = cache.get(wind);
+      if (!aim) { aim = bestAim(wind, 0, s.difficulty); cache.set(wind, aim); }
+      return { ...aim };
+    },
+    opening: BOW.opening[tierOf(s.difficulty)],
+    perSight: BOW.perSight,
+    axes: BOW.axes,
+    turns: s.practice ? 1 : BOW.turns,
+  };
+}
+export const bowAlgorithm = (d: Difficulty) => ["Measured shot menu (no block shots)", "Measured shot menu + one block target", "Measured shot menu + two block targets"][tierOf(d)];
+const rivalView = (s: BowState, playerAim: Aim) => ({ difficulty: s.difficulty, planId: s.plan.planId, turn: s.turn, score: s.score, rivalScore: s.rivalScore, wind: s.wind, playerAim, seed: s.seed });
+/** Lay out Antinous' options for the arrow he is about to loose, measured with the hall's own physics. */
+function openRivalMenu(s: BowState) {
+  const menu: DecisionMenu = bowMenu(rivalView(s, s.shot!.aim), bowPhysics(s), `bow-${s.turn}`, s.elapsed);
+  s.decision = { menu, choice: null, failed: null };
+  s.ai.state = "evaluating";
+  const pick = menu.options.find(o => o.id === menu.enginePick)!;
+  logEvent(s.ai, s.elapsed, "evaluate", `Measured ${menu.options.length} shots for arrow ${s.turn}. The game's own pick: ${pick.label}.`);
+}
+const readingsOf = (facts: Record<string, string | number>): Reading[] => Object.entries(facts).map(([key, value]) => ({ key, label: key.replace(/^./, c => c.toUpperCase()), value: String(value) }));
+/** A block shot is judged by what it actually cost the next arrow, against that same arrow flown through an open axe. */
+function learnFromBlock(s: BowState) {
+  if (!s.blocked || !s.shot) return;
+  const open = archeryShot(s.shot.aim, s.shot.wind, 0, "player", s.difficulty).rings, cost = open - s.shot.rings;
+  s.ai.stats.attacks++;
+  if (cost > 0) s.ai.stats.attacksLanded++;
+  logEvent(s.ai, s.elapsed, "learn", cost > 0 ? `The arrow lodged in axe ${s.blocked} cost your shot ${cost} axe${cost === 1 ? "" : "s"}.` : `The arrow lodged in axe ${s.blocked} did not cost your shot an axe.`);
 }
 function rivalShot(s: BowState) {
-  const tier = tierOf(s.difficulty), reads = s.plan.source === "ai" || s.difficulty === "hard";
-  const ideal = bestAim(s.wind, 0, s.difficulty);
-  // The unsteady suitor allows for only half the draught; the wind reader allows for all of it.
-  const aim: Aim = { aim: reads ? ideal.aim : ideal.aim / 2, elevation: ideal.elevation, tension: Math.round(88 + roll(s) * 12) };
+  const tier = tierOf(s.difficulty);
+  const pending: PendingDecision = s.decision ?? { menu: bowMenu(rivalView(s, s.lastShot?.aim ?? s.aim), bowPhysics(s), `bow-${s.turn}`, s.elapsed), choice: null, failed: null };
+  const { option, chooser, reason, line } = settle(pending);
+  const intent = intentOf(option.id);
+  const aim: Aim = intendedAim(intent, s.wind, bowPhysics(s));
+  if (intent.kind !== "boast") aim.tension = Math.round(88 + roll(s) * 12);
   // No archer's hand is perfect. The error is bounded, seeded, and measured in
   // openings, so easy's wider axes do not make him perfect: about 7, 9 and 10
-  // axes a shot on easy, medium and hard.
-  const openings = BOW.opening[tier] / BOW.perSight;
-  aim.aim += (roll(s) - .5) * 2 * [2.6, 1.8, 1.4][tier] * openings;
-  aim.elevation += (roll(s) - .5) * 2 * [1.5, 1.1, 0.9][tier] * openings;
-  // Antinous' pride: one showy, half-drawn shot is a real risk rather than an unbeatable perfect score.
-  const boast = s.turn === 3 && s.plan.source === "ai";
-  if (boast) aim.tension = 72;
+  // axes a shot on easy, medium and hard. A showy half-draw is looser still,
+  // a steady half-allowance tighter.
+  const openings = BOW.opening[tier] / BOW.perSight, widen = errorScale(intent.kind);
+  aim.aim += (roll(s) - .5) * 2 * [2.6, 1.8, 1.4][tier] * openings * widen;
+  aim.elevation += (roll(s) - .5) * 2 * [1.5, 1.1, 0.9][tier] * openings * widen;
   s.rivalAim = aim; s.shot = archeryShot(aim, s.wind, 0, "rival", s.difficulty);
-  const blockShot = s.plan.planId === "feint" && s.plan.source === "ai" && s.score >= s.rivalScore;
-  if (blockShot) s.shot.rings = Math.min(6, s.shot.rings);
+  if (intent.kind === "block") s.shot.rings = Math.min(BLOCK_SHOT_CAP, s.shot.rings);
   const rings = s.shot.rings, axes = `${rings} axe${rings === 1 ? "" : "s"}`;
-  s.rivalScore += rings; s.rivalShots.push(rings); s.blocked = blockShot ? 4 + Math.floor(roll(s) * 5) : 0;
-  s.rivalLine = blockShot ? `Antinous threads ${axes}, then lodges an arrow in axe ${s.blocked}. Its opening is narrower for your next shot.` : boast ? `Antinous shows off with a quick half-draw and threads ${axes}.` : `Antinous ${reads ? "leans into the draught" : "aims down the line"} and threads ${axes}.`;
+  s.rivalScore += rings; s.rivalShots.push(rings); s.blocked = intent.kind === "block" ? intent.block : 0;
+  s.rivalLine = intent.kind === "block" ? `Antinous threads ${axes}, then lodges an arrow in axe ${s.blocked}. Its opening is narrower for your next shot.` : intent.kind === "boast" ? `Antinous shows off with a quick half-draw and threads ${axes}.` : intent.kind === "steady" ? `Antinous holds steady down the line and threads ${axes}.` : `Antinous leans into the draught and threads ${axes}.`;
+  const decision = commitDecision(s.ai, s.elapsed, {
+    algorithm: bowAlgorithm(s.difficulty),
+    state: "attacking",
+    observations: readingsOf(pending.menu.facts),
+    memory: s.lastShot ? [{ key: "last", label: "Your last arrow", value: `${s.lastShot.rings} of ${BOW.axes} axes`, hint: `${s.lastShot.aim.aim.toFixed(1)} sideways · ${s.lastShot.aim.elevation.toFixed(1)} up · ${s.lastShot.aim.tension}% draw` }] : [],
+    candidates: pending.menu.options.map(o => ({ action: o.label, score: Math.round(o.score * 10) / 10, note: Object.entries(o.features).map(([k, v]) => `${k} ${v}`).join(" · ") })),
+    selectedAction: option.label,
+    selectedCandidate: option.label,
+    ...(intent.kind === "block" ? { target: `Axe ${intent.block}` } : {}),
+    reason,
+    summary: chooser.by === "model" ? (line || reason) : `Game's pick: ${option.label}`,
+    chooser,
+  });
+  recordOutcome(s.ai, s.elapsed, decision.id, "scored", `${option.label}: ${axes}${intent.kind === "block" ? `, axe ${s.blocked} narrowed for your next arrow` : ""}.`);
+  s.ai.state = "recovering";
+  s.decision = null;
   s.phase = "review"; s.timer = 0;
 }
-
 export function mythicAction(state: MythicState, action: Action): MythicState {
   if (state.done) return state;
   const s = clone(state);
@@ -347,13 +463,23 @@ export function mythicAction(state: MythicState, action: Action): MythicState {
     if (action.type === "rotate") s.piece = rotatePiece(s.piece);
     if (action.type === "drop") potionDrop(s, false);
   } else if (s.id === "sirens") {
+    if (action.type === "choose" || action.type === "choose-failed") s.decision = acceptChoice(s.decision, action);
     if (action.type === "note" && s.phase === "reply" && action.lane >= 0 && action.lane < 4 && Number.isInteger(action.lane)) {
-      s.entered.push(action.lane); s.lastLane = action.lane; s.flash = 240;
+      s.entered.push(action.lane); s.lastLane = action.lane; s.flash = 240; s.replyMs = s.timer;
       if (s.entered.length >= s.notes.filter(n => !n.rest).length) resolveSong(s);
     }
   } else if (s.id === "scylla") {
     if (action.type === "paddle" && Number.isFinite(action.y)) s.paddle = clamp(action.y, 38, 362);
     if (action.type === "row") s.rowing = action.held;
+  } else if (s.id === "bow" && (action.type === "choose" || action.type === "choose-failed")) {
+    const before = s.decision;
+    s.decision = acceptChoice(s.decision, action);
+    // The moment a block target is chosen it is announced, well before it lodges.
+    if (s.decision?.choice && !before?.choice) {
+      const intent = intentOf(s.decision.choice.optionId);
+      s.rivalLine = intent.kind === "block" ? `Antinous eyes axe ${intent.block}. He means to narrow it for your next arrow.` : intent.kind === "boast" ? "Antinous smirks and eases his draw for a show." : "Antinous reads the draught down the line.";
+      s.ai.state = "preparing";
+    }
   } else if (s.id === "bow" && s.phase === "player") {
     if (action.type === "aim" && (action.field === "aim" || action.field === "elevation") && Number.isFinite(action.value)) s.aim[action.field] = clamp(action.value, -BOW.sightLimit, BOW.sightLimit);
     if (action.type === "sight" && Number.isFinite(action.aim) && Number.isFinite(action.elevation)) {
@@ -366,6 +492,8 @@ export function mythicAction(state: MythicState, action: Action): MythicState {
       else { letDown(s); s.feedback = "Draw the bow further before you let go."; }
     }
     if (action.type === "letdown") letDown(s);
+    // Athena's counsel is counted, not scored: three questions a contest, no medal cost.
+    if (action.type === "counsel" && !s.drawing && s.counsel < ATHENA_COUNSEL) s.counsel++;
   }
   return s;
 }
@@ -393,7 +521,11 @@ export function tickMythic(state: MythicState, delta: number): MythicState {
     if (s.phase === "listen") {
       if (s.timer >= s.notes.length * beat + 500) { s.phase = "reply"; s.timer = 0; s.feedback = "YOUR REPLY! Echo the notes with A / S / D / F. Skip the rests."; }
     } else if (s.phase === "reply" && s.timer >= (s.notes.length + 2) * beat * 1.6) resolveSong(s);
-    else if (s.phase === "rest" && s.timer >= 1700) { s.round++; compose(s); s.feedback = "The next melody begins. Watch the four lanes."; }
+    else if (s.phase === "rest" && s.timer >= SONG_REST_MS) {
+      // With a model choosing, the rest lasts until it answers, up to a cap.
+      const d = s.decision, answered = !s.modelDecisions || !d || !!d.choice || !!d.failed;
+      if (answered || s.timer >= SONG_REST_MS + SONG_WAIT_MS) { compose(s); if ((s.phase as SongState["phase"]) === "listen") s.feedback = s.round === 1 ? "Listen first. Echo the numbered notes when YOUR REPLY appears." : "The next melody begins. Watch the four lanes."; }
+    }
   } else if (s.id === "scylla") {
     const time = s.elapsed / 1000;
     const synced = (s.plan.source === "ai" || s.difficulty === "hard") && (s.strikes.some(a => !a.reflected && a.x < 480) || s.telegraph > 0);
@@ -427,7 +559,12 @@ export function tickMythic(state: MythicState, delta: number): MythicState {
     s.timer += dt;
     if (s.phase === "player") {
       if (s.drawing) { s.pull += dt; s.draw = Math.min(1, s.pull / BOW.drawMs); s.aim.tension = Math.round(s.draw * 100); }
-    } else if (s.phase === "rival" && s.timer >= BOW.flightMs + BOW.resultMs + BOW.rivalAimMs) rivalShot(s);
+    } else if (s.phase === "rival" && s.timer >= BOW.flightMs + BOW.resultMs + BOW.rivalAimMs) {
+      // With a model deciding, Antinous holds his aim until it answers, up to
+      // a cap; then the game plays its own top option and says so.
+      const d = s.decision, answered = !s.modelDecisions || !d || !!d.choice || !!d.failed;
+      if (answered || s.timer >= BOW.flightMs + BOW.resultMs + BOW.rivalAimMs + BOW.decisionWaitMs) rivalShot(s);
+    }
     else if (s.phase === "review" && s.timer >= BOW.flightMs + BOW.resultMs) {
       if (s.turn >= (s.practice ? 1 : BOW.turns)) end(s, s.practice || s.score > s.rivalScore, `Final score: Odysseus ${s.score}, Antinous ${s.rivalScore}. ${s.score > s.rivalScore ? "The bow remembers its king." : "Antinous wins ties. Read the draught and draw fully."}`);
       else { s.turn++; setWind(s); s.phase = "player"; s.timer = 0; s.feedback = s.blocked ? `Your arrow ${s.turn} of ${BOW.turns}. Axe ${s.blocked} has Antinous' arrow in it: its opening is narrower. Read the new draught.` : `Your arrow ${s.turn} of ${BOW.turns}. The draught has changed: read the wind, then draw.`; }
@@ -445,5 +582,6 @@ export function statusLabel(s: MythicState) {
   if (s.id === "sirens") return `${s.successes}/${s.practice ? 1 : 5} melodies · Temptation ${s.temptation}%`;
   if (s.id === "scylla") return `${Math.ceil((s.duration - s.elapsed) / 1000)}s to safety · Hull ${5 - s.hits}/5`;
   const flying = s.phase === "rival" && s.timer < BOW.flightMs + BOW.resultMs;
-  return `Arrow ${s.turn}/${s.practice ? 1 : BOW.turns} · You ${s.score} – Antinous ${s.rivalScore} · ${s.phase === "player" ? "Your shot" : flying ? "Your arrow flies" : "Antinous shoots"}`;
+  const deciding = s.phase === "rival" && !!s.decision && !s.decision.choice && !s.decision.failed;
+  return `Arrow ${s.turn}/${s.practice ? 1 : BOW.turns} · You ${s.score} – Antinous ${s.rivalScore} · ${s.phase === "player" ? "Your shot" : flying ? "Your arrow flies" : deciding ? "Antinous studies the draught" : "Antinous shoots"}`;
 }

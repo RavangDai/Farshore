@@ -4,7 +4,9 @@
 
 ## Immersive gameplay stage and explainable AI
 
-Gameplay now opens in a full-viewport, fixed-16:9 stage (`F` for fullscreen, `Escape` to pause) instead of a small canvas embedded in the page — see [UI_DESIGN.md](docs/UI_DESIGN.md). Cyclops' Cave was rebuilt as a true perspective three-lane runner with a real explainable-AI opponent: every decision Polyphemus makes is recorded with the actual candidates it scored, the one it chose, a grounded reason, and a fairness guarantee that it withholds any attack it can't prove is survivable. Press **F3** during any encounter to cycle Immersive → AI Insights → AI Lab and watch that reasoning live. A dedicated **AI Lab** (Professor mode, from the main menu) lets you run any encounter at any difficulty, side by side, with no effect on your campaign save. Full detail in [AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md), [GAMEPLAY_DESIGN.md](docs/GAMEPLAY_DESIGN.md), and [UI_DESIGN.md](docs/UI_DESIGN.md) — including an honest accounting of which of the eight encounters have their next-generation AI controller wired in versus authored-and-reviewed-but-pending.
+Gameplay now opens in a full-viewport, fixed-16:9 stage (`F` for fullscreen, `Escape` to pause) instead of a small canvas embedded in the page — see [UI_DESIGN.md](docs/UI_DESIGN.md). Cyclops' Cave was rebuilt as a true perspective three-lane runner with a real explainable-AI opponent: every decision Polyphemus makes is recorded with the actual candidates it scored, the one it chose, a grounded reason, and a fairness guarantee that it withholds any attack it can't prove is survivable. Press **F3** during any encounter to cycle Immersive → AI Insights → AI Lab and watch that reasoning live. A dedicated **AI Lab** (Professor mode, from the main menu) lets you run any encounter at any difficulty, side by side, with no effect on your campaign save.
+
+In three encounters, **Cyclops' Cave, Sirens' Passage and the Palace of Ithaca**, a pretrained model makes the rival's decisions during play. The game lays out a menu of options it has already checked are fair. The model picks one and says why, and the game carries it out with its own physics and scoring. The inspector shows the model's pick beside the game's own best option. In Ithaca, **Ask Athena** answers your questions about the shot from the hall's own measurements and shows which ones she used. After those three encounters the rival gives a **debrief** built on what the game measured. Full detail in [AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md), [GAMEPLAY_DESIGN.md](docs/GAMEPLAY_DESIGN.md), and [UI_DESIGN.md](docs/UI_DESIGN.md).
 
 The online app uses MongoDB, Better Auth email/password accounts, arcade saves across devices, and private AI provider settings. Run `npm.cmd run dev` and open http://localhost:3000. Database setup can wait: guest games work on the device without it. Configuration and Node hosting instructions are in [ONLINE-SETUP.md](docs/ONLINE-SETUP.md).
 
@@ -16,7 +18,7 @@ Choose **New Game** after the cinematic opening, follow the connected island map
 
 The existing arcade engines, audio, local/account saves, optional model preparation, and earlier modes are preserved. Three- and five-stop saves migrate without losing clears. The original Cyclops grid game remains available as practice in its briefing. Details of the adaptation and save behavior are in [ODYSSEY-ADAPTATION.md](docs/ODYSSEY-ADAPTATION.md).
 
-Every encounter is played against an **AI rival planned by a connected model**; there is no model-free mode. When a briefing opens, the model reads your recent attempts and picks the rival's strategy and opening taunt. During play that strategy runs locally every frame, while the model writes live commentary from a Homeric bard and from the rival, spoken aloud. Game code owns scoring, collisions, warnings, and progress. Without a reachable model, menus and briefings still open, but encounters cannot start. See [Connect the AI rival](#connect-the-ai-rival-required-to-play).
+Every encounter is played against an **AI rival planned by a connected model**; there is no model-free mode. When a briefing opens, the model reads your recent attempts and picks the rival's strategy and opening taunt, and in every encounter that choice changes how the rival plays. In Cyclops, Sirens and Ithaca the model also decides during play: each cave section's hunt, each melody, each of Antinous' shots. Throughout, it writes live commentary from a Homeric bard and from the rival, spoken aloud. Game code owns scoring, collisions, warnings, and progress. Without a reachable model, menus and briefings still open, but encounters cannot start. See [Connect the AI rival](#connect-the-ai-rival-required-to-play).
 
 Guests save on the device; signed-in players synchronize through MongoDB. New Game confirms before resetting a voyage. Failed attempts do not unlock islands. Practice and demonstrations do not advance progress. The retained accessibility passage is explicitly confirmed, marked Assisted, and earns no medal. Unfinished encounters restart after a reload.
 
@@ -142,11 +144,13 @@ On a CPU-only laptop, a rival strategy takes about 15 seconds (shown with progre
 
 **Online accounts.** Signed-in players add an OpenAI, Groq or OpenRouter connection under Account.
 
-Optional settings: `FARSHORE_COMMENTARY_MODEL` uses a different (smaller, faster) model for commentary than for strategy. Voices are covered in [Voices and sound](#voices-and-sound). Voice, commentary and volume can be switched off in Settings.
+**Two models: planner and commentary.** `FARSHORE_MODEL_NAME` is the planner. It chooses every rival plan, every in-game decision, Athena's counsel and the debriefs. `FARSHORE_COMMENTARY_MODEL` can name a smaller, faster model for the live commentary. The Colab notebook sets up both: `gemma3:12b` plans and `qwen3:4b-instruct` comments. To compare planners on the game's real requests, run `node --experimental-strip-types scripts/ai-eval.mjs --url <chat URL> --model <name> [--key <key>]`; results go to [docs/ai-eval](docs/ai-eval/README.md).
+
+Optional settings: Voices are covered in [Voices and sound](#voices-and-sound). Voice, commentary and volume can be switched off in Settings.
 
 ## Mock AI service (testing every AI state)
 
-Every model request from the arcade (rival status, strategy, live commentary) goes through one module, `server/lib/model-api.ts`. It asks the mock service, `server/lib/mock-ai.ts`, first. When a mock mode is set, the mock answers and no model is called. With no mode set, normal play uses the live model.
+Every model request from the arcade (rival status, strategy, in-game decisions, Athena, debriefs, live commentary) goes through one module, `server/lib/model-api.ts`. It asks the mock service, `server/lib/mock-ai.ts`, first. When a mock mode is set, the mock answers and no model is called. With no mode set, normal play uses the live model.
 
 | Mode | What the player sees |
 | --- | --- |
@@ -155,6 +159,15 @@ Every model request from the arcade (rival status, strategy, live commentary) go
 | `uncertain` / `uncertain-once` | The low-confidence state: the strategy did not pass the game's checks and was set aside. `-once` recovers on the retry. |
 | `error` / `error-once` | The error state, "The rival is not ready", with "Prepare the rival again". `-once` recovers on the retry. |
 | `offline` | The "No AI rival connected" state with connection steps. |
+
+During play the same modes drive the in-game decisions (`/api/decide`) and Athena (`/api/athena`):
+
+| Mode | In-game decisions | Athena |
+| --- | --- | --- |
+| `success` | The model's pick in about 0.6 s, cycling through the menu, so it sometimes differs from the game's own top option. | An answer naming the fact it used, so the "Athena used" chips show. |
+| `slow` | No answer before the wait runs out: the inspector shows the menu while the model is choosing, then *Game's pick*. | "Athena considers the hall…" for about 12 s. |
+| `uncertain` | The reply is rejected at once, and the game's own pick is labelled as such. | "Athena's answer could not be checked against the hall". |
+| `error` / `offline` | As `uncertain`, with the reason "could not be reached". | "Athena cannot be reached". |
 
 Set a mode in either of two ways:
 

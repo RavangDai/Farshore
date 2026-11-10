@@ -41,7 +41,7 @@ function fakeEngine(calls = [], gate = null) {
 }
 
 test("voice profiles use real Kokoro voices and gentle browser settings", () => {
-  assert.equal(Object.keys(voices).length, 10);
+  assert.equal(Object.keys(voices).length, 11);
   for (const [id, v] of Object.entries(voices)) {
     assert.ok(KOKORO.has(v.kokoro), `${id} uses ${v.kokoro}`);
     assert.ok(v.speed >= 0.8 && v.speed <= 1.2, `${id} speed`);

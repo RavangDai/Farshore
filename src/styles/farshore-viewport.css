@@ -1,0 +1,588 @@
+/* FARSHORE viewport layer.
+   Loaded after every other FARSHORE sheet. On desktop the arcade behaves like
+   a game rather than a page: the window is the screen, nothing scrolls the
+   document, and the few long lists scroll inside their own panel. Phones keep
+   the flowing layout from the earlier sheets.
+
+   Every rule is scoped to `.fs-app.a-app`, one class more than any earlier
+   FARSHORE rule, so this sheet wins whatever order the CSS chunks load in. */
+
+/* ------------------------------------------------ new markup, all widths -- */
+
+/* The account and its save status, folded into the game's own chrome. */
+.fs-account-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fs-space-2);
+  min-height: 36px;
+  max-width: 230px;
+  padding: 5px 10px;
+  border: 1px solid #9f733a88;
+  border-radius: 3px;
+  background: #041320c9;
+  color: #e6d5af;
+  text-align: left;
+  cursor: pointer;
+}
+.fs-account-chip > svg { flex: none; color: var(--fs-color-accent); }
+.fs-account-chip > span { display: grid; min-width: 0; line-height: 1.25; }
+.fs-account-chip b { overflow: hidden; font: 700 10px/1.3 var(--fs-font-ui); letter-spacing: 0.08em; color: #e6d5af; text-overflow: ellipsis; white-space: nowrap; }
+.fs-account-chip small { display: flex; align-items: center; gap: 5px; overflow: hidden; font: 11px/1.3 var(--fs-font-display); color: #9fb6c6; text-overflow: ellipsis; white-space: nowrap; }
+.fs-account-chip small::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: #7eb6a7; }
+.fs-account-chip:is([data-status="pending"], [data-status="conflict"], [data-status="expired"]) small::before { background: #ecc282; }
+.fs-account-chip:is([data-status="loading"], [data-status="saving"]) small::before { background: #a6c5d5; }
+.fs-account-chip:hover { border-color: var(--fs-color-accent); }
+.fs-app .a-header nav .fs-account-chip { min-height: 42px; }
+@media (max-width: 760px) {
+  .fs-app .a-header nav .fs-account-chip { display: none; }
+  /* On a phone the four status chips wrap onto three rows above the menu. */
+  .fs-app.a-app .od-menu-screen .fs-title-panel { margin-top: 172px; }
+}
+
+/* A short meander between the two halves of the title menu. */
+.fs-menu-rule { display: flex; align-items: center; gap: 10px; height: 12px; }
+.fs-menu-rule::before,
+.fs-menu-rule::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #b88a4a99); }
+.fs-menu-rule::after { background: linear-gradient(90deg, #b88a4a99, transparent); }
+.fs-menu-rule i { width: 26px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 10'%3E%3Cpath d='M.5 9.5V.5h7v6h-4v-3M25.5 9.5V.5h-7v6h4v-3M9.5 9.5V3.5h7v6' fill='none' stroke='%23c9a35a' stroke-width='1'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* Troy to Ithaca: one pip per trial, lit as each is cleared. */
+.fs-title-track {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 14px;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 22px;
+}
+.fs-title-track > span { font: 700 11px/1 var(--fs-font-ui); letter-spacing: 0.22em; color: #e6dccb; }
+.fs-title-track ol { position: relative; display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 0; list-style: none; }
+.fs-title-track ol::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #c9a35a88; }
+.fs-title-track li { position: relative; width: 11px; height: 11px; border: 1.5px solid #c9a35a; border-radius: 50%; background: #071523; }
+.fs-title-track li[data-done] { border-color: #ffe0a1; background: radial-gradient(#fff0c4, #e0a94e); box-shadow: 0 0 9px #e9b85c99; }
+.fs-title-track > small { grid-column: 2; text-align: center; font: italic 14px/1.3 var(--fs-font-display); color: #d8ccb0; }
+
+/* The trial panel's picture: the atlas tiles are 3:4, so the banner shows a
+   centred slice of the tile instead of stretching it to the banner's shape. */
+.fs-trial-panel .fs-chart-art { height: clamp(96px, 24vw, 170px); }
+/* The art is a span too, so it must undo the caption's `.fs-chart-art > span` look. */
+.fs-trial-panel .fs-chart-art > .fs-trial-art {
+  position: absolute;
+  inset: 50% auto auto 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  transform: translateY(-50%);
+  background-color: transparent;
+  background-image: url('/art/farshore/trials-and-cast.png');
+  background-size: 400% 300%;
+  background-repeat: no-repeat;
+}
+.fs-trial-panel .fs-chart-ai p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-trial-panel h2 { font-family: "Palatino Linotype", Georgia, serif; }
+
+/* Lab cards are 4:3 but the atlas tiles are 3:4: show a centred slice rather
+   than stretching the painting. */
+.fs-lab-card .fs-trial-art { inset: 50% auto auto 0; width: 100%; height: auto; aspect-ratio: 3 / 4; transform: translateY(-50%); }
+
+/* The chart's degrees, medallions and plaques. */
+.fs-chart-graticule text { fill: #d8c08a; font: 12px Georgia, "Palatino Linotype", serif; letter-spacing: 0.03em; }
+.fs-chart-island .fs-medallion { transform-box: fill-box; transform-origin: center; transition: transform 0.22s ease; }
+.fs-chart-island.selected .fs-medallion { transform: scale(1.08); }
+.fs-chart-island .fs-chart-pin { filter: drop-shadow(0 2px 2px #000a); }
+.fs-chart-still .fs-chart-island .fs-medallion { transition: none; }
+
+/* Settings in two columns on desktop; one column otherwise. */
+.fs-settings-cols > div > :first-child { margin-top: 0; }
+
+/* ------------------------------------------------------- desktop: fit -- */
+
+@media (min-width: 761px) and (min-height: 560px) {
+
+  /* The app is a column exactly as tall as the window. Splash, title and
+     prologue fill it; other screens are a slim header over one main area. */
+  .fs-app.a-app { min-height: 0; display: flex; flex-direction: column; overflow: clip; }
+  .fs-app.a-app > :is(.od-splash, .od-menu-screen, .fs-prologue) { flex: 1 1 0; min-height: 0; height: auto; overflow: clip; }
+
+  .fs-app.a-app > .a-header {
+    position: relative;
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: 58px;
+    margin: 0;
+    padding: 7px clamp(20px, 3vw, 48px) 15px;
+    gap: var(--fs-space-4);
+    border-bottom: 0;
+  }
+  /* A gold meander under the header, as on a painted frieze. */
+  .fs-app.a-app > .a-header::after {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 9px;
+    opacity: 0.75;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='9' viewBox='0 0 18 9'%3E%3Cpath d='M0 8.5h18M2.5 8.5v-8h11v6h-7v-3h4' fill='none' stroke='%23c9a35a' stroke-width='1'/%3E%3C/svg%3E") left bottom / 18px 9px repeat-x;
+    border-top: 1px solid #c9a35a55;
+  }
+  .fs-app.a-app > .a-header .a-brand small { display: none; }
+  .fs-app.a-app > .a-header nav { gap: var(--fs-space-2); }
+  .fs-app.a-app > .a-header nav .a-btn { min-height: 40px; }
+  .fs-app.a-app > .a-header nav .fs-rival-chip,
+  .fs-app.a-app > .a-header nav .fs-account-chip { min-height: 40px; }
+
+  .fs-app.a-app > .a-main {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    max-width: 1760px;
+    margin: 0 auto;
+    padding: clamp(12px, 2.2vh, 24px) clamp(20px, 3vw, 48px);
+    display: grid;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    overflow: clip;
+  }
+  .fs-app.a-app > .a-main > * { min-height: 0; max-height: 100%; }
+  .fs-app.a-app > .a-footer { display: none; }
+
+  /* Panels that scroll get a thin bronze scrollbar and room for focus rings. */
+  .fs-app.a-app :is(.fs-trial-panel, .a-brief-instructions, .a-brief-options, .fs-result-side, .od-control-list, .fs-lab-pick, .fs-lab-compare, .od-credits, .a-ending, .a-result) {
+    scrollbar-width: thin;
+    scrollbar-color: #b88a4a #061624;
+  }
+
+  /* ------------------------------------------------------------ splash -- */
+
+  .fs-app.a-app .od-splash-content { padding-top: clamp(70px, 15vh, 190px); }
+
+  /* -------------------------------------------- title (Bronze Atlas) -- */
+
+  .fs-app.a-app .fs-title .od-backdrop { background-position: 70% 38%; }
+  .fs-app.a-app .fs-title .od-menu-shade { background: linear-gradient(0deg, #03101bb3, transparent 28%), linear-gradient(180deg, #03101b66, transparent 22%); }
+
+  .fs-app.a-app .fs-title .od-menu-top { left: auto; right: clamp(24px, 2.8vw, 44px); top: clamp(22px, 3.4vh, 34px); justify-content: flex-end; }
+  .fs-app.a-app .fs-title .od-menu-top > span { display: none; }
+
+  .fs-app.a-app .fs-menu-temple.fs-title-panel {
+    position: absolute;
+    z-index: 5;
+    inset: 0 auto 0 0;
+    width: clamp(420px, 39vw, 620px);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 0;
+    border-right: 1px solid #b88a4a44;
+    border-radius: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 87px, #e9b85c0c 87px 88px),
+      repeating-linear-gradient(90deg, transparent 0 87px, #e9b85c0c 87px 88px),
+      linear-gradient(90deg, #030b15fa 0%, #05121ef2 72%, #06142199 100%);
+    box-shadow: 60px 0 90px -20px #040c16;
+    animation: fs-title-panel-in 1s var(--fs-cine) 0.1s both;
+  }
+  .fs-app.a-app .fs-menu-temple.fs-title-panel::before,
+  .fs-app.a-app .fs-menu-temple.fs-title-panel::after { content: none; }
+  @keyframes fs-title-panel-in { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+
+  .fs-app.a-app .fs-title-panel .od-menu-content {
+    width: 100%;
+    max-height: 100%;
+    margin: 0;
+    background: none;
+    padding: clamp(18px, 4.4vh, 52px) clamp(30px, 3.6vw, 60px);
+    text-align: left;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu-content > .a-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 520px;
+    font: 400 11px/1.6 var(--fs-font-ui);
+    letter-spacing: 0.34em;
+    color: #e6dccb;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu-content > .a-eyebrow::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, #c9a35a, #c9a35a22); }
+  .fs-app.a-app .fs-title-panel .od-wordmark {
+    margin: clamp(6px, 1.6vh, 18px) 0 0;
+    font-size: clamp(48px, min(5.4vw, 10.5vh), 96px);
+    line-height: 1.08;
+    text-align: left;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu-tagline {
+    margin: clamp(2px, 0.8vh, 8px) 0 clamp(14px, 3.4vh, 34px);
+    font: italic clamp(17px, 2.7vh, 25px)/1.35 var(--fs-font-display) !important;
+    letter-spacing: 0.01em;
+    color: #efe3c6;
+  }
+
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(8px, 1.5vh, 14px) 14px;
+    width: 100%;
+    max-width: 520px;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > :is(.od-menu-primary, .fs-menu-rule, [data-wide]) { grid-column: 1 / -1; }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button {
+    min-height: clamp(42px, 6.4vh, 58px);
+    grid-template-columns: 20px minmax(0, 1fr) 14px;
+    gap: 12px;
+    padding: 8px 14px;
+    border: 1px solid #b88a4a;
+    border-radius: 4px;
+    background: linear-gradient(#0c2234ee, #06141fee);
+    box-shadow: inset 0 0 0 1px #00000066, 0 3px 8px #0006;
+    color: #efe3c6;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button > span > b { font: 700 12px/1.3 var(--fs-font-ui); letter-spacing: 0.16em; }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button > span > small { display: none; }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button > svg:first-child { color: var(--fs-color-accent); }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button > svg:last-child:not(:first-child) { color: #c9a35a; opacity: 0.8; }
+
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary {
+    min-height: clamp(64px, 11vh, 96px);
+    margin: 0 0 clamp(2px, 0.6vh, 8px);
+    grid-template-columns: 30px minmax(0, 1fr) 22px;
+    gap: 16px;
+    padding: 10px 22px;
+    border: 1px solid #fbdc97;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #f8dd9b 0%, #e8bb66 46%, #c58d40 100%);
+    box-shadow: inset 0 1px 0 #fff4d2, inset 0 0 0 3px #a8742e44, 0 8px 22px #000a, 0 0 28px #e9b85c33;
+    color: #1d1307;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary > span > b {
+    font: 700 clamp(17px, 2.8vh, 25px)/1.15 "Palatino Linotype", Georgia, serif;
+    letter-spacing: 0.1em;
+    color: #1d1307;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary > span > small {
+    display: block;
+    font: italic clamp(13px, 2vh, 18px)/1.3 var(--fs-font-display);
+    color: #3b2810;
+  }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary > svg { color: #2a1a08; opacity: 1; width: auto; }
+  .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary > svg:first-child { padding-right: 14px; border-right: 1px solid #7a521f55; box-sizing: content-box; }
+
+  @media (hover: hover) {
+    .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button:hover:not(:disabled),
+    .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button:focus-visible {
+      transform: translateY(-1px);
+      border-color: #f2cf89;
+      background: linear-gradient(#123049f0, #081a28f0);
+      box-shadow: inset 0 0 0 1px #00000066, 0 0 16px #e9b85c2e;
+    }
+    .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary:hover:not(:disabled),
+    .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary:focus-visible {
+      border-color: #fff0c4;
+      background: linear-gradient(180deg, #ffe7b0 0%, #f2c672 46%, #d39b4b 100%);
+      box-shadow: inset 0 1px 0 #fff4d2, inset 0 0 0 3px #a8742e44, 0 10px 26px #000a, 0 0 34px #e9b85c55;
+    }
+  }
+
+  .fs-app.a-app .fs-title-panel .fs-title-track { margin-top: clamp(14px, 3.6vh, 38px); }
+
+  /* --------------------------------------------------------- prologue -- */
+
+  .fs-app.a-app .fs-prologue-content { padding-bottom: clamp(56px, 10vh, 140px); }
+  .fs-app.a-app .fs-prologue h1 { font-size: clamp(36px, min(6.4vw, 9vh), 86px); }
+  .fs-app.a-app .fs-prologue-content > p { margin-bottom: clamp(12px, 2.4vh, 22px); }
+  .fs-app.a-app .fs-prologue-route { grid-template-columns: repeat(8, minmax(0, clamp(64px, 13.5vh, 130px))); justify-content: start; margin-bottom: clamp(14px, 3vh, 28px); }
+  .fs-app.a-app .fs-prologue-cast { margin-bottom: clamp(12px, 2.6vh, 26px); }
+
+  /* ------------------------------------------------- trial selection -- */
+
+  .fs-app.a-app .fs-selection { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: clamp(10px, 1.8vh, 18px); }
+  .fs-app.a-app .fs-selection-heading { margin: 0; align-items: flex-end; }
+  .fs-app.a-app .fs-selection-heading > div > .a-eyebrow { font: 400 11px/1.4 var(--fs-font-ui); letter-spacing: 0.3em; color: #e6dccb; }
+  .fs-app.a-app .fs-selection-heading h1 {
+    margin: 2px 0 0;
+    font: 700 clamp(28px, 5.4vh, 48px)/1.05 "Palatino Linotype", Georgia, serif !important;
+    letter-spacing: 0.01em !important;
+    text-transform: none;
+    color: #f1cf86 !important;
+    text-shadow: 0 2px 0 #3b260f, 0 6px 18px #0009;
+  }
+  .fs-app.a-app .fs-view-switch { gap: var(--fs-space-2); padding: 0; border: 0; background: none; }
+  .fs-app.a-app .fs-view-switch button { min-height: 42px; padding: 8px 18px; border-color: #b88a4a88; border-radius: 4px; background: #061624; color: #e6dccb; font-size: 13px; }
+  .fs-app.a-app .fs-view-switch button[aria-pressed="true"] { border-color: #6fd6e6; background: linear-gradient(#123a4d, #0a2535); color: #f7ecd2; box-shadow: 0 0 14px #32d4f533, inset 0 0 12px #32d4f51a; }
+
+  .fs-app.a-app .fs-selection > :is(.fs-chart-layout, .fs-trial-layout) {
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 26vw, 380px);
+    gap: clamp(12px, 1.6vw, 22px);
+    align-items: stretch;
+  }
+
+  .fs-app.a-app .fs-trial-panel {
+    min-height: 0;
+    overflow: auto;
+    align-content: start;
+    gap: clamp(6px, 1.15vh, 12px);
+    padding: clamp(10px, 1.6vh, 16px);
+    border: 1px solid #b88a4a;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 3px #020b15, inset 0 0 0 4px #b88a4a33, 0 10px 30px #0007;
+  }
+  .fs-app.a-app .fs-trial-panel .fs-chart-art { height: clamp(58px, 15vh, 150px); }
+  .fs-app.a-app .fs-trial-panel h2 { font-size: clamp(19px, 3.4vh, 28px); line-height: 1.15; color: #f6e7c4; }
+  .fs-app.a-app .fs-trial-panel .fs-chart-objective { font-size: clamp(13px, 2vh, 15px); line-height: 1.45; color: #e2e6e2; }
+  .fs-app.a-app .fs-trial-panel .fs-difficulty legend { margin-bottom: clamp(4px, 0.8vh, 10px); }
+  .fs-app.a-app .fs-trial-panel .fs-difficulty button { min-height: clamp(34px, 5.4vh, 44px); font-size: 14px; }
+  .fs-app.a-app .fs-trial-panel .fs-chart-start { min-height: clamp(44px, 7.6vh, 64px); font: 700 clamp(16px, 2.7vh, 22px)/1.1 "Palatino Linotype", Georgia, serif; letter-spacing: 0.02em; }
+  /* However short the window, the way into the trial stays in view. */
+  .fs-app.a-app .fs-trial-panel .fs-chart-start { position: sticky; bottom: 0; z-index: 2; }
+
+  /* The gallery: two rows of 3:4 cards sized from the space left over. */
+  .fs-app.a-app .fs-trial-gallery { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(10px, 1.6vh, 18px) clamp(14px, 1.6vw, 22px); }
+  .fs-app.a-app .fs-gallery-rule { margin-bottom: clamp(4px, 0.8vh, 12px); }
+  .fs-app.a-app .fs-gallery-footer { padding-top: clamp(6px, 1.2vh, 16px); }
+  .fs-app.a-app .fs-trial-grid {
+    min-height: 0;
+    container-type: size;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: clamp(10px, 1.8vh, 18px) clamp(10px, 1.2vw, 16px);
+    padding: 9px 9px 0;
+  }
+  .fs-app.a-app .fs-trial-card {
+    width: auto;
+    height: min(100%, calc((100cqw - 66px) / 4 * 4 / 3));
+    min-height: 0;
+    aspect-ratio: 3 / 4;
+    justify-self: center;
+    align-self: center;
+  }
+
+  /* The chart keeps its proportions and fits the space it is given. */
+  .fs-app.a-app .fs-chart-frame { container-type: size; min-width: 0; min-height: 0; display: grid; place-items: center; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+  .fs-app.a-app .fs-chart { width: min(100cqw, calc(100cqh * 1000 / 620)); height: auto; aspect-ratio: 1000 / 620; border: 1px solid #b88a4a; border-radius: 4px; box-shadow: 0 0 0 4px #04101b, 0 0 0 5px #b88a4a55, 0 12px 34px #0008; }
+
+  /* ---------------------------------------------------------- briefing -- */
+
+  .fs-app.a-app .a-brief {
+    height: 100%;
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "scene options" "instr options";
+    overflow: clip;
+  }
+  .fs-app.a-app .a-brief-body { display: contents; }
+  .fs-app.a-app .a-brief-scene { grid-area: scene; min-height: 0; }
+  .fs-app.a-app .a-character-intro { padding: clamp(14px, 2.6vh, 30px) clamp(20px, 2.4vw, 32px); }
+  .fs-app.a-app .a-character-intro h1 { font-size: clamp(26px, 4.6vh, 44px); }
+  .fs-app.a-app .a-character-intro p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 15px; }
+  .fs-app.a-app .a-brief-instructions {
+    grid-area: instr;
+    min-height: 0;
+    overflow: auto;
+    padding: clamp(12px, 2vh, 22px) clamp(20px, 2.4vw, 32px) 18px;
+    background: linear-gradient(120deg, #0b2639, #051624);
+  }
+  .fs-app.a-app .a-brief-instructions h2 { font-size: clamp(18px, 3vh, 26px); }
+  .fs-app.a-app .a-brief-options {
+    grid-area: options;
+    min-height: 0;
+    overflow: auto;
+    margin: clamp(10px, 1.6vh, 16px);
+    padding: clamp(12px, 2vh, 20px);
+    gap: clamp(8px, 1.3vh, 13px);
+  }
+  .fs-app.a-app .a-brief-options > .fs-rival-panel { flex: 0 1 auto; min-height: 96px; overflow: auto; }
+  .fs-app.a-app .a-brief-options > .a-btn { flex: none; }
+
+  /* ------------------------------------------------------------ result -- */
+
+  .fs-app.a-app .a-result.fs-rich-result {
+    height: 100%;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px 16px;
+    overflow: auto;
+    display: grid;
+    column-gap: 32px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "frieze frieze" "eyebrow side" "title side" "text side" "stats side" "seals side" "caption side" "actions actions" "passage passage";
+    align-content: start;
+  }
+  .fs-app.a-app .fs-rich-result:has(> .fs-result-side:empty) {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 820px;
+    grid-template-areas: "frieze" "eyebrow" "title" "text" "stats" "seals" "caption" "actions" "passage";
+  }
+  .fs-app.a-app .fs-rich-result > .fs-result-frieze { grid-area: frieze; height: clamp(84px, 15vh, 170px); margin: 0 -32px 12px; }
+  .fs-app.a-app .fs-rich-result > .a-eyebrow { grid-area: eyebrow; }
+  .fs-app.a-app .fs-rich-result > .od-medal { display: none; }
+  .fs-app.a-app .fs-rich-result > h1 { grid-area: title; margin: 6px 0 0; }
+  .fs-app.a-app .fs-rich-result > h1 + p { grid-area: text; margin: 8px auto 0; }
+  .fs-app.a-app .fs-rich-result > .a-result-stats { grid-area: stats; margin: 12px 0 0; padding: 10px 0; }
+  .fs-app.a-app .fs-rich-result > .fs-performance-seals { grid-area: seals; margin: 10px 0 0; }
+  .fs-app.a-app .fs-rich-result > .a-caption { grid-area: caption; align-self: start; }
+  .fs-app.a-app .fs-rich-result > .a-actions { grid-area: actions; margin-top: 12px; }
+  .fs-app.a-app .fs-rich-result > .od-accessibility-passage { grid-area: passage; }
+  .fs-app.a-app .fs-rich-result > .fs-result-side { grid-area: side; min-height: 0; overflow: auto; padding: 4px 8px 8px; }
+  .fs-app.a-app .fs-result-side > .fs-recap { margin-top: 6px; }
+  .fs-app.a-app .fs-result-side > .fs-debrief { max-width: none; margin: 10px 0 0; }
+
+  /* ------------------------------------------------------- how to play -- */
+
+  .fs-app.a-app .od-guide {
+    height: 100%;
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    display: grid;
+    column-gap: clamp(20px, 3vw, 40px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "eyebrow list" "title list" "lead list" "basics list" "actions actions" "caption caption";
+  }
+  .fs-app.a-app .od-guide > .a-eyebrow { grid-area: eyebrow; }
+  .fs-app.a-app .od-guide > h1 { grid-area: title; margin: 6px 0; font-size: clamp(26px, 4.6vh, 40px); }
+  .fs-app.a-app .od-guide > .a-lead { grid-area: lead; margin: 0; }
+  .fs-app.a-app .od-guide-basics {
+    grid-area: basics;
+    min-height: 0;
+    overflow: auto;
+    align-content: start;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(8px, 1.6vh, 16px) 18px;
+    margin: clamp(10px, 1.8vh, 18px) 0 0;
+    padding: clamp(10px, 1.8vh, 16px);
+  }
+  .fs-app.a-app .od-guide-basics h2 { margin: 6px 0 4px; font-size: 17px; }
+  .fs-app.a-app .od-guide-basics p { margin: 0; }
+  .fs-app.a-app .od-control-list {
+    grid-area: list;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    align-content: start;
+    padding: 6px 8px;
+  }
+  .fs-app.a-app .od-control-list article { gap: 12px; padding: 10px 4px; }
+  .fs-app.a-app .od-control-list h2 { display: block; margin: 0 0 4px; font-size: 17px; }
+  .fs-app.a-app .od-control-list h2 small { display: block; margin-top: 3px; }
+  .fs-app.a-app .od-control-list p { margin: 0; }
+  .fs-app.a-app .od-guide > .a-actions { grid-area: actions; margin-top: clamp(8px, 1.6vh, 16px); }
+  .fs-app.a-app .od-guide > .a-caption { grid-area: caption; margin-top: 8px !important; }
+
+  /* ---------------------------------------------------- credits, ending -- */
+
+  .fs-app.a-app .od-credits {
+    align-self: center;
+    justify-self: center;
+    width: min(100%, 1040px);
+    max-width: none;
+    max-height: 100%;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    column-gap: 40px;
+    grid-template-areas: "eyebrow list" "icon list" "title list" "text list" "caption list" "actions list";
+    align-content: center;
+    padding: clamp(18px, 3.4vh, 40px) clamp(24px, 3vw, 44px);
+    text-align: left;
+  }
+  .fs-app.a-app .od-credits > .a-eyebrow { grid-area: eyebrow; }
+  .fs-app.a-app .od-credits > svg { grid-area: icon; width: 36px; height: 36px; margin: 12px 0 4px; }
+  .fs-app.a-app .od-credits > h1 { grid-area: title; font-size: clamp(26px, 4.4vh, 38px) !important; }
+  .fs-app.a-app .od-credits > p:not(.a-caption) { grid-area: text; margin: 12px 0; }
+  .fs-app.a-app .od-credits > dl { grid-area: list; align-self: center; margin: 0; }
+  .fs-app.a-app .od-credits dl > div { padding: clamp(8px, 1.5vh, 16px) 0; }
+  .fs-app.a-app .od-credits > .a-caption { grid-area: caption; }
+  .fs-app.a-app .od-credits > .a-actions { grid-area: actions; justify-content: flex-start; margin-top: 12px; }
+
+  .fs-app.a-app .a-ending {
+    align-self: center;
+    justify-self: center;
+    width: min(100%, 1080px);
+    max-width: none;
+    max-height: 100%;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    column-gap: 40px;
+    grid-template-areas: "eyebrow report" "family report" "title report" "text report" "actions report" "caption report";
+    align-content: center;
+    padding: clamp(18px, 3.4vh, 40px) clamp(24px, 3vw, 44px);
+  }
+  .fs-app.a-app .a-ending > .a-eyebrow { grid-area: eyebrow; }
+  .fs-app.a-app .a-ending > .a-family { grid-area: family; margin: clamp(8px, 2vh, 24px) 0; }
+  .fs-app.a-app .a-ending .a-family .a-portrait.large { width: clamp(72px, 11vh, 110px); height: clamp(72px, 11vh, 110px); }
+  .fs-app.a-app .a-ending > h1 { grid-area: title; }
+  .fs-app.a-app .a-ending > p:not(.a-caption) { grid-area: text; }
+  .fs-app.a-app .a-ending > .a-ending-report { grid-area: report; align-self: center; margin: 0; max-width: none; }
+  .fs-app.a-app .a-ending-report > div { padding: clamp(6px, 1.2vh, 13px) 0; }
+  .fs-app.a-app .a-ending > .a-actions { grid-area: actions; }
+  .fs-app.a-app .a-ending > .a-caption { grid-area: caption; }
+
+  /* ------------------------------------------------------------ AI Lab -- */
+
+  /* Three columns: choose an encounter, set it up and run it, compare runs.
+     The pick column's children join the body grid directly. */
+  .fs-app.a-app .fs-lab { height: 100%; width: 100%; padding: 0; grid-template-rows: auto minmax(0, 1fr); gap: clamp(10px, 1.8vh, 18px); }
+  .fs-app.a-app .fs-lab-head h1 { font-size: clamp(24px, 4.2vh, 34px); }
+  .fs-app.a-app .fs-lab-head p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fs-app.a-app .fs-lab-body {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1.15fr) minmax(270px, 0.85fr) clamp(280px, 26vw, 400px);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "pickhead sethead compare" "grid controls compare" "grid launch compare";
+    column-gap: clamp(14px, 1.6vw, 22px);
+    row-gap: 10px;
+    align-items: stretch;
+  }
+  .fs-app.a-app .fs-lab-pick { display: contents; }
+  .fs-app.a-app .fs-lab-pick > span:nth-of-type(1) { grid-area: pickhead; margin: 0; }
+  .fs-app.a-app .fs-lab-pick > span:nth-of-type(2) { grid-area: sethead; margin: 0; }
+  .fs-app.a-app .fs-lab-grid { grid-area: grid; min-height: 0; overflow: auto; grid-template-columns: repeat(4, minmax(0, 1fr)); align-content: start; padding: 4px; }
+  .fs-app.a-app .fs-lab-controls { grid-area: controls; min-height: 0; overflow: auto; padding: 4px; }
+  .fs-app.a-app .fs-lab-launch { grid-area: launch; }
+  .fs-app.a-app .fs-lab-compare { grid-area: compare; min-height: 0; overflow: auto; padding: 6px; align-content: start; }
+  .fs-app.a-app .fs-lab-card strong { font-size: 13px; line-height: 1.2; }
+  .fs-app.a-app .fs-lab-card small { font-size: 10px; }
+
+  /* ---------------------------------------------------------- settings -- */
+
+  .fs-app.a-app .a-modal.a-settings { width: min(100% - 32px, 980px); max-width: none; }
+  .fs-app.a-app .fs-settings-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; align-items: start; }
+}
+
+/* Windows under about 800 pixels tall drop the footnotes in the trial panel. */
+@media (min-width: 761px) and (min-height: 560px) and (max-height: 820px) {
+  .fs-app.a-app .fs-trial-panel .fs-chart-note,
+  .fs-app.a-app .fs-trial-panel .fs-chart-progress,
+  .fs-app.a-app .fs-lab-launch .a-caption { display: none; }
+}
+
+/* A maximised window on a 768-pixel laptop: tighten what is left. */
+@media (min-width: 761px) and (min-height: 560px) and (max-height: 720px) {
+  .fs-app.a-app .fs-trial-panel .fs-chart-art { height: clamp(52px, 11vh, 150px); }
+  .fs-app.a-app .fs-trial-panel .fs-difficulty legend { margin-bottom: 4px; }
+  .fs-app.a-app > .a-header { min-height: 52px; padding-block: 5px 13px; }
+  .fs-app.a-app > .a-header nav .a-btn,
+  .fs-app.a-app > .a-header nav .fs-rival-chip,
+  .fs-app.a-app > .a-header nav .fs-account-chip { min-height: 36px; }
+  .fs-app.a-app .a-difficulty-note,
+  .fs-app.a-app .od-practice-note,
+  .fs-app.a-app .fs-trial-panel .fs-chart-note,
+  .fs-app.a-app .fs-trial-panel .fs-chart-progress { display: none; }
+  .fs-app.a-app .fs-trial-panel .fs-chart-ai { padding-block: 6px; }
+  .fs-app.a-app .fs-trial-panel .fs-chart-ai p { -webkit-line-clamp: 2; }
+}

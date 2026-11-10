@@ -102,7 +102,7 @@ export function VoyageChart({ save, selected, still, onSelect, onOpen, onHover }
             <circle r={R} />
           </clipPath>
           <filter id="fs-medal-grey">
-            <feColorMatrix type="saturate" values=".15" />
+            <feColorMatrix type="saturate" values=".5" />
           </filter>
         </defs>
 
@@ -132,8 +132,9 @@ export function VoyageChart({ save, selected, still, onSelect, onOpen, onHover }
                 <line x1={x} x2={x} y1={FRAME.y} y2={FRAME.y + FRAME.h} stroke="#9fc3d0" strokeOpacity=".09" />
                 <line x1={x} x2={x} y1={FRAME.y} y2={FRAME.y + 7} stroke="#c89b50" />
                 <line x1={x} x2={x} y1={FRAME.y + FRAME.h - 7} y2={FRAME.y + FRAME.h} stroke="#c89b50" />
-                <text x={x} y={FRAME.y - 10} textAnchor="middle">{deg}° E</text>
-                <text x={x} y={FRAME.y + FRAME.h + 22} textAnchor="middle">{deg}° E</text>
+                {/* The corner labels lean inward so they never meet the latitudes. */}
+                <text x={x} y={FRAME.y - 10} textAnchor={k === 0 ? "start" : k === LONGITUDES.length - 1 ? "end" : "middle"}>{deg}° E</text>
+                <text x={x} y={FRAME.y + FRAME.h + 22} textAnchor={k === 0 ? "start" : k === LONGITUDES.length - 1 ? "end" : "middle"}>{deg}° E</text>
               </g>
             );
           })}
@@ -205,7 +206,7 @@ export function VoyageChart({ save, selected, still, onSelect, onOpen, onHover }
             return (
               <g key={t.id} transform={`translate(${x} ${y})`} className={`fs-chart-island${isSelected ? " selected" : ""}${open ? "" : " locked"}`}>
                 {isSelected && <circle r={R + 12} fill="#32d4f514" stroke="#6fd6e6" strokeWidth="2.5" className="fs-chart-ring" />}
-                <g className="fs-medallion" filter={open ? undefined : "url(#fs-medal-grey)"} opacity={open ? 1 : 0.72}>
+                <g className="fs-medallion" filter={open ? undefined : "url(#fs-medal-grey)"} opacity={open ? 1 : 0.85}>
                   <circle r={R + 5} fill="#0b2033" stroke="#c89b50" strokeWidth="2" />
                   <g clipPath="url(#fs-medal-clip)">
                     <svg
@@ -250,15 +251,18 @@ export function VoyageChart({ save, selected, still, onSelect, onOpen, onHover }
             );
           })}
 
-          {/* The ship. */}
+          {/* The ship. Its bob is a CSS transform, which would replace a transform
+              attribute on the same element, so it sits on its own inner group. */}
           {shipAt && (
-            <g transform={`translate(${shipAt.x} ${shipAt.y})`} className="fs-chart-ship" aria-hidden="true">
-              <ellipse cy="10" rx="26" ry="7" fill="#0a1c2b" opacity=".6" />
-              <g transform={`rotate(${shipAt.angle * 0.25})`}>
-                <path d="M-20 6 L20 6 L13 15 L-13 15Z" fill="#a9763f" />
-                <rect x="-1.5" y="-20" width="3" height="26" fill="#e3c792" />
-                <path d="M2-18 q16 6 12 18 H2Z" fill="#d7a95e" />
-                <path d="M2-18 q16 6 12 18 H2Z" fill="#9a4b3f" opacity=".45" />
+            <g transform={`translate(${shipAt.x} ${shipAt.y})`} aria-hidden="true">
+              <g className="fs-chart-ship">
+                <ellipse cy="10" rx="26" ry="7" fill="#0a1c2b" opacity=".6" />
+                <g transform={`rotate(${shipAt.angle * 0.25})`}>
+                  <path d="M-20 6 L20 6 L13 15 L-13 15Z" fill="#a9763f" />
+                  <rect x="-1.5" y="-20" width="3" height="26" fill="#e3c792" />
+                  <path d="M2-18 q16 6 12 18 H2Z" fill="#d7a95e" />
+                  <path d="M2-18 q16 6 12 18 H2Z" fill="#9a4b3f" opacity=".45" />
+                </g>
               </g>
             </g>
           )}

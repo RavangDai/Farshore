@@ -341,7 +341,10 @@
   .fs-app.a-app .fs-trial-panel .fs-chart-start { position: sticky; bottom: 0; z-index: 2; }
 
   /* The gallery: two rows of 3:4 cards sized from the space left over. */
-  .fs-app.a-app .fs-trial-gallery { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(10px, 1.6vh, 18px) clamp(14px, 1.6vw, 22px); }
+  /* Stretch to the full height: the card grid sizes itself from this box, so
+     a gallery only as tall as its content (farshore-detail.css sets
+     align-self:start at 1100x700 and up) would collapse it. */
+  .fs-app.a-app .fs-trial-gallery { align-self: stretch; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(10px, 1.6vh, 18px) clamp(14px, 1.6vw, 22px); }
   .fs-app.a-app .fs-gallery-rule { margin-bottom: clamp(4px, 0.8vh, 12px); }
   .fs-app.a-app .fs-gallery-footer { padding-top: clamp(6px, 1.2vh, 16px); }
   .fs-app.a-app .fs-trial-grid {
@@ -362,7 +365,10 @@
   }
 
   /* The chart keeps its proportions and fits the space it is given. */
-  .fs-app.a-app .fs-chart-frame { container-type: size; min-width: 0; min-height: 0; display: grid; place-items: center; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+  /* The chart sits at the top of its column, level with the panel; when the
+     window is wide and short it fills the height instead. */
+  .fs-app.a-app .fs-chart-frame { container-type: size; min-width: 0; min-height: 0; display: grid; place-items: start center; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+  .fs-app.a-app .fs-trial-panel { align-self: start; max-height: 100%; }
   .fs-app.a-app .fs-chart { width: min(100cqw, calc(100cqh * 1000 / 620)); height: auto; aspect-ratio: 1000 / 620; border: 1px solid #b88a4a; border-radius: 4px; box-shadow: 0 0 0 4px #04101b, 0 0 0 5px #b88a4a55, 0 12px 34px #0008; }
 
   /* ---------------------------------------------------------- briefing -- */
@@ -404,8 +410,11 @@
 
   /* ------------------------------------------------------------ result -- */
 
+  /* As tall as its content and centred; on a short window it scrolls inside. */
   .fs-app.a-app .a-result.fs-rich-result {
-    height: 100%;
+    height: auto;
+    max-height: 100%;
+    align-self: center;
     width: 100%;
     max-width: 1180px;
     margin: 0 auto;
@@ -556,7 +565,7 @@
   .fs-app.a-app .fs-lab-launch { grid-area: launch; }
   .fs-app.a-app .fs-lab-compare { grid-area: compare; min-height: 0; overflow: auto; padding: 6px; align-content: start; }
   .fs-app.a-app .fs-lab-card strong { font-size: 13px; line-height: 1.2; }
-  .fs-app.a-app .fs-lab-card small { font-size: 10px; }
+  .fs-app.a-app .fs-lab-card small { display: none; }
 
   /* ---------------------------------------------------------- settings -- */
 
@@ -569,6 +578,7 @@
   .fs-app.a-app .fs-trial-panel .fs-chart-note,
   .fs-app.a-app .fs-trial-panel .fs-chart-progress,
   .fs-app.a-app .fs-lab-launch .a-caption { display: none; }
+  .fs-app.a-app .fs-trial-panel .fs-chart-art { height: clamp(52px, 12vh, 150px); }
 }
 
 /* A maximised window on a 768-pixel laptop: tighten what is left. */

@@ -1,0 +1,340 @@
+/* FARSHORE voyage crossing.
+   The cinematic between one encounter and the next (voyage-crossing.tsx). The
+   moving parts on the chart are driven from script; this sheet holds the
+   overlay: cloud parting over Olympus, the gods' light, the vignette, the
+   captions, the title card and the skip control. Beat times arrive as custom
+   properties on the root (--x-dive, --x-sail, --x-arrive, --x-card). */
+
+.fs-crossing {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  isolation: isolate;
+  background: #030b14;
+  color: #f4e6c4;
+  font-family: var(--fs-font-display);
+}
+.fs-crossing:focus { outline: none; }
+
+.fs-crossing-chart {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* A touch of grade: the chart reads as a painted world rather than a UI. */
+.fs-crossing-chart { filter: saturate(1.08) contrast(1.04); }
+
+/* ------------------------------------------------------- Olympus -- */
+
+/* Cloud banks part as the gods look down, then the camera falls through them. */
+.fs-crossing-sky {
+  position: absolute;
+  inset: -12%;
+  z-index: 2;
+  pointer-events: none;
+}
+.fs-crossing-sky i {
+  position: absolute;
+  inset: 0;
+  filter: blur(9px);
+  will-change: transform, opacity;
+}
+.fs-crossing-sky i:nth-child(1) {
+  background:
+    radial-gradient(ellipse 30% 26% at 26% 38%, #f7f2e8 0%, #dfe6ea 38%, transparent 70%),
+    radial-gradient(ellipse 28% 24% at 10% 66%, #eef2f2 0%, #c4d2da 42%, transparent 72%),
+    radial-gradient(ellipse 36% 26% at 34% 86%, #e4ebee 0%, #b7c8d2 40%, transparent 72%),
+    radial-gradient(ellipse 26% 20% at 16% 12%, #faf6ec 0%, #d4dde2 40%, transparent 72%),
+    radial-gradient(ellipse 22% 30% at 44% 58%, #f3efe6 0%, #ccd7dd 40%, transparent 70%);
+  animation: fs-x-part-left calc(var(--x-dive) + 0.6s) cubic-bezier(0.55, 0, 0.25, 1) both;
+}
+.fs-crossing-sky i:nth-child(2) {
+  background:
+    radial-gradient(ellipse 30% 26% at 74% 36%, #f7f2e8 0%, #dfe6ea 38%, transparent 70%),
+    radial-gradient(ellipse 28% 24% at 90% 70%, #eef2f2 0%, #c4d2da 42%, transparent 72%),
+    radial-gradient(ellipse 36% 26% at 66% 88%, #e4ebee 0%, #b7c8d2 40%, transparent 72%),
+    radial-gradient(ellipse 26% 20% at 84% 10%, #faf6ec 0%, #d4dde2 40%, transparent 72%),
+    radial-gradient(ellipse 22% 30% at 56% 60%, #f3efe6 0%, #ccd7dd 40%, transparent 70%);
+  animation: fs-x-part-right calc(var(--x-dive) + 0.6s) cubic-bezier(0.55, 0, 0.25, 1) both;
+}
+/* Thin wisps the camera falls through during the dive. */
+.fs-crossing-sky i:nth-child(3) {
+  background:
+    radial-gradient(ellipse 18% 8% at 30% 30%, #ffffffaa, transparent 70%),
+    radial-gradient(ellipse 22% 7% at 72% 64%, #ffffff99, transparent 70%),
+    radial-gradient(ellipse 16% 6% at 52% 82%, #ffffff88, transparent 70%),
+    radial-gradient(ellipse 20% 7% at 18% 72%, #ffffff77, transparent 70%);
+  opacity: 0;
+  animation: fs-x-wisps 1.4s ease-in var(--x-dive) both;
+}
+/* The banks hold while the screen fades up, then drift apart. */
+@keyframes fs-x-part-left {
+  0% { transform: translateX(4%); opacity: 1; }
+  38% { transform: none; opacity: 1; }
+  100% { transform: translateX(-64%) scale(1.3); opacity: 0; }
+}
+@keyframes fs-x-part-right {
+  0% { transform: translateX(-4%); opacity: 1; }
+  38% { transform: none; opacity: 1; }
+  100% { transform: translateX(64%) scale(1.3); opacity: 0; }
+}
+@keyframes fs-x-wisps {
+  0% { transform: scale(0.9); opacity: 0; }
+  30% { opacity: 0.8; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* Light falling from the gods onto the sea. */
+.fs-crossing-rays {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 168deg at 50% -18%, #fff3c41a 0deg 3deg, transparent 3deg 9deg);
+  -webkit-mask-image: linear-gradient(#000 0%, #0008 45%, transparent 85%);
+  mask-image: linear-gradient(#000 0%, #0008 45%, transparent 85%);
+  mix-blend-mode: screen;
+  animation: fs-x-rays calc(var(--x-dive) + 1.4s) ease-out both;
+}
+@keyframes fs-x-rays {
+  0% { opacity: 0; transform: rotate(-2deg) scale(1.05); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(2deg) scale(1.15); }
+}
+
+.fs-crossing-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 70% at 50% 46%, transparent 55%, #01060cb3 100%),
+    linear-gradient(180deg, #01060c66, transparent 18%, transparent 78%, #01060c99);
+}
+
+/* The shared letterbox shutters, above the vignette. */
+.fs-crossing .fs-letterbox { z-index: 4; }
+
+/* ------------------------------------------------------- captions -- */
+
+.fs-crossing-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 6%;
+  min-height: 28px;
+  padding: 0 clamp(16px, 3vw, 40px);
+  font: 700 10px/1 var(--fs-font-ui);
+  letter-spacing: 0.22em;
+  color: #c9a466;
+  animation: fs-reveal 1s var(--fs-cine) 1.1s both;
+}
+.fs-crossing-top > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font: italic 13px/1 var(--fs-font-display);
+  letter-spacing: 0.02em;
+  color: #e9d5a6;
+  white-space: nowrap;
+}
+
+.fs-crossing-olympus {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  width: min(92vw, 760px);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  animation: fs-x-olympus calc(var(--x-dive) + 0.5s) var(--fs-cine) both;
+}
+.fs-crossing-olympus span {
+  font: 700 11px/1 var(--fs-font-ui);
+  letter-spacing: 0.34em;
+  color: #f3d79c;
+  text-shadow: 0 1px 3px #000c, 0 0 14px #0009;
+}
+.fs-crossing-olympus strong {
+  font: italic 400 clamp(30px, 4.6vw, 58px)/1.1 var(--fs-font-display);
+  color: #fff3d6;
+  text-shadow: 0 2px 4px #000c, 0 0 24px #000a, 0 0 2px #000;
+}
+@keyframes fs-x-olympus {
+  0% { opacity: 0; transform: translate(-50%, -42%); filter: blur(6px); }
+  28%, 70% { opacity: 1; transform: translate(-50%, -50%); filter: none; }
+  100% { opacity: 0; transform: translate(-50%, -58%) scale(1.06); filter: blur(4px); }
+}
+
+/* The bard's line, as a film subtitle. */
+.fs-crossing-line {
+  position: absolute;
+  left: 50%;
+  bottom: calc(6% + 18px);
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  width: max-content;
+  max-width: min(720px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 20px 12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, #020a12c4 14%, #020a12c4 86%, transparent);
+  transform: translateX(-50%);
+  font: italic clamp(15px, 1.7vw, 20px)/1.45 var(--fs-font-display);
+  color: #f6ead0;
+  text-align: center;
+  text-shadow: 0 1px 2px #000;
+  animation:
+    fs-x-line-in 0.9s var(--fs-cine) calc(var(--x-dive) - 0.2s) both,
+    fs-x-fade-out 0.4s ease calc(var(--x-arrive) - 0.1s) forwards;
+}
+.fs-crossing-line > span {
+  font: 700 10px/1 var(--fs-font-ui);
+  font-style: normal;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #e9b85c;
+}
+@keyframes fs-x-line-in {
+  from { opacity: 0; transform: translate(-50%, 8px); filter: blur(3px); }
+  to { opacity: 1; transform: translate(-50%, 0); filter: none; }
+}
+@keyframes fs-x-fade-out { to { opacity: 0; visibility: hidden; } }
+
+/* ------------------------------------------------------- title card -- */
+
+.fs-crossing-card {
+  position: absolute;
+  left: 50%;
+  bottom: calc(6% + 18px);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 12px 26px 12px 12px;
+  border: 1px solid #b88a4a;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #0c2639f5, #061726f5);
+  box-shadow: inset 0 0 0 3px #020b15, inset 0 0 0 4px #a67a3c44, 0 18px 44px #000b;
+  transform: translateX(-50%);
+  animation: fs-x-card 1s var(--fs-cine) var(--x-card) both;
+}
+.fs-crossing .fs-crossing-art {
+  flex: none;
+  width: clamp(60px, 6.4vw, 90px);
+  aspect-ratio: 3 / 4;
+  height: auto;
+  border: 1px solid #c89b50;
+  border-radius: 3px;
+  box-shadow: 0 4px 12px #0009;
+}
+.fs-crossing-card > div { display: grid; gap: 4px; min-width: 0; }
+.fs-crossing-eyebrow {
+  font: 700 10px/1.2 var(--fs-font-ui);
+  letter-spacing: 0.2em;
+  color: #c9a466;
+}
+.fs-crossing-card h1 {
+  margin: 2px 0;
+  font: 400 clamp(24px, 3.2vw, 40px)/1.05 var(--fs-font-display);
+  letter-spacing: 0.01em;
+  color: #f4d897;
+  text-shadow: 0 2px 12px #000a;
+}
+.fs-crossing-card p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: italic 14px/1.4 var(--fs-font-display);
+  color: #bfd9e2;
+}
+.fs-crossing-card p::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fs-color-ai, #32d4f5);
+  box-shadow: 0 0 10px var(--fs-color-ai, #32d4f5);
+}
+.fs-crossing-card p[data-rival="studying"]::before { animation: fs-pulse 1.2s ease-in-out infinite; }
+.fs-crossing-card p[data-rival="preview"]::before { background: #c9a466; box-shadow: none; }
+@keyframes fs-x-card {
+  from { opacity: 0; transform: translate(-50%, 18px) scale(0.98); filter: blur(6px); }
+  to { opacity: 1; transform: translate(-50%, 0); filter: none; }
+}
+
+/* ------------------------------------------------------- skip -- */
+
+.fs-crossing-skip {
+  position: absolute;
+  right: clamp(16px, 3vw, 40px);
+  bottom: calc(6% + 18px);
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 14px 0 16px;
+  border: 1px solid #b88a4a99;
+  border-radius: 3px;
+  background: #03101dd9;
+  color: #f1dfb6;
+  font: 700 11px/1 var(--fs-font-ui);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  animation: fs-reveal 0.8s var(--fs-cine) 0.9s both;
+  transition: background 160ms, border-color 160ms;
+}
+.fs-crossing-skip:hover, .fs-crossing-skip:focus-visible { border-color: #e9b85c; background: #0b2437; }
+.fs-crossing-skip:focus-visible { outline: 2px solid var(--fs-color-ai, #32d4f5); outline-offset: 2px; }
+.fs-crossing-skip kbd {
+  padding: 3px 6px;
+  border: 1px solid #b88a4a66;
+  border-radius: 2px;
+  font: 10px/1 var(--fs-font-ui);
+  letter-spacing: 0.06em;
+  color: #c9a466;
+}
+.fs-crossing[data-beat="card"] .fs-crossing-skip {
+  border-color: #e9b85c;
+  background: linear-gradient(#b9853f, #8a5d2a);
+  color: #fff4d8;
+  box-shadow: 0 0 24px #e9b85c55;
+}
+
+/* ------------------------------------------------------- narrow -- */
+
+/* The card's width plus the skip button no longer fit side by side, so the
+   skip moves to the top and the captions use the full width. */
+@media (max-width: 1100px) {
+  .fs-crossing-skip { top: calc(6% + 12px); bottom: auto; }
+}
+@media (max-width: 760px) {
+  .fs-crossing-top { justify-content: center; }
+  .fs-crossing-top > span:first-child { display: none; }
+  .fs-crossing-top > span:last-child { font-size: 12px; }
+  .fs-crossing-card { gap: 12px; padding: 10px 14px 10px 10px; }
+  .fs-crossing-card p { font-size: 13px; }
+  .fs-crossing-skip kbd { display: none; }
+}

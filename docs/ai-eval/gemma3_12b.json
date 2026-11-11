@@ -1,0 +1,748 @@
+{
+  "summary": {
+    "model": "gemma3:12b",
+    "requests": 81,
+    "valid": "100%",
+    "grounded": "100%",
+    "agreement": "21%",
+    "refusals": "100%",
+    "answered": "100%",
+    "debriefs": "100%",
+    "p50": "4.0 s",
+    "p95": "5.4 s",
+    "byTrial": {
+      "bow": {
+        "valid": "100%",
+        "agreement": "8%"
+      },
+      "sirens": {
+        "valid": "100%",
+        "agreement": "10%"
+      },
+      "cyclops": {
+        "valid": "100%",
+        "agreement": "67%"
+      }
+    },
+    "measured": "2026-11-10T19:32:43.424Z"
+  },
+  "results": [
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.8356917999999998,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.374664700000001,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.760356300000001,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.447444200000002,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.5259861000000017,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.584679100000001,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.784319299999999,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.7676285000000025,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.645805099999998,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.157853899999995,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.7884977999999974,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.992000399999997,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.5770534000000045,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.5901707000000025,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.075998800000001,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.885854100000004,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.4052324999999986,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.8875322000000017,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.4827597999999997,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.5403570000000038,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.7328430999999984,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.563510999999998,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.729105599999995,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.762996100000004,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.940557000000001,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.933374899999995,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.897973499999993,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.3654182,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.849840799999991,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.151474000000002,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.4080433000000045,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.889881400000013,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.105145199999999,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.378223500000022,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.9335288,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.920200699999986,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.951083899999998,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.013920799999992,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.401214100000012,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.396104300000006,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.410246799999993,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.009426399999997,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.43099980000002,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.707869999999995,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "sirens",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.329309799999988,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.5847163,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.6022203000000155,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.506298899999995
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.818303199999995,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.370262199999997,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.73593299999999
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.195894499999995,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.099464000000007,
+      "agreed": false,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.8098078000000095
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.018761599999998,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.27559580000001,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.1215452999999975
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.200534400000004,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.889642200000002,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 6.226075599999982
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.6961562999999735,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "choose",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.044781799999997,
+      "agreed": true,
+      "grounded": true
+    },
+    {
+      "kind": "debrief",
+      "trial": "cyclops",
+      "ok": true,
+      "status": 200,
+      "seconds": 5.405582099999999
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.7882431000000216,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.6898025000000487,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.540430099999998,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.49752429999999,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.589619400000025,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.5565746999999974,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.958899799999956,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.1820472999999767,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.9128416999999898,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.7466641999999992,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.6374931999999682,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.530875800000038,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 4.098445799999987,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.960919899999979,
+      "offTopic": false,
+      "refused": false
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.0755363999999825,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 2.99093670000002,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.0526920999999856,
+      "offTopic": true,
+      "refused": true
+    },
+    {
+      "kind": "athena",
+      "trial": "bow",
+      "ok": true,
+      "status": 200,
+      "seconds": 3.1622669999999924,
+      "offTopic": true,
+      "refused": true
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { LOTUS_MAZE, LOTUS_SHIP, mazePath, adventureStatus, type AdventureState, type AdventureAction } from "../../lib/encounters/odyssey-games";
+import { mazePath, adventureStatus, type AdventureState, type AdventureAction, type LotusState } from "../../lib/encounters/odyssey-games";
 import { useFarshoreAtlas, useFarshoreSprites, useFarshoreItems, drawFarshoreItem, drawFarshoreTile, drawFarshoreSprite } from "../../lib/render/farshore-rendering";
 import { gardenTile, shadow, torchlight, motes, sceneFrame } from "../../lib/render/scene-details";
 
@@ -20,6 +20,30 @@ function ship(c: CanvasRenderingContext2D, x: number, y: number, scale = 1, spri
   c.fillStyle = "#a27443"; c.beginPath(); c.moveTo(-47, 8); c.lineTo(-31, 27); c.lineTo(33, 27); c.lineTo(49, 3); c.lineTo(27, 12); c.closePath(); c.fill(); c.strokeStyle = gold; c.lineWidth = 2; c.stroke();
   c.fillStyle = "#e3c792"; c.fillRect(-3, -48, 4, 59); c.beginPath(); c.moveTo(4, -44); c.quadraticCurveTo(40, -32, 34, 0); c.lineTo(4, 0); c.fill(); c.fillStyle = "#8a4841"; c.fillRect(13, -29, 8, 19); c.restore();
 }
+/** The size of one garden tile, in canvas pixels, at which the garden is drawn. */
+export const LOTUS_UNIT = 39;
+/**
+ * The lotus garden on a 39-pixel grid from the origin: hedges, the ship,
+ * relics, moly, sailors, guardians, and Odysseus with any sailor following.
+ * Callers translate and scale the context to place it. `route` draws the path
+ * home while a sailor follows, the easy-mode guide.
+ */
+export function drawLotusGarden(c: CanvasRenderingContext2D, s: LotusState, sprites: HTMLImageElement | null, items: HTMLImageElement | null, route: boolean) {
+  const unit = LOTUS_UNIT, maze = s.layout.maze;
+  for (let y = 0; y < maze.length; y++) for (let x = 0; x < maze[y].length; x++) gardenTile(c, x * unit, y * unit, unit, maze[y][x] === "#", x * 7 + y * 13);
+  const pos = (p: { x: number; y: number }) => ({ x: p.x * unit + unit / 2, y: p.y * unit + unit / 2 });
+  const home = pos(s.layout.ship); circle(c, home.x, home.y, 19, "#32d4f565"); ship(c, home.x, home.y + 3, .37, sprites);
+  if (s.carrying && route) {
+    c.strokeStyle = "#ffdf8988"; c.lineWidth = 3; c.setLineDash([3, 7]); c.beginPath(); const start = pos(s.player); c.moveTo(start.x, start.y);
+    for (const p of mazePath(s.player, s.layout.ship, maze)) { const a = pos(p); c.lineTo(a.x, a.y); } c.stroke(); c.setLineDash([]);
+  }
+  for (const p of s.relics) { const a = pos(p); circle(c, a.x, a.y, 13, "#ffcf522b"); if (!drawFarshoreItem(c, items, 3, a.x - 12, a.y - 12, 24)) circle(c, a.x, a.y, 7, gold); }
+  for (const p of s.pickups) { const a = pos(p); circle(c, a.x, a.y, 17, "#e9b85c24"); if (!drawFarshoreItem(c, items, 2, a.x - 17, a.y - 17, 34)) circle(c, a.x, a.y, 8, gold); }
+  for (const p of s.sailors) { const a = pos(p); shadow(c, a.x, a.y + 13, 12); if (!drawFarshoreItem(c, items, 0, a.x - 19, a.y - 28, 38, 45)) hero(c, a.x, a.y + 4, .6, true); c.fillStyle = cream; c.font = "bold 12px Georgia"; c.textAlign = "center"; c.fillText("!", a.x, a.y - 28); }
+  for (const p of s.guardians) { const a = pos(p); shadow(c, a.x, a.y + 13, 14); circle(c, a.x, a.y + 10, 17, "#a879ff30"); if (!drawFarshoreItem(c, items, 1, a.x - 22, a.y - 27, 44, 48)) circle(c, a.x, a.y, 10, "#77519d"); }
+  const a = pos(s.player); if (s.protection) { c.strokeStyle = gold; c.lineWidth = 2; c.beginPath(); c.arc(a.x, a.y, 18, 0, Math.PI * 2); c.stroke(); } if (!s.invulnerable || Math.floor(s.elapsed / 100) % 2) hero(c, a.x, a.y + 6, .73, false, sprites);
+  if (s.carrying) { const follower = pos(s.previous); drawFarshoreItem(c, items, 0, follower.x - 14, follower.y - 22, 28, 35); }
+}
 function sea(c: CanvasRenderingContext2D, time: number, still: boolean) {
   const g = c.createLinearGradient(0, 0, 0, 480); g.addColorStop(0, "#101d36"); g.addColorStop(.5, "#12334b"); g.addColorStop(1, "#071a32"); c.fillStyle = g; c.fillRect(0, 0, 800, 480);
   circle(c, 640, 64, 33, "#c0d5d22a"); circle(c, 642, 63, 26, "#c9ded84a");
@@ -34,23 +58,9 @@ export function AdventureGame({ state: s, active, act, still }: { state: Adventu
     c.clearRect(0, 0, 800, 480); sea(c, s.elapsed, still);
     if (s.id === "lotus") {
       drawFarshoreTile(c, atlas, 0, 0, 0, 800, 480, .5);
-      const unit = 39, ox = 108, oy = 22;
-      for (let y = 0; y < LOTUS_MAZE.length; y++) for (let x = 0; x < LOTUS_MAZE[y].length; x++) {
-        const px = ox + x * unit, py = oy + y * unit;
-        gardenTile(c, px, py, unit, LOTUS_MAZE[y][x] === "#", x * 7 + y * 13);
-      }
-      const pos = (p: { x: number; y: number }) => ({ x: ox + p.x * unit + unit / 2, y: oy + p.y * unit + unit / 2 });
-      const home = pos(LOTUS_SHIP); circle(c, home.x, home.y, 19, "#32d4f565"); ship(c, home.x, home.y + 3, .37, sprites);
-      if (s.carrying && (s.difficulty === "easy" || s.practice)) {
-        c.strokeStyle = "#ffdf8988"; c.lineWidth = 3; c.setLineDash([3, 7]); c.beginPath(); const start = pos(s.player); c.moveTo(start.x, start.y);
-        for (const p of mazePath(s.player, LOTUS_SHIP)) { const a = pos(p); c.lineTo(a.x, a.y); } c.stroke(); c.setLineDash([]);
-      }
-      for (const p of s.relics) { const a = pos(p); circle(c, a.x, a.y, 13, "#ffcf522b"); if (!drawFarshoreItem(c, items, 3, a.x - 12, a.y - 12, 24)) circle(c, a.x, a.y, 7, gold); }
-      for (const p of s.pickups) { const a = pos(p); circle(c, a.x, a.y, 17, "#e9b85c24"); if (!drawFarshoreItem(c, items, 2, a.x - 17, a.y - 17, 34)) circle(c, a.x, a.y, 8, gold); }
-      for (const p of s.sailors) { const a = pos(p); shadow(c, a.x, a.y + 13, 12); if (!drawFarshoreItem(c, items, 0, a.x - 19, a.y - 28, 38, 45)) hero(c, a.x, a.y + 4, .6, true); c.fillStyle = cream; c.font = "bold 12px Georgia"; c.textAlign = "center"; c.fillText("!", a.x, a.y - 28); }
-      for (const p of s.guardians) { const a = pos(p); shadow(c, a.x, a.y + 13, 14); circle(c, a.x, a.y + 10, 17, "#a879ff30"); if (!drawFarshoreItem(c, items, 1, a.x - 22, a.y - 27, 44, 48)) circle(c, a.x, a.y, 10, "#77519d"); }
-      const a = pos(s.player); if (s.protection) { c.strokeStyle = gold; c.lineWidth = 2; c.beginPath(); c.arc(a.x, a.y, 18, 0, Math.PI * 2); c.stroke(); } if (!s.invulnerable || Math.floor(s.elapsed / 100) % 2) hero(c, a.x, a.y + 6, .73, false, sprites);
-      if (s.carrying) { const follower = pos(s.previous); drawFarshoreItem(c, items, 0, follower.x - 14, follower.y - 22, 28, 35); }
+      c.save(); c.translate(108, 22);
+      drawLotusGarden(c, s, sprites, items, s.difficulty === "easy" || s.practice);
+      c.restore();
       motes(c, still ? 0 : s.elapsed, "pollen");
     } else if (s.id === "cyclops") {
       c.fillStyle = "#12101d"; c.fillRect(0, 0, 800, 480); const glow = c.createRadialGradient(400, 80, 5, 400, 170, 390); glow.addColorStop(0, "#737369"); glow.addColorStop(.25, "#3d3c3c"); glow.addColorStop(1, "#181626"); c.fillStyle = glow; c.fillRect(0, 0, 800, 480);

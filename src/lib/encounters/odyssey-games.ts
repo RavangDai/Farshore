@@ -1,10 +1,28 @@
 import { validPlan, type AttemptSummary, type Difficulty, type OpponentPlan } from "../arcade/arcade.ts";
 
 export type AdventureId = "lotus" | "cyclops" | "aeolus" | "calypso";
-type Point = { x: number; y: number };
+export type Point = { x: number; y: number };
+/**
+ * A Lotus-Eaters garden: its walls and where everything starts. The classic
+ * garden is the original encounter; the race and the trained rival also use
+ * generated gardens (see lotus-layouts.ts), which follow the same rules.
+ */
+export type LotusLayout = {
+  id: string;
+  name: string;
+  /** Rows of "#" (hedge) and "." (path). */
+  maze: string[];
+  ship: Point;
+  sailors: Point[];
+  guardians: Point[];
+  pickups: Point[];
+  relics: Point[];
+  /** The guardians' patrol route when they are not chasing. */
+  waypoints: Point[];
+};
 export type AIDebug = { algorithm: string; state: string; target: string; prediction: string; confidence: number; pathLength: number; decision: string };
 type Base = { id: AdventureId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; elapsed: number; done: boolean; won: boolean; feedback: string; rivalLine: string; score: number; rivalScore: number; hits: number; damageTaken: number; successes: number; misses: number; combo: number; bestCombo: number; invulnerable: number; duration: number; debug: AIDebug };
-export type LotusState = Base & { id: "lotus"; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number; camp?: number };
+export type LotusState = Base & { id: "lotus"; layout: LotusLayout; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number; camp?: number };
 export type Obstacle = { lane: number; kind: "rock" | "crate" | "beam" | "gap" | "sheep" | "coin"; remaining: number; warning: number };
 export type RunnerState = Base & { id: "cyclops"; lane: number; history: number[]; jump: number; slide: number; gap: number; obstacles: Obstacle[]; spawn: number; wave: number; coins: number; precision: number };
 export type WindGate = { x: number; center: number; gap: number; passed: boolean; pickup: "wind" | "repair"; collected: boolean; hit?: boolean };
@@ -25,8 +43,20 @@ export const LOTUS_MAZE = [
   "###############", "#.............#", "#.###.###.###.#", "#...#...#...#.#", "###.#.#.###.#.#", "#...#.#.....#.#", "#.###.#####.#.#", "#.....#.....#.#", "#.###.#.###.#.#", "#.............#", "###############",
 ];
 export const LOTUS_SHIP = { x: 1, y: 9 };
-export const walkable = (p: Point) => LOTUS_MAZE[p.y]?.[p.x] === ".";
-export function mazePath(start: Point, goal: Point): Point[] {
+export const LOTUS_CLASSIC: LotusLayout = {
+  id: "classic",
+  name: "The lotus garden",
+  maze: LOTUS_MAZE,
+  ship: LOTUS_SHIP,
+  sailors: [{ x: 1, y: 1 }, { x: 13, y: 1 }, { x: 13, y: 9 }],
+  guardians: [{ x: 7, y: 1 }, { x: 11, y: 5 }],
+  pickups: [{ x: 3, y: 3 }, { x: 9, y: 7 }],
+  relics: [{ x: 3, y: 5 }, { x: 11, y: 3 }, { x: 9, y: 9 }],
+  waypoints: [{ x: 7, y: 1 }, { x: 13, y: 5 }, { x: 9, y: 9 }, { x: 5, y: 5 }, { x: 1, y: 1 }],
+};
+/** Whether a tile is open path. `maze` defaults to the classic garden; anything but an array (such as an index from `Array.every`) is ignored. */
+export const walkable = (p: Point, maze?: string[]) => (Array.isArray(maze) ? maze : LOTUS_MAZE)[p.y]?.[p.x] === ".";
+export function mazePath(start: Point, goal: Point, maze: string[] = LOTUS_MAZE): Point[] {
   const frontier = [{ point: start, path: [] as Point[], cost: 0 }], visited = new Set<string>();
   while (frontier.length) {
     frontier.sort((a, b) => a.cost + Math.abs(a.point.x - goal.x) + Math.abs(a.point.y - goal.y) - b.cost - Math.abs(b.point.x - goal.x) - Math.abs(b.point.y - goal.y));
@@ -36,7 +66,7 @@ export function mazePath(start: Point, goal: Point): Point[] {
     visited.add(key);
     for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
       const point = { x: node.point.x + dx, y: node.point.y + dy };
-      if (walkable(point)) frontier.push({ point, path: [...node.path, point], cost: node.cost + 1 });
+      if (walkable(point, maze)) frontier.push({ point, path: [...node.path, point], cost: node.cost + 1 });
     }
   }
   return [];
@@ -45,10 +75,14 @@ function newRows(s: Base): RaftRow[] {
   // The widest gap is under two hop lengths, preserving a reachable landing.
   return Array.from({ length: 7 }, (_, i) => ({ offset: i % 2 ? 1.3 : 0, speed: (i % 2 ? -1 : 1) * [0.2, 0.32, 0.44][tier(s)] * (s.plan.source === "ai" ? 1.15 : 1), width: [4.1, 3.9, 3.8][tier(s)] }));
 }
-export function newAdventure(id: AdventureId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200): AdventureState {
+export function newAdventure(id: AdventureId, difficulty: Difficulty, plan: OpponentPlan, practice = false, seed = 4200, options: { layout?: LotusLayout } = {}): AdventureState {
   if (!validPlan(id, plan) || !["easy", "normal", "hard"].includes(difficulty)) throw new Error("Unsupported encounter rules");
   const b: Base = { id, difficulty, plan: { ...plan }, practice, seed, elapsed: 0, done: false, won: false, feedback: "", rivalLine: "", score: 0, rivalScore: 0, hits: 0, damageTaken: 0, successes: 0, misses: 0, combo: 0, bestCombo: 0, invulnerable: 0, duration: practice ? 20000 : 75000, debug: { algorithm: "Patrol", state: "Observing", target: "None", prediction: "No history yet", confidence: 0, pathLength: 0, decision: "Awaiting first decision" } };
-  if (id === "lotus") return { ...b, id, relics: [{ x: 3, y: 5 }, { x: 11, y: 3 }, { x: 9, y: 9 }], relicsFound: 0, duration: practice ? 60000 : [180000, 150000, 120000][tier(b)], player: { ...LOTUS_SHIP }, previous: { ...LOTUS_SHIP }, sailors: [{ x: 1, y: 1 }, { x: 13, y: 1 }, { x: 13, y: 9 }], carrying: false, rescued: 0, guardians: [{ x: 7, y: 1 }, { x: 11, y: 5 }], guardClock: 0, moveClock: 0, protection: 0, pickups: [{ x: 3, y: 3 }, { x: 9, y: 7 }], patrol: 0, feedback: "Find a sailor, then return to the ship at the bottom left.", rivalLine: "Patrol · the guardians keep watch over the lotus garden." };
+  if (id === "lotus") {
+    const layout = options.layout ?? LOTUS_CLASSIC, copy = (points: Point[]) => points.map(p => ({ ...p }));
+    const where = layout.ship.x < layout.maze[0].length / 2 ? (layout.ship.y > layout.maze.length / 2 ? "bottom left" : "top left") : layout.ship.y > layout.maze.length / 2 ? "bottom right" : "top right";
+    return { ...b, id, layout, relics: copy(layout.relics), relicsFound: 0, duration: practice ? 60000 : [180000, 150000, 120000][tier(b)], player: { ...layout.ship }, previous: { ...layout.ship }, sailors: copy(layout.sailors), carrying: false, rescued: 0, guardians: copy(layout.guardians), guardClock: 0, moveClock: 0, protection: 0, pickups: copy(layout.pickups), patrol: 0, feedback: `Find a sailor, then return to the ship at the ${where}.`, rivalLine: "Patrol · the guardians keep watch over the lotus garden." };
+  }
   if (id === "cyclops") return { ...b, id, coins: 0, precision: 0, lane: 1, history: [1], jump: 0, slide: 0, gap: 70, obstacles: [], spawn: 1700, wave: 0, feedback: "Watch the horizon. Change lanes, jump crates, and slide under beams.", rivalLine: "Polyphemus is closing in. Every attack is warned before it reaches you." };
   if (id === "aeolus") return { ...b, id, perfectPasses: 0, y: 200, vy: 0, gates: [], spawn: 1200, wave: 0, blessings: 0, gust: 0, gustClock: 0, liftHistory: [], lastCenter: 200, feedback: "Tap Lift in short bursts. Sail through the clear water between the rocks.", rivalLine: "Aeolus sends a gentle breeze. Read the next opening." };
   return { ...b, id: "calypso", duration: practice ? 60000 : 150000, x: 3.5, row: 0, progress: 0, rows: newRows(b), moveClock: 0, crossing: 1, stormClock: 5000, lightning: null, wood: 0, gatheredRows: [], feedback: "Hop onto a timber. Cross seven currents, then rest on the far shore.", rivalLine: "The current carries every timber. Choose your landing before you jump." };
@@ -60,11 +94,64 @@ function checkLotus(s: LotusState) {
   if (!s.carrying && sailor >= 0) { s.sailors.splice(sailor, 1); s.carrying = true; s.feedback = "A sailor follows you. Bring them to the ship at the bottom left."; }
   const pickup = s.pickups.findIndex(p => same(p, s.player));
   if (pickup >= 0) { s.pickups.splice(pickup, 1); s.protection = 14000; s.score += 75; s.feedback = "Moly protects you for fourteen seconds. Make for the ship!"; }
-  if (s.carrying && same(s.player, LOTUS_SHIP)) { s.carrying = false; s.rescued++; reward(s, 500); s.feedback = `${s.rescued} of ${s.practice ? 1 : 3} sailors safe aboard.`; if (s.rescued >= (s.practice ? 1 : 3)) end(s, true, "Your companions remember Ithaca. The ship leaves the lotus shore."); }
+  if (s.carrying && same(s.player, s.layout.ship)) { s.carrying = false; s.rescued++; reward(s, 500); s.feedback = `${s.rescued} of ${s.practice ? 1 : 3} sailors safe aboard.`; if (s.rescued >= (s.practice ? 1 : 3)) end(s, true, "Your companions remember Ithaca. The ship leaves the lotus shore."); }
   if (!s.protection && s.guardians.some(p => same(p, s.player)) && damage(s, "A guardian caught you. You return to the ship; keep an eye on the patrols.")) {
     if (s.carrying) { s.sailors.push({ ...s.player }); s.carrying = false; }
-    s.player = { ...LOTUS_SHIP };
+    s.player = { ...s.layout.ship };
   }
+}
+/**
+ * One step of Odysseus, changing the state in place. Returns false, leaving
+ * the state untouched, for a move that is not allowed yet or runs into a hedge.
+ * `adventureAction` uses this on a copy; the race and the training server use
+ * it directly, so every caller plays by the same rules.
+ */
+export function lotusMoveInPlace(s: LotusState, dx: number, dy: number): boolean {
+  if (s.done || s.moveClock > 0 || Math.abs(dx) + Math.abs(dy) !== 1) return false;
+  const point = { x: s.player.x + dx, y: s.player.y + dy };
+  if (!walkable(point, s.layout.maze)) return false;
+  s.previous = s.player; s.player = point; s.moveClock = 170; checkLotus(s);
+  return true;
+}
+/** Advances the garden by `dt` milliseconds in place: timers, the guardians' patrol and pursuit, and the time limit. */
+export function lotusTickInPlace(s: LotusState, dt: number) {
+  if (s.done) return;
+  const t = tier(s), maze = s.layout.maze;
+  s.elapsed += dt; s.invulnerable = Math.max(0, s.invulnerable - dt);
+  s.moveClock = Math.max(0, s.moveClock - dt); s.protection = Math.max(0, s.protection - dt); s.guardClock += dt;
+  if (s.guardClock >= [1050, 780, 600][t]) {
+    s.guardClock = 0; s.patrol++;
+    const waypoints = s.layout.waypoints;
+    s.guardians = s.guardians.map((guard, i) => {
+      const detected = Math.abs(guard.x - s.player.x) + Math.abs(guard.y - s.player.y) <= 7;
+      let target = waypoints[(Math.floor(s.patrol / 9) + i * 2) % waypoints.length];
+      // The model's plan shapes the second guardian from Medium up: the
+      // pincer cuts you off from the far side, the undertow takes the
+      // junction ahead or the path home. It may hold a spot only briefly.
+      const plan = s.plan.source === "ai" ? s.plan.planId : "patrol";
+      // A guardian that has held one spot for 4 steps patrols for the next 6.
+      const camping = i === 1 && ((s.camp ?? 0) >= 4 || (s.camp ?? 0) < 0);
+      if (t >= 1 && detected && !camping) {
+        target = s.player;
+        if (i === 1 && plan === "pincer") {
+          const lead = s.guardians[0], dx = Math.sign(s.player.x - lead.x), dy = Math.sign(s.player.y - lead.y);
+          const flank = { x: s.player.x + dx * 2, y: s.player.y + dy * 2 };
+          target = walkable(flank, maze) ? flank : s.player;
+        } else if (i === 1 && (plan === "undertow" || t === 2)) {
+          const home = s.carrying && plan === "undertow" ? mazePath(s.player, s.layout.ship, maze)[2] : undefined;
+          const prediction = { x: s.player.x + s.player.x - s.previous.x, y: s.player.y + s.player.y - s.previous.y };
+          target = home ?? (walkable(prediction, maze) ? prediction : s.player);
+        }
+        s.rivalLine = plan === "pincer" ? "Pincer · one guardian follows, the other circles to cut you off." : plan === "undertow" || t === 2 ? (s.carrying && plan === "undertow" ? "Undertow · a guardian moves to block your way back to the ship." : "Intercept · a guardian is heading for your next junction.") : "Pursuit · detected! The guardian follows the shortest open path.";
+      } else s.rivalLine = "Patrol · guardians follow the garden paths. Walls block their movement.";
+      const path = mazePath(guard, target, maze);
+      s.debug = { algorithm: t === 0 ? "Patrol FSM" : t === 1 ? "A* pursuit" : "A* interception", state: detected && t > 0 ? t === 2 && i === 1 ? "Intercept" : "Pursuit" : "Patrol", target: `${target.x}, ${target.y}`, prediction: `${s.player.x + s.player.x - s.previous.x}, ${s.player.y + s.player.y - s.previous.y}`, confidence: detected ? .8 : .2, pathLength: path.length, decision: s.rivalLine };
+      if (i === 1) { const held = s.camp ?? 0; s.camp = held >= 4 ? -6 : held < 0 ? held + 1 : path.length === 0 && t >= 1 && detected ? held + 1 : 0; }
+      return path[0] || guard;
+    });
+    checkLotus(s);
+  }
+  if (!s.done && s.elapsed >= s.duration) end(s, false, "The storm closes in. Try a shorter route and keep moving.");
 }
 export function onTimber(s: RaftState, x = s.x, row = s.row, futureMs = 0) {
   if (row === 0 || row === 8) return true;
@@ -76,10 +163,7 @@ export function adventureAction(state: AdventureState, action: AdventureAction):
   if (state.done) return state;
   const s = structuredClone(state);
   if (s.id === "lotus" && action.type === "move" && s.moveClock <= 0) {
-    if (Math.abs(action.dx) + Math.abs(action.dy) !== 1) return state;
-    const point = { x: s.player.x + action.dx, y: s.player.y + action.dy };
-    if (!walkable(point)) return state;
-    s.previous = s.player; s.player = point; s.moveClock = 170; checkLotus(s);
+    if (!lotusMoveInPlace(s, action.dx, action.dy)) return state;
   } else if (s.id === "cyclops") {
     if (action.type === "move" && action.dx) { s.lane = clamp(s.lane + Math.sign(action.dx), 0, 2); s.history = [...s.history, s.lane].slice(-6); }
     if ((action.type === "jump" || action.type === "move" && action.dy < 0) && !s.jump && !s.slide) s.jump = 1000;
@@ -105,42 +189,10 @@ export function adventureAction(state: AdventureState, action: AdventureAction):
 }
 export function tickAdventure(state: AdventureState, delta: number): AdventureState {
   if (state.done || !Number.isFinite(delta) || delta <= 0) return state;
-  const s = structuredClone(state), dt = Math.min(100, delta), t = tier(s); s.elapsed += dt; s.invulnerable = Math.max(0, s.invulnerable - dt);
-  if (s.id === "lotus") {
-    s.moveClock = Math.max(0, s.moveClock - dt); s.protection = Math.max(0, s.protection - dt); s.guardClock += dt;
-    if (s.guardClock >= [1050, 780, 600][t]) {
-      s.guardClock = 0; s.patrol++;
-      const waypoints = [{ x: 7, y: 1 }, { x: 13, y: 5 }, { x: 9, y: 9 }, { x: 5, y: 5 }, { x: 1, y: 1 }];
-      s.guardians = s.guardians.map((guard, i) => {
-        const detected = Math.abs(guard.x - s.player.x) + Math.abs(guard.y - s.player.y) <= 7;
-        let target = waypoints[(Math.floor(s.patrol / 9) + i * 2) % waypoints.length];
-        // The model's plan shapes the second guardian from Medium up: the
-        // pincer cuts you off from the far side, the undertow takes the
-        // junction ahead or the path home. It may hold a spot only briefly.
-        const plan = s.plan.source === "ai" ? s.plan.planId : "patrol";
-        // A guardian that has held one spot for 4 steps patrols for the next 6.
-        const camping = i === 1 && ((s.camp ?? 0) >= 4 || (s.camp ?? 0) < 0);
-        if (t >= 1 && detected && !camping) {
-          target = s.player;
-          if (i === 1 && plan === "pincer") {
-            const lead = s.guardians[0], dx = Math.sign(s.player.x - lead.x), dy = Math.sign(s.player.y - lead.y);
-            const flank = { x: s.player.x + dx * 2, y: s.player.y + dy * 2 };
-            target = walkable(flank) ? flank : s.player;
-          } else if (i === 1 && (plan === "undertow" || t === 2)) {
-            const home = s.carrying && plan === "undertow" ? mazePath(s.player, LOTUS_SHIP)[2] : undefined;
-            const prediction = { x: s.player.x + s.player.x - s.previous.x, y: s.player.y + s.player.y - s.previous.y };
-            target = home ?? (walkable(prediction) ? prediction : s.player);
-          }
-          s.rivalLine = plan === "pincer" ? "Pincer · one guardian follows, the other circles to cut you off." : plan === "undertow" || t === 2 ? (s.carrying && plan === "undertow" ? "Undertow · a guardian moves to block your way back to the ship." : "Intercept · a guardian is heading for your next junction.") : "Pursuit · detected! The guardian follows the shortest open path.";
-        } else s.rivalLine = "Patrol · guardians follow the garden paths. Walls block their movement.";
-        const path = mazePath(guard, target);
-        s.debug = { algorithm: t === 0 ? "Patrol FSM" : t === 1 ? "A* pursuit" : "A* interception", state: detected && t > 0 ? t === 2 && i === 1 ? "Intercept" : "Pursuit" : "Patrol", target: `${target.x}, ${target.y}`, prediction: `${s.player.x + s.player.x - s.previous.x}, ${s.player.y + s.player.y - s.previous.y}`, confidence: detected ? .8 : .2, pathLength: path.length, decision: s.rivalLine };
-        if (i === 1) { const held = s.camp ?? 0; s.camp = held >= 4 ? -6 : held < 0 ? held + 1 : path.length === 0 && t >= 1 && detected ? held + 1 : 0; }
-        return path[0] || guard;
-      });
-      checkLotus(s);
-    }
-  } else if (s.id === "cyclops") {
+  const s = structuredClone(state), dt = Math.min(100, delta);
+  if (s.id === "lotus") { lotusTickInPlace(s, dt); return s; }
+  const t = tier(s); s.elapsed += dt; s.invulnerable = Math.max(0, s.invulnerable - dt);
+  if (s.id === "cyclops") {
     s.jump = Math.max(0, s.jump - dt); s.slide = Math.max(0, s.slide - dt); s.spawn -= dt; s.gap = Math.min(100, s.gap + dt * .001);
     if (s.spawn <= 0) {
       const adaptive = t > 0 || s.plan.source === "ai";

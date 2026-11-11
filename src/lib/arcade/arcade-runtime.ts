@@ -1,6 +1,6 @@
 import { type TrialId, type LegacyTrialId, type Difficulty, type OpponentPlan, type AttemptSummary } from "./arcade.ts";
 import { newMythic, mythicAction, tickMythic, mythicSummary, type BowState, type MythicState, type SongState, type Action } from "../encounters/mythic.ts";
-import { newAdventure, adventureAction, tickAdventure, adventureSummary, mazePath, LOTUS_SHIP, type AdventureState, type AdventureAction, type AdventureId } from "../encounters/odyssey-games.ts";
+import { newAdventure, adventureAction, tickAdventure, adventureSummary, mazePath, type AdventureState, type AdventureAction, type AdventureId } from "../encounters/odyssey-games.ts";
 import {
   newCave,
   caveAction,
@@ -83,9 +83,9 @@ export function pendingMenu(s: GameState): DecisionMenu | null {
 
 export function demonstrate(s: GameState): GameState {
   if (!isAdventure(s) || s.id !== "lotus" || s.moveClock > 0) return s;
-  const target = s.carrying ? LOTUS_SHIP : [...s.sailors].sort((a, b) => mazePath(s.player, a).length - mazePath(s.player, b).length)[0];
+  const maze = s.layout.maze, target = s.carrying ? s.layout.ship : [...s.sailors].sort((a, b) => mazePath(s.player, a, maze).length - mazePath(s.player, b, maze).length)[0];
   if (!target) return s;
-  const step = mazePath(s.player, target)[0];
+  const step = mazePath(s.player, target, maze)[0];
   if (!step) return s;
   return gameAction(s, { type: "move", dx: step.x - s.player.x, dy: step.y - s.player.y });
 }

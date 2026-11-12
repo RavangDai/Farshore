@@ -1,0 +1,5 @@
+{"steps": 150016, "runs": 60, "full_rescue_rate": 0.0, "avg_rescued": 0.0, "median_finish_s": null, "completed_runs": 0, "avg_hits": 1.5}
+{"steps": 300032, "runs": 60, "full_rescue_rate": 0.0, "avg_rescued": 0.08333333333333333, "median_finish_s": null, "completed_runs": 0, "avg_hits": 1.7333333333333334}
+{"steps": 450048, "runs": 60, "full_rescue_rate": 0.7666666666666667, "avg_rescued": 2.683333333333333, "median_finish_s": 18.53, "completed_runs": 46, "avg_hits": 0.9833333333333333}
+{"steps": 600000, "runs": 60, "full_rescue_rate": 0.8833333333333333, "avg_rescued": 2.8333333333333335, "median_finish_s": 17.51, "completed_runs": 53, "avg_hits": 0.6}
+{"steps": 606208, "runs": 60, "full_rescue_rate": 0.9, "avg_rescued": 2.816666666666667, "median_finish_s": 17.51, "completed_runs": 54, "avg_hits": 0.5666666666666667}

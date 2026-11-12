@@ -1,0 +1,184 @@
+Logging to D:\Farshore\Farshore\training\runs\ppo-main\logs
+-----------------------------------------
+| rollout/                |             |
+|    ep_len_mean          | 210         |
+|    ep_rew_mean          | -9.28       |
+| time/                   |             |
+|    fps                  | 10032       |
+|    iterations           | 4           |
+|    time_elapsed         | 6           |
+|    total_timesteps      | 65536       |
+| train/                  |             |
+|    approx_kl            | 0.004822711 |
+|    clip_fraction        | 0.01        |
+|    clip_range           | 0.2         |
+|    entropy_loss         | -1.58       |
+|    explained_variance   | 0.618       |
+|    learning_rate        | 0.0003      |
+|    loss                 | 0.251       |
+|    n_updates            | 15          |
+|    policy_gradient_loss | -0.00169    |
+|    value_loss           | 0.645       |
+-----------------------------------------
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 273          |
+|    ep_rew_mean          | -8.81        |
+| time/                   |              |
+|    fps                  | 9717         |
+|    iterations           | 8            |
+|    time_elapsed         | 13           |
+|    total_timesteps      | 131072       |
+| train/                  |              |
+|    approx_kl            | 0.0074659134 |
+|    clip_fraction        | 0.0254       |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -1.58        |
+|    explained_variance   | 0.831        |
+|    learning_rate        | 0.0003       |
+|    loss                 | 0.317        |
+|    n_updates            | 35           |
+|    policy_gradient_loss | -0.00293     |
+|    value_loss           | 0.544        |
+------------------------------------------
+-----------------------------------------
+| rollout/                |             |
+|    ep_len_mean          | 257         |
+|    ep_rew_mean          | -8.55       |
+| time/                   |             |
+|    fps                  | 9699        |
+|    iterations           | 12          |
+|    time_elapsed         | 20          |
+|    total_timesteps      | 196608      |
+| train/                  |             |
+|    approx_kl            | 0.005474654 |
+|    clip_fraction        | 0.0116      |
+|    clip_range           | 0.2         |
+|    entropy_loss         | -1.54       |
+|    explained_variance   | 0.855       |
+|    learning_rate        | 0.0003      |
+|    loss                 | 0.213       |
+|    n_updates            | 55          |
+|    policy_gradient_loss | -0.00224    |
+|    value_loss           | 0.505       |
+-----------------------------------------
+[validation] 250,048 steps: full rescue 0.0%, avg rescued 0.04, median finish None, avg hits 1.55 (9s)
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 341          |
+|    ep_rew_mean          | -7.67        |
+| time/                   |              |
+|    fps                  | 7034         |
+|    iterations           | 16           |
+|    time_elapsed         | 37           |
+|    total_timesteps      | 262144       |
+| train/                  |              |
+|    approx_kl            | 0.0065657464 |
+|    clip_fraction        | 0.0241       |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -1.52        |
+|    explained_variance   | 0.849        |
+|    learning_rate        | 0.0003       |
+|    loss                 | 0.18         |
+|    n_updates            | 75           |
+|    policy_gradient_loss | -0.00315     |
+|    value_loss           | 0.487        |
+| validation/             |              |
+|    avg_hits             | 1.55         |
+|    avg_rescued          | 0.0417       |
+|    completed_runs       | 0            |
+|    full_rescue_rate     | 0            |
+|    runs                 | 120          |
+------------------------------------------
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 328          |
+|    ep_rew_mean          | -5.05        |
+| time/                   |              |
+|    fps                  | 6427         |
+|    iterations           | 20           |
+|    time_elapsed         | 50           |
+|    total_timesteps      | 327680       |
+| train/                  |              |
+|    approx_kl            | 0.0073157707 |
+|    clip_fraction        | 0.048        |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -1.48        |
+|    explained_variance   | 0.827        |
+|    learning_rate        | 0.0003       |
+|    loss                 | 0.367        |
+|    n_updates            | 95           |
+|    policy_gradient_loss | -0.00565     |
+|    value_loss           | 0.977        |
+------------------------------------------
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 186          |
+|    ep_rew_mean          | 6.68         |
+| time/                   |              |
+|    fps                  | 6683         |
+|    iterations           | 24           |
+|    time_elapsed         | 58           |
+|    total_timesteps      | 393216       |
+| train/                  |              |
+|    approx_kl            | 0.0056004636 |
+|    clip_fraction        | 0.0409       |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -1.32        |
+|    explained_variance   | 0.754        |
+|    learning_rate        | 0.0003       |
+|    loss                 | 1.74         |
+|    n_updates            | 115          |
+|    policy_gradient_loss | -0.00552     |
+|    value_loss           | 3.86         |
+------------------------------------------
+-----------------------------------------
+| rollout/                |             |
+|    ep_len_mean          | 144         |
+|    ep_rew_mean          | 14.1        |
+| time/                   |             |
+|    fps                  | 6711        |
+|    iterations           | 28          |
+|    time_elapsed         | 68          |
+|    total_timesteps      | 458752      |
+| train/                  |             |
+|    approx_kl            | 0.005170036 |
+|    clip_fraction        | 0.0152      |
+|    clip_range           | 0.2         |
+|    entropy_loss         | -1.06       |
+|    explained_variance   | 0.724       |
+|    learning_rate        | 0.0003      |
+|    loss                 | 3.98        |
+|    n_updates            | 135         |
+|    policy_gradient_loss | -0.00292    |
+|    value_loss           | 7.62        |
+-----------------------------------------
+[validation] 500,032 steps: full rescue 85.0%, avg rescued 2.79, median finish 17.17, avg hits 0.70 (3s)
+------------------------------------------
+| rollout/                |              |
+|    ep_len_mean          | 121          |
+|    ep_rew_mean          | 20.4         |
+| time/                   |              |
+|    fps                  | 6578         |
+|    iterations           | 32           |
+|    time_elapsed         | 79           |
+|    total_timesteps      | 524288       |
+| train/                  |              |
+|    approx_kl            | 0.0025513642 |
+|    clip_fraction        | 0.00934      |
+|    clip_range           | 0.2          |
+|    entropy_loss         | -0.778       |
+|    explained_variance   | 0.731        |
+|    learning_rate        | 0.0003       |
+|    loss                 | 4.73         |
+|    n_updates            | 155          |
+|    policy_gradient_loss | -0.00215     |
+|    value_loss           | 9.78         |
+| validation/             |              |
+|    avg_hits             | 0.7          |
+|    avg_rescued          | 2.79         |
+|    completed_runs       | 102          |
+|    full_rescue_rate     | 0.85         |
+|    median_finish_s      | 17.2         |
+|    runs                 | 120          |
+------------------------------------------

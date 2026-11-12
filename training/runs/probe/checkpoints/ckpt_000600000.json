@@ -1,0 +1,92 @@
+{
+  "run": "probe",
+  "steps": 600000,
+  "seed": 7,
+  "config": {
+    "seed": 7,
+    "envs": 64,
+    "workers": 8,
+    "total_steps": 600000,
+    "ppo": {
+      "n_steps": 256,
+      "batch_size": 2048,
+      "n_epochs": 5,
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5
+    },
+    "policy": "MlpPolicy",
+    "policy_kwargs": {
+      "net_arch": {
+        "pi": [
+          128,
+          128
+        ],
+        "vf": [
+          128,
+          128
+        ]
+      },
+      "activation": "Tanh"
+    },
+    "obs_size": 175,
+    "obs_version": 1,
+    "train_difficulties": {
+      "easy": 0.2,
+      "normal": 0.3,
+      "hard": 0.5
+    },
+    "train_plans": [
+      "standard",
+      "pincer",
+      "undertow"
+    ],
+    "train_gardens": "generated seeds 1..999,998 (classic, showcase, eval and validation gardens excluded)"
+  },
+  "obs_version": 1,
+  "validation": {
+    "scenarios": 60,
+    "runs": 60,
+    "full_rescue_rate": 0.8833333333333333,
+    "avg_rescued": 2.8333333333333335,
+    "median_finish_s": 17.51,
+    "completed_runs": 53,
+    "avg_hits": 0.6,
+    "by_difficulty": {
+      "easy": {
+        "runs": 20,
+        "full_rescue_rate": 1.0,
+        "avg_rescued": 3.0,
+        "median_finish_s": 17.51,
+        "completed_runs": 20,
+        "avg_hits": 0.25
+      },
+      "hard": {
+        "runs": 20,
+        "full_rescue_rate": 0.8,
+        "avg_rescued": 2.75,
+        "median_finish_s": 17.340000000000003,
+        "completed_runs": 16,
+        "avg_hits": 0.75
+      },
+      "normal": {
+        "runs": 20,
+        "full_rescue_rate": 0.85,
+        "avg_rescued": 2.75,
+        "median_finish_s": 17.51,
+        "completed_runs": 17,
+        "avg_hits": 0.8
+      }
+    }
+  },
+  "selection_key": [
+    0.8833,
+    2.8333,
+    -17.51
+  ],
+  "saved_at": "2026-11-12T00:01:14+00:00"
+}

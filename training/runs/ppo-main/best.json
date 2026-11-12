@@ -1,0 +1,93 @@
+{
+  "run": "ppo-main",
+  "steps": 500032,
+  "seed": 7,
+  "config": {
+    "seed": 7,
+    "envs": 64,
+    "workers": 8,
+    "total_steps": 15000000,
+    "ppo": {
+      "n_steps": 256,
+      "batch_size": 2048,
+      "n_epochs": 5,
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5
+    },
+    "policy": "MlpPolicy",
+    "policy_kwargs": {
+      "net_arch": {
+        "pi": [
+          128,
+          128
+        ],
+        "vf": [
+          128,
+          128
+        ]
+      },
+      "activation": "Tanh"
+    },
+    "obs_size": 175,
+    "obs_version": 1,
+    "train_difficulties": {
+      "easy": 0.2,
+      "normal": 0.3,
+      "hard": 0.5
+    },
+    "train_plans": [
+      "standard",
+      "pincer",
+      "undertow"
+    ],
+    "train_gardens": "generated seeds 1..999,998 (classic, showcase, eval and validation gardens excluded)"
+  },
+  "obs_version": 1,
+  "validation": {
+    "scenarios": 120,
+    "runs": 120,
+    "full_rescue_rate": 0.85,
+    "avg_rescued": 2.7916666666666665,
+    "median_finish_s": 17.17,
+    "completed_runs": 102,
+    "avg_hits": 0.7,
+    "by_difficulty": {
+      "easy": {
+        "runs": 40,
+        "full_rescue_rate": 0.9,
+        "avg_rescued": 2.9,
+        "median_finish_s": 17.17,
+        "completed_runs": 36,
+        "avg_hits": 0.55
+      },
+      "hard": {
+        "runs": 40,
+        "full_rescue_rate": 0.825,
+        "avg_rescued": 2.75,
+        "median_finish_s": 15.98,
+        "completed_runs": 33,
+        "avg_hits": 0.775
+      },
+      "normal": {
+        "runs": 40,
+        "full_rescue_rate": 0.825,
+        "avg_rescued": 2.725,
+        "median_finish_s": 17.17,
+        "completed_runs": 33,
+        "avg_hits": 0.775
+      }
+    }
+  },
+  "selection_key": [
+    0.85,
+    2.7917,
+    -17.17
+  ],
+  "saved_at": "2026-11-12T00:02:51+00:00",
+  "label": "best"
+}

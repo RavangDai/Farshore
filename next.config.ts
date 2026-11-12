@@ -9,6 +9,8 @@ const config: NextConfig = {
   // stay a plain Node package rather than be bundled.
   serverExternalPackages: ["mongodb", "nodemailer", "kokoro-js", "phonemizer"],
   outputFileTracingIncludes: {
+    // The trained Lotus rival's WebAssembly runtime, served by app/ort/[file].
+    "/ort/[file]": ["./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm"],
     "/api/voice": [
       "./node_modules/kokoro-js/voices/**/*",
       `./node_modules/onnxruntime-node/bin/napi-v3/${process.platform}/${process.arch}/**/*`,

@@ -1,0 +1,2 @@
+{"steps": 250048, "runs": 120, "full_rescue_rate": 0.0, "avg_rescued": 0.041666666666666664, "median_finish_s": null, "completed_runs": 0, "avg_hits": 1.55}
+{"steps": 500032, "runs": 120, "full_rescue_rate": 0.85, "avg_rescued": 2.7916666666666665, "median_finish_s": 17.17, "completed_runs": 102, "avg_hits": 0.7}

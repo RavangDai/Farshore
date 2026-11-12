@@ -3,7 +3,8 @@ export function proxy(request: NextRequest) {
   const nonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(18))));
   const development = process.env.NODE_ENV !== "production";
   const policy = [
-    "default-src 'self'", `script-src 'self' 'nonce-${nonce}'${development ? " 'unsafe-eval'" : ""}`,
+    // 'wasm-unsafe-eval' lets the trained Lotus rival's ONNX runtime compile its WebAssembly; it allows no JavaScript eval.
+    "default-src 'self'", `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'${development ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:",
     `connect-src 'self'${development ? " ws: wss:" : ""}`, "media-src 'self' blob:",
     "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'self'",

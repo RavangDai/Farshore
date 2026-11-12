@@ -1,6 +1,6 @@
 {
   "run": "ppo-main",
-  "steps": 500032,
+  "steps": 10000000,
   "seed": 7,
   "config": {
     "seed": 7,
@@ -51,43 +51,43 @@
   "validation": {
     "scenarios": 120,
     "runs": 120,
-    "full_rescue_rate": 0.85,
-    "avg_rescued": 2.7916666666666665,
+    "full_rescue_rate": 0.8916666666666667,
+    "avg_rescued": 2.85,
     "median_finish_s": 17.17,
-    "completed_runs": 102,
-    "avg_hits": 0.7,
+    "completed_runs": 107,
+    "avg_hits": 0.6,
     "by_difficulty": {
       "easy": {
         "runs": 40,
-        "full_rescue_rate": 0.9,
-        "avg_rescued": 2.9,
+        "full_rescue_rate": 0.95,
+        "avg_rescued": 2.95,
         "median_finish_s": 17.17,
-        "completed_runs": 36,
-        "avg_hits": 0.55
+        "completed_runs": 38,
+        "avg_hits": 0.45
       },
       "hard": {
         "runs": 40,
-        "full_rescue_rate": 0.825,
-        "avg_rescued": 2.75,
-        "median_finish_s": 15.98,
-        "completed_runs": 33,
-        "avg_hits": 0.775
+        "full_rescue_rate": 0.875,
+        "avg_rescued": 2.825,
+        "median_finish_s": 17.17,
+        "completed_runs": 35,
+        "avg_hits": 0.625
       },
       "normal": {
         "runs": 40,
-        "full_rescue_rate": 0.825,
-        "avg_rescued": 2.725,
-        "median_finish_s": 17.17,
-        "completed_runs": 33,
-        "avg_hits": 0.775
+        "full_rescue_rate": 0.85,
+        "avg_rescued": 2.775,
+        "median_finish_s": 16.490000000000002,
+        "completed_runs": 34,
+        "avg_hits": 0.725
       }
     }
   },
   "selection_key": [
-    0.85,
-    2.7917,
+    0.8917,
+    2.85,
     -17.17
   ],
-  "saved_at": "2026-11-12T00:02:51+00:00",
+  "saved_at": "2026-11-12T05:03:50+00:00",
   "label": "latest"
 }

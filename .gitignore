@@ -19,3 +19,8 @@ next-env.d.ts
 .DS_Store
 __pycache__/
 *.pyc
+
+# Lotus-Eaters race training: the Python environment and bulk run output.
+# The shipped early and best checkpoints live in training/checkpoints/.
+training/.venv/
+training/runs/

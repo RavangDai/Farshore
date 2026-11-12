@@ -47,6 +47,26 @@ test("gardens are reproducible by seed, and training never draws an evaluation o
   assert.deepEqual(validateLotusLayout(freshLayout(seededRandom(9))), []);
 });
 
+test("guarded gardens keep the same maze and crew but patrol the busiest escort tiles", async () => {
+  const { escortTraffic } = await import("../src/lib/encounters/lotus-layouts.ts");
+  for (let seed = 1; seed <= 300; seed++) {
+    const spread = generateLotusLayout(seed), guarded = generateLotusLayout(seed, "guarded");
+    assert.deepEqual(validateLotusLayout(guarded), [], `seed ${seed}`);
+    assert.deepEqual([guarded.maze, guarded.ship, guarded.sailors, guarded.guardians], [spread.maze, spread.ship, spread.sailors, spread.guardians]);
+    if (guarded.id.endsWith("-guarded")) {
+      const traffic = escortTraffic(guarded), at = p => traffic[p.y * 15 + p.x];
+      const mean = list => list.reduce((n, p) => n + at(p), 0) / list.length;
+      assert.ok(mean(guarded.waypoints) >= mean(spread.waypoints) - 1e-9, `seed ${seed}: the guarded patrol watches at least as much escort traffic`);
+    }
+  }
+  // The default stays the plain garden, so every evaluation garden is unchanged.
+  assert.deepEqual(generateLotusLayout(1_000_003), generateLotusLayout(1_000_003, "spread"));
+  // The traffic measure sees the showcase crossing: both far escorts must use it.
+  const t = escortTraffic(LOTUS_SHOWCASE);
+  assert.ok(t[5 * 15 + 7] >= 2 - 1e-9);
+  assert.equal(t[1 * 15 + 1], 0);
+});
+
 test("the showcase garden offers a short patrolled crossing and a longer loop for both far escorts", () => {
   const crossing = new Set(["6,5", "7,5", "8,5"]);
   const blocked = LOTUS_SHOWCASE.maze.map((row, y) => row.split("").map((c, x) => (crossing.has(`${x},${y}`) ? "#" : c)).join(""));
@@ -200,6 +220,41 @@ test("the observation has a fixed size, sees only what is on screen, and is dete
   const hidden = structuredClone(s);
   hidden.patrol = 999; hidden.camp = 3; hidden.seed = 1; hidden.debug = { ...hidden.debug, decision: "x" }; hidden.rivalLine = "x";
   assert.deepEqual(observe(hidden), o);
+});
+
+test("observation version 2 adds which way each guardian last stepped, and nothing else", async () => {
+  const { OBS_SIZES } = await import("../src/lib/ai/lotus-agent.ts");
+  const s = board(LOTUS_CLASSIC, "easy");
+  assert.equal(observe(s, 2).length, OBS_SIZES[2]);
+  assert.equal(OBS_SIZES[2], OBS_SIZE + 4);
+  assert.deepEqual(Array.from(observe(s, 2).slice(0, OBS_SIZE)), Array.from(observe(s, 1)), "version 2 starts with version 1 unchanged");
+  assert.deepEqual(Array.from(observe(s, 2).slice(OBS_SIZE)), [0, 0, 0, 0], "no movement seen before the first step");
+  advanceTicks(s, 110); // one guardian step on Easy (1050 ms)
+  const moved = Array.from(observe(s, 2).slice(OBS_SIZE));
+  for (let g = 0; g < 2; g++) {
+    assert.deepEqual(moved.slice(g * 2, g * 2 + 2), [Math.sign(s.guardians[g].x - s.lastGuardians[g].x), Math.sign(s.guardians[g].y - s.lastGuardians[g].y)]);
+  }
+  assert.ok(moved.some(v => v !== 0), "a patrolling guardian moved");
+  assert.throws(() => observe(s, 9), /Unknown observation version/);
+});
+
+test("observation version 3 adds danger and the safe route, and the guardian-aware baseline avoids the patrolled crossing", async () => {
+  const { OBS_SIZES, carefulAction } = await import("../src/lib/ai/lotus-agent.ts");
+  const s = board(LOTUS_SHOWCASE, "hard");
+  const v2 = observe(s, 2), v3 = observe(s, 3);
+  assert.equal(v3.length, OBS_SIZES[3]);
+  assert.deepEqual(Array.from(v3.slice(0, v2.length)), Array.from(v2), "version 3 starts with version 2 unchanged");
+  assert.ok(v3.every(Number.isFinite));
+  // On the showcase at Hard, plain A* walks into the patrol; the guardian-aware baseline gets everyone home.
+  const run = policy => { const b = board(LOTUS_SHOWCASE, "hard"); while (!b.done) agentStep(b, policy(b)); return b; };
+  const blind = run(astarAction), careful = run(carefulAction);
+  assert.equal(careful.won, true);
+  assert.ok(careful.damageTaken < blind.damageTaken, `careful ${careful.damageTaken} hits, blind ${blind.damageTaken}`);
+  // Moly protection lifts the danger: no tile is marked while it lasts.
+  const safe = board(LOTUS_SHOWCASE, "hard");
+  safe.protection = 5000;
+  const marked = Array.from(observe(safe, 3).slice(v2.length + 2)).filter((_, k) => k % 3 === 0);
+  assert.deepEqual(marked, [0, 0, 0, 0]);
 });
 
 test("rewards favour delivering sailors over waiting or losing a sailor and fetching it again", () => {

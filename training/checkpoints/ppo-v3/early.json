@@ -1,0 +1,105 @@
+{
+  "run": "ppo-v3",
+  "steps": 500032,
+  "seed": 17,
+  "config": {
+    "seed": 17,
+    "envs": 64,
+    "workers": 8,
+    "total_steps": 15000000,
+    "ppo": {
+      "n_steps": 256,
+      "batch_size": 2048,
+      "n_epochs": 5,
+      "learning_rate": 0.0003,
+      "gamma": 0.99,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.005,
+      "vf_coef": 0.5,
+      "max_grad_norm": 0.5
+    },
+    "policy": "MlpPolicy",
+    "policy_kwargs": {
+      "net_arch": {
+        "pi": [
+          256,
+          256
+        ],
+        "vf": [
+          256,
+          256
+        ]
+      },
+      "activation": "Tanh"
+    },
+    "obs_size": 193,
+    "obs_version": 3,
+    "train_difficulties": {
+      "easy": 0.2,
+      "normal": 0.3,
+      "hard": 0.5
+    },
+    "train_plans": [
+      "standard",
+      "pincer",
+      "undertow"
+    ],
+    "guarded_share": 0.5,
+    "reward": {
+      "rescue": 10,
+      "complete": 10,
+      "hit": -5.0,
+      "step": -0.01,
+      "shaping": "0.99*phi(next) - phi(prev)"
+    },
+    "validation_gardens": {
+      "spread": 60,
+      "guarded": 60
+    },
+    "train_gardens": "generated seeds 1..999,998 (classic, showcase, eval and validation gardens excluded)"
+  },
+  "obs_version": 3,
+  "validation": {
+    "scenarios": 360,
+    "runs": 360,
+    "full_rescue_rate": 0.9722222222222222,
+    "avg_rescued": 2.9694444444444446,
+    "median_finish_s": 17.51,
+    "completed_runs": 350,
+    "avg_hits": 0.14166666666666666,
+    "by_difficulty": {
+      "easy": {
+        "runs": 120,
+        "full_rescue_rate": 0.975,
+        "avg_rescued": 2.975,
+        "median_finish_s": 17.17,
+        "completed_runs": 117,
+        "avg_hits": 0.016666666666666666
+      },
+      "hard": {
+        "runs": 120,
+        "full_rescue_rate": 0.95,
+        "avg_rescued": 2.941666666666667,
+        "median_finish_s": 17.85,
+        "completed_runs": 114,
+        "avg_hits": 0.25833333333333336
+      },
+      "normal": {
+        "runs": 120,
+        "full_rescue_rate": 0.9916666666666667,
+        "avg_rescued": 2.9916666666666667,
+        "median_finish_s": 17.51,
+        "completed_runs": 119,
+        "avg_hits": 0.15
+      }
+    }
+  },
+  "selection_key": [
+    0.9722,
+    2.9694,
+    -17.51
+  ],
+  "saved_at": "2026-11-12T05:27:21+00:00",
+  "label": "early"
+}

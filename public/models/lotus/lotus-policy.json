@@ -1,0 +1,30 @@
+{
+  "label": "PPO v3 best",
+  "checkpoint": "ppo-v3/best.zip",
+  "run": "ppo-v3",
+  "steps": 2000000,
+  "seed": 17,
+  "obsVersion": 3,
+  "obsSize": 193,
+  "actions": [
+    "UP",
+    "DOWN",
+    "LEFT",
+    "RIGHT",
+    "WAIT"
+  ],
+  "exportedAt": "2026-11-12T05:37:10+00:00",
+  "sha256": "7f199e01f99418614056ffcc9a9ec720367cc5aa7c61b301c43c701f04c3d05e",
+  "validation": {
+    "runs": 360,
+    "full_rescue_rate": 0.9861111111111112,
+    "avg_rescued": 2.986111111111111,
+    "median_finish_s": 17.51,
+    "avg_hits": 0.12222222222222222
+  },
+  "parity": {
+    "observations": 256,
+    "mismatches": 0,
+    "maxLogitDifference": 4.76837158203125e-06
+  }
+}

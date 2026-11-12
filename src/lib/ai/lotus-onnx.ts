@@ -1,5 +1,5 @@
 "use client";
-import { ACTIONS, OBS_SIZE, OBS_VERSION } from "./lotus-agent";
+import { ACTIONS, OBS_SIZES } from "./lotus-agent";
 
 /**
  * Loads the trained Lotus-Eaters rival into the browser.
@@ -32,7 +32,7 @@ export type LotusModelMeta = {
 
 export type LotusPolicy = {
   meta: LotusModelMeta;
-  /** The action the policy chooses for one observation: the highest logit. */
+  /** The action the policy chooses for one observation (built with `observe(state, meta.obsVersion)`): the highest logit. */
   act(observation: Float32Array): Promise<{ action: number; logits: Float32Array }>;
 };
 
@@ -43,9 +43,11 @@ let loading: Promise<LotusPolicy> | null = null;
 function ort(): Promise<Ort> {
   runtime ??= import("onnxruntime-web/wasm").then(module => {
     // Single-threaded: the page is not cross-origin isolated, and a 175-input
-    // network needs no more. The .wasm comes from the game's own origin.
+    // network needs no more. The runtime's WebAssembly and its JavaScript glue
+    // both come from the game's own origin (app/ort/[file]); the bundler cannot
+    // locate the glue next to its own chunks.
     module.env.wasm.numThreads = 1;
-    module.env.wasm.wasmPaths = "/ort/";
+    module.env.wasm.wasmPaths = { wasm: "/ort/ort-wasm-simd-threaded.wasm", mjs: "/ort/ort-wasm-simd-threaded.mjs" };
     return module;
   });
   return runtime;
@@ -55,8 +57,8 @@ async function load(): Promise<LotusPolicy> {
   const response = await fetch(LOTUS_MODEL_META_URL, { cache: "no-cache" });
   if (!response.ok) throw new Error(`The trained rival's description could not be loaded (${response.status}).`);
   const meta = (await response.json()) as LotusModelMeta;
-  if (meta.obsVersion !== OBS_VERSION || meta.obsSize !== OBS_SIZE) {
-    throw new Error(`The trained rival expects observation v${meta.obsVersion} (${meta.obsSize} values); this game sends v${OBS_VERSION} (${OBS_SIZE}). Export the model again.`);
+  if (OBS_SIZES[meta.obsVersion] !== meta.obsSize) {
+    throw new Error(`The trained rival expects observation v${meta.obsVersion} with ${meta.obsSize} values, which this game cannot build. Export the model again.`);
   }
   if (meta.actions.join() !== ACTIONS.join()) throw new Error("The trained rival uses a different set of moves. Export the model again.");
   const o = await ort();
@@ -68,7 +70,7 @@ async function load(): Promise<LotusPolicy> {
     meta,
     act(observation) {
       const run = queue.then(async () => {
-        const result = await session.run({ [input]: new o.Tensor("float32", observation, [1, OBS_SIZE]) });
+        const result = await session.run({ [input]: new o.Tensor("float32", observation, [1, meta.obsSize]) });
         const logits = result[output].data as Float32Array;
         let action = 0;
         for (let i = 1; i < logits.length; i++) if (logits[i] > logits[action]) action = i;
@@ -87,4 +89,10 @@ export function loadLotusPolicy(): Promise<LotusPolicy> {
     throw error;
   });
   return loading;
+}
+
+// Development builds expose the loader so a browser check can confirm the page
+// chooses the same moves as Python (see training/README.md, "Parity").
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as unknown as { farshoreLotusPolicy?: typeof loadLotusPolicy }).farshoreLotusPolicy = loadLotusPolicy;
 }

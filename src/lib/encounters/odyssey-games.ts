@@ -22,7 +22,7 @@ export type LotusLayout = {
 };
 export type AIDebug = { algorithm: string; state: string; target: string; prediction: string; confidence: number; pathLength: number; decision: string };
 type Base = { id: AdventureId; difficulty: Difficulty; plan: OpponentPlan; practice: boolean; seed: number; elapsed: number; done: boolean; won: boolean; feedback: string; rivalLine: string; score: number; rivalScore: number; hits: number; damageTaken: number; successes: number; misses: number; combo: number; bestCombo: number; invulnerable: number; duration: number; debug: AIDebug };
-export type LotusState = Base & { id: "lotus"; layout: LotusLayout; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number; camp?: number };
+export type LotusState = Base & { id: "lotus"; layout: LotusLayout; player: Point; previous: Point; sailors: Point[]; carrying: boolean; rescued: number; guardians: Point[]; guardClock: number; moveClock: number; protection: number; pickups: Point[]; patrol: number; relics: Point[]; relicsFound: number; camp?: number; /** Where each guardian stood before its last step: the movement a player sees. */ lastGuardians?: Point[] };
 export type Obstacle = { lane: number; kind: "rock" | "crate" | "beam" | "gap" | "sheep" | "coin"; remaining: number; warning: number };
 export type RunnerState = Base & { id: "cyclops"; lane: number; history: number[]; jump: number; slide: number; gap: number; obstacles: Obstacle[]; spawn: number; wave: number; coins: number; precision: number };
 export type WindGate = { x: number; center: number; gap: number; passed: boolean; pickup: "wind" | "repair"; collected: boolean; hit?: boolean };
@@ -121,6 +121,7 @@ export function lotusTickInPlace(s: LotusState, dt: number) {
   s.moveClock = Math.max(0, s.moveClock - dt); s.protection = Math.max(0, s.protection - dt); s.guardClock += dt;
   if (s.guardClock >= [1050, 780, 600][t]) {
     s.guardClock = 0; s.patrol++;
+    s.lastGuardians = s.guardians.map(p => ({ ...p }));
     const waypoints = s.layout.waypoints;
     s.guardians = s.guardians.map((guard, i) => {
       const detected = Math.abs(guard.x - s.player.x) + Math.abs(guard.y - s.player.y) <= 7;

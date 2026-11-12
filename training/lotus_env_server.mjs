@@ -9,11 +9,12 @@
 // trains on exactly the game the browser runs.
 //
 // Commands:
-//   {"cmd":"init","n":16,"mode":"train","seed":1}
+//   {"cmd":"init","n":16,"mode":"train","seed":1,"obsVersion":2,"guardedShare":0.5}
 //   {"cmd":"init","n":16,"mode":"eval","scenarios":[{"layout":"eval:3","difficulty":"hard","plan":"undertow"}, ...]}
 //   {"cmd":"reset"}                  -> {"obs"}
 //   {"cmd":"step","actions":[...]}   -> {"obs","rew","done","idle","episodes"}
 //   {"cmd":"astar"}                  -> {"actions"}   the A* baseline's choices
+//   {"cmd":"careful"}                -> {"actions"}   the guardian-aware A* baseline's choices
 //   {"cmd":"close"}
 
 import readline from "node:readline";
@@ -38,18 +39,20 @@ function layoutFor(name) {
   if (name === "showcase") return LOTUS_SHOWCASE;
   const [kind, n] = name.split(":");
   if (kind === "eval") return generateLotusLayout(EVAL_SEED_START + Number(n));
+  if (kind === "guarded") return generateLotusLayout(EVAL_SEED_START + Number(n), "guarded");
   if (kind === "val") return generateLotusLayout(EVAL_SEED_START + VALIDATION_OFFSET + Number(n));
+  if (kind === "valguarded") return generateLotusLayout(EVAL_SEED_START + VALIDATION_OFFSET + Number(n), "guarded");
   if (kind === "seed") return generateLotusLayout(Number(n));
   throw new Error(`Unknown garden ${name}`);
 }
 
-let envs = [], mode = "train", random = Math.random, queue = [], obsSize = agent.OBS_SIZE;
+let envs = [], mode = "train", random = Math.random, queue = [], obsVersion = agent.OBS_VERSION, obsSize = agent.OBS_SIZE, guardedShare = 0, hitPenalty = agent.REWARD.hit;
 
 function sampleScenario() {
   let r = random(), difficulty = "hard";
   for (const [d, w] of TRAIN_DIFFICULTIES) { if (r < w) { difficulty = d; break; } r -= w; }
   const plan = ["standard", "pincer", "undertow"][Math.floor(random() * 3)];
-  const layout = trainingLayout(random);
+  const layout = trainingLayout(random, guardedShare);
   return { layout: layout.id, layoutObject: layout, difficulty, plan };
 }
 
@@ -64,7 +67,7 @@ function start(env) {
 
 function observations() {
   const out = new Float32Array(envs.length * obsSize);
-  envs.forEach((env, i) => { if (env.state) out.set(agent.observe(env.state), i * obsSize); });
+  envs.forEach((env, i) => { if (env.state) out.set(agent.observe(env.state, obsVersion), i * obsSize); });
   return Buffer.from(out.buffer).toString("base64");
 }
 
@@ -76,7 +79,7 @@ function step(actions) {
     const s = env.state, before = agent.snapshot(s);
     agent.agentStep(s, actions[i]);
     env.steps++;
-    rew[i] = agent.stepReward(before, s);
+    rew[i] = agent.stepReward(before, s, hitPenalty);
     if (s.done) {
       episodes.push({ env: i, ...env.scenario, won: s.won, rescued: s.rescued, hits: s.damageTaken, ms: s.elapsed, finishMs: s.won ? s.elapsed : null, steps: env.steps, relics: s.relicsFound });
       done.push(1);
@@ -90,10 +93,15 @@ function handle(message) {
   switch (message.cmd) {
     case "init": {
       mode = message.mode ?? "train";
+      obsVersion = message.obsVersion ?? agent.OBS_VERSION;
+      guardedShare = message.guardedShare ?? 0;
+      hitPenalty = message.hitPenalty ?? agent.REWARD.hit;
+      obsSize = agent.OBS_SIZES[obsVersion];
+      if (!obsSize) throw new Error(`Unknown observation version ${obsVersion}`);
       random = seededRandom(message.seed ?? 1);
       queue = (message.scenarios ?? []).map((s, index) => ({ index, ...s }));
       envs = Array.from({ length: message.n }, () => ({ state: null }));
-      return { ok: true, obsSize, actions: agent.ACTIONS.length, obsVersion: agent.OBS_VERSION };
+      return { ok: true, obsSize, actions: agent.ACTIONS.length, obsVersion };
     }
     case "reset":
       envs.forEach(start);
@@ -102,6 +110,8 @@ function handle(message) {
       return step(message.actions);
     case "astar":
       return { actions: envs.map(e => (e.state ? agent.astarAction(e.state) : agent.WAIT)) };
+    case "careful":
+      return { actions: envs.map(e => (e.state ? agent.carefulAction(e.state) : agent.WAIT)) };
     case "close":
       process.exit(0);
     default:

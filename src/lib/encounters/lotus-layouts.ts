@@ -97,13 +97,70 @@ function pick(candidates: Point[], score: (p: Point) => number, random: () => nu
   return ranked[Math.floor(random() * ranked.length)];
 }
 
-/** Generates the garden for `seed`. The same seed always gives the same garden. */
-export function generateLotusLayout(seed: number): LotusLayout {
+/**
+ * How the guardians patrol. "spread" sends them across the whole garden.
+ * "guarded" keeps them on the tiles the escorts home funnel through, like the
+ * showcase garden's crossing, so the shortest way home is often watched.
+ */
+export type PatrolStyle = "spread" | "guarded";
+
+/** Generates the garden for `seed`. The same seed and patrol style always give the same garden. */
+export function generateLotusLayout(seed: number, patrol: PatrolStyle = "spread"): LotusLayout {
   for (let attempt = 0; attempt < 50; attempt++) {
     const layout = buildLayout(seed, attempt);
-    if (layout && validateLotusLayout(layout).length === 0) return layout;
+    if (layout && validateLotusLayout(layout).length === 0) {
+      if (patrol === "spread") return layout;
+      const guarded = guardEscortRoutes(layout, seed);
+      if (validateLotusLayout(guarded).length === 0) return guarded;
+    }
   }
   throw new Error(`No valid garden for seed ${seed}.`);
+}
+
+/** The number of shortest paths from `from` to every tile. */
+function shortestPathCounts(maze: string[], from: Point, dist: Int16Array): Float64Array {
+  const counts = new Float64Array(LOTUS_WIDTH * LOTUS_HEIGHT);
+  const order = openTiles(maze).filter(p => dist[key(p)] >= 0).sort((a, b) => dist[key(a)] - dist[key(b)]);
+  counts[key(from)] = 1;
+  for (const p of order) for (const [dx, dy] of DIRS) {
+    const q = { x: p.x + dx, y: p.y + dy };
+    if (maze[q.y]?.[q.x] === "." && dist[key(q)] === dist[key(p)] + 1) counts[key(q)] += counts[key(p)];
+  }
+  return counts;
+}
+
+/**
+ * How much of the escort traffic passes each tile: for every sailor, the share
+ * of shortest routes from the ship to that sailor through the tile. A tile
+ * every route must cross (a chokepoint) scores 1 for that sailor.
+ */
+export function escortTraffic(layout: LotusLayout): Float64Array {
+  const { maze, ship } = layout;
+  const fromShip = pathDistances(maze, ship), shipCounts = shortestPathCounts(maze, ship, fromShip);
+  const traffic = new Float64Array(LOTUS_WIDTH * LOTUS_HEIGHT);
+  for (const sailor of layout.sailors) {
+    const fromSailor = pathDistances(maze, sailor), sailorCounts = shortestPathCounts(maze, sailor, fromSailor);
+    const total = fromShip[key(sailor)], routes = shipCounts[key(sailor)];
+    for (const p of openTiles(maze)) {
+      const k = key(p);
+      if (fromShip[k] + fromSailor[k] === total) traffic[k] += (shipCounts[k] * sailorCounts[k]) / routes;
+    }
+  }
+  return traffic;
+}
+
+/** The same garden with its patrol moved onto the busiest escort tiles away from the ship. */
+function guardEscortRoutes(layout: LotusLayout, seed: number): LotusLayout {
+  const random = seededRandom(seed * 31 + 99991);
+  const traffic = escortTraffic(layout), fromShip = pathDistances(layout.maze, layout.ship);
+  const candidates = openTiles(layout.maze).filter(p => fromShip[key(p)] >= 5 && layout.sailors.every(s => manhattan(s, p) >= 2));
+  const waypoints: Point[] = [];
+  for (let i = 0; i < 4; i++) {
+    const w = pick(candidates.filter(p => waypoints.every(o => manhattan(o, p) >= 3)), p => traffic[key(p)] + random() * 0.05, random, 2);
+    if (w) waypoints.push(w);
+  }
+  if (waypoints.length < 3) return layout;
+  return { ...layout, id: `${layout.id}-guarded`, name: `${layout.name} (guarded)`, waypoints };
 }
 
 function buildLayout(seed: number, attempt: number): LotusLayout | null {
@@ -218,12 +275,16 @@ export const RACE_LAYOUTS: LotusLayout[] = [LOTUS_CLASSIC, LOTUS_SHOWCASE];
 /** A fresh validated garden for "New Maze": from its own seed range, apart from training and evaluation. */
 export const freshLayout = (random: () => number = Math.random) => generateLotusLayout(2_000_000 + Math.floor(random() * 1_000_000));
 
-/** A garden for training: any seed below the evaluation range. */
-export function trainingLayout(random: () => number): LotusLayout {
-  return generateLotusLayout(1 + Math.floor(random() * (EVAL_SEED_START - 2)));
+/**
+ * A garden for training: any seed below the evaluation range. `guardedShare`
+ * of them keep their patrol on the escort routes.
+ */
+export function trainingLayout(random: () => number, guardedShare = 0): LotusLayout {
+  const seed = 1 + Math.floor(random() * (EVAL_SEED_START - 2));
+  return generateLotusLayout(seed, guardedShare > 0 && random() < guardedShare ? "guarded" : "spread");
 }
 
 /** The n-th held-out evaluation garden. */
-export const evaluationLayout = (n: number) => generateLotusLayout(EVAL_SEED_START + n);
+export const evaluationLayout = (n: number, patrol: PatrolStyle = "spread") => generateLotusLayout(EVAL_SEED_START + n, patrol);
 
 export { LOTUS_CLASSIC };

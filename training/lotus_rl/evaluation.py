@@ -1,7 +1,9 @@
 """Playing a policy on fixed scenarios and summarising the results.
 
 Scenarios name a garden ("classic", "showcase", "eval:N" for the held-out test
-gardens, "val:N" for the validation gardens used to pick checkpoints), a
+gardens, "guarded:N" for the same test gardens with their patrol on the escort
+routes, "val:N" and "valguarded:N" for the validation gardens used to pick
+checkpoints), a
 difficulty and a guardian plan. Results are measured from the game itself:
 sailors rescued, whether all three came aboard, the finish time and the hits
 taken. The training reward plays no part in them.
@@ -34,14 +36,14 @@ def named_scenarios(layout: str, difficulties: Sequence[str] = DIFFICULTIES) -> 
 Policy = Callable[[np.ndarray], np.ndarray]
 
 
-def play(policy: Policy | str, scenarios: Sequence[dict[str, Any]], envs: int = 32, workers: int = 4) -> list[dict[str, Any]]:
-    """Plays every scenario once. `policy` maps a batch of observations to actions, or is "astar"."""
-    env = NodeVecEnv(min(envs, len(scenarios)), workers=workers, mode="eval", scenarios=scenarios)
+def play(policy: Policy | str, scenarios: Sequence[dict[str, Any]], envs: int = 32, workers: int = 4, obs_version: int = 1) -> list[dict[str, Any]]:
+    """Plays every scenario once. `policy` maps a batch of observations to actions, or names a baseline: "astar" or "careful"."""
+    env = NodeVecEnv(min(envs, len(scenarios)), workers=workers, mode="eval", scenarios=scenarios, obs_version=obs_version)
     episodes: list[dict[str, Any]] = []
     try:
         obs = env.reset()
         while len(episodes) < len(scenarios):
-            actions = env.astar_actions() if policy == "astar" else policy(obs)
+            actions = env.astar_actions(policy) if isinstance(policy, str) else policy(obs)
             obs, _, _, infos = env.step(actions)
             episodes.extend(info["lotus"] for info in infos if "lotus" in info)
     finally:
@@ -75,6 +77,11 @@ def selection_key(summary: dict[str, Any]) -> tuple:
     """Higher is better: more full rescues, then more sailors on average, then faster."""
     median = summary.get("median_finish_s")
     return (round(summary["full_rescue_rate"], 4), round(summary["avg_rescued"], 4), -(median if median is not None else 1e9))
+
+
+def obs_version_of(meta: dict[str, Any]) -> int:
+    """The observation version a checkpoint was trained on (version 1 before versions were recorded)."""
+    return int(meta.get("obs_version") or meta.get("config", {}).get("obs_version") or 1)
 
 
 def sb3_policy(model) -> Policy:

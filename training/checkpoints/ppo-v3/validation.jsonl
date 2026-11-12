@@ -1,0 +1,7 @@
+{"steps": 500032, "runs": 360, "full_rescue_rate": 0.9722222222222222, "avg_rescued": 2.9694444444444446, "median_finish_s": 17.51, "completed_runs": 350, "avg_hits": 0.14166666666666666}
+{"steps": 1000000, "runs": 360, "full_rescue_rate": 0.975, "avg_rescued": 2.9722222222222223, "median_finish_s": 17.51, "completed_runs": 351, "avg_hits": 0.1}
+{"steps": 1500032, "runs": 360, "full_rescue_rate": 0.9833333333333333, "avg_rescued": 2.9833333333333334, "median_finish_s": 17.51, "completed_runs": 354, "avg_hits": 0.13055555555555556}
+{"steps": 2000000, "runs": 360, "full_rescue_rate": 0.9861111111111112, "avg_rescued": 2.986111111111111, "median_finish_s": 17.51, "completed_runs": 355, "avg_hits": 0.12222222222222222}
+{"steps": 2500032, "runs": 360, "full_rescue_rate": 0.9833333333333333, "avg_rescued": 2.9805555555555556, "median_finish_s": 17.51, "completed_runs": 354, "avg_hits": 0.10277777777777777}
+{"steps": 3000000, "runs": 360, "full_rescue_rate": 0.975, "avg_rescued": 2.9722222222222223, "median_finish_s": 17.51, "completed_runs": 351, "avg_hits": 0.1361111111111111}
+{"steps": 3500032, "runs": 360, "full_rescue_rate": 0.9833333333333333, "avg_rescued": 2.9833333333333334, "median_finish_s": 17.68, "completed_runs": 354, "avg_hits": 0.15}

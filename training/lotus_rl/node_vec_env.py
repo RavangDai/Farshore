@@ -74,14 +74,14 @@ class NodeVecEnv(VecEnv):
     """
 
     def __init__(self, num_envs: int, workers: int = 1, mode: str = "train", seed: int = 1,
-                 scenarios: Sequence[dict[str, Any]] | None = None, log: Path | None = None):
+                 scenarios: Sequence[dict[str, Any]] | None = None, log: Path | None = None, obs_version: int = 1, guarded_share: float = 0.0, hit_penalty: float = -3.0):
         workers = max(1, min(workers, num_envs))
         sizes = [num_envs // workers + (1 if w < num_envs % workers else 0) for w in range(workers)]
         self.workers: list[_Worker] = []
         scenarios = list(scenarios or [])
         for w, n in enumerate(sizes):
             share = scenarios[w::workers] if mode == "eval" else None
-            init: dict[str, Any] = {"mode": mode, "seed": seed * 1000 + w}
+            init: dict[str, Any] = {"mode": mode, "seed": seed * 1000 + w, "obsVersion": obs_version, "guardedShare": guarded_share, "hitPenalty": hit_penalty}
             if share is not None:
                 init["scenarios"] = share
             self.workers.append(_Worker(n, init, log))
@@ -134,8 +134,9 @@ class NodeVecEnv(VecEnv):
             offset += worker.n
         return obs, rewards, dones, infos
 
-    def astar_actions(self) -> np.ndarray:
-        replies = self._broadcast([{"cmd": "astar"}] * len(self.workers))
+    def astar_actions(self, kind: str = "astar") -> np.ndarray:
+        """A baseline's choices for the current states: "astar" or "careful" (guardian-aware)."""
+        replies = self._broadcast([{"cmd": kind}] * len(self.workers))
         return np.array([a for r in replies for a in r["actions"]], dtype=np.int64)
 
     def close(self) -> None:

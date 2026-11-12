@@ -33,10 +33,10 @@ RUNS = Path(__file__).resolve().parent / "runs"
 
 
 class ValidationCheckpoints(BaseCallback):
-    def __init__(self, run_dir: Path, config: dict, every: int, early_steps: int, gardens: int):
+    def __init__(self, run_dir: Path, config: dict, every: int, early_steps: int, gardens: int, guarded: int = 0):
         super().__init__()
         self.run_dir, self.config, self.every, self.early_steps = run_dir, config, every, early_steps
-        self.scenarios = garden_scenarios("val", gardens)
+        self.scenarios = garden_scenarios("val", gardens) + garden_scenarios("valguarded", guarded)
         self.next_eval = every
         self.best_key: tuple | None = None
         self.early_saved = (run_dir / "early.zip").exists()
@@ -59,7 +59,7 @@ class ValidationCheckpoints(BaseCallback):
 
     def evaluate(self) -> None:
         started = time.time()
-        episodes = play(sb3_policy(self.model), self.scenarios, envs=48, workers=self.config["workers"])
+        episodes = play(sb3_policy(self.model), self.scenarios, envs=48, workers=self.config["workers"], obs_version=self.config["obs_version"])
         summary = summarise(episodes)
         key = selection_key(summary)
         steps = self.num_timesteps
@@ -107,19 +107,26 @@ def main() -> None:
     p.add_argument("--val-gardens", type=int, default=40, help="validation gardens, each at all three difficulties")
     p.add_argument("--resume", type=Path, help="a checkpoint .zip to continue from")
     p.add_argument("--threads", type=int, default=4, help="torch CPU threads")
+    p.add_argument("--obs-version", type=int, default=1, help="observation version (see README); 2 adds guardian movement")
+    p.add_argument("--net", type=int, default=128, help="width of each of the two hidden layers")
+    p.add_argument("--ent-coef", type=float, default=0.01)
+    p.add_argument("--guarded-share", type=float, default=0.0, help="share of training gardens whose patrol watches the escort routes")
+    p.add_argument("--val-guarded", type=int, default=0, help="guarded validation gardens, each at all three difficulties")
+    p.add_argument("--hit-penalty", type=float, default=-3.0, help="reward for each hit taken")
     args = p.parse_args()
 
     torch.set_num_threads(args.threads)
     run_dir = RUNS / args.run
     (run_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
-    env = NodeVecEnv(args.envs, workers=args.workers, mode="train", seed=args.seed, log=run_dir / "env-server.log")
+    env = NodeVecEnv(args.envs, workers=args.workers, mode="train", seed=args.seed, log=run_dir / "env-server.log", obs_version=args.obs_version, guarded_share=args.guarded_share, hit_penalty=args.hit_penalty)
     ppo = dict(n_steps=256, batch_size=2048, n_epochs=5, learning_rate=3e-4, gamma=0.99, gae_lambda=0.95,
-               clip_range=0.2, ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5)
-    policy_kwargs = dict(net_arch=dict(pi=[128, 128], vf=[128, 128]))
+               clip_range=0.2, ent_coef=args.ent_coef, vf_coef=0.5, max_grad_norm=0.5)
+    policy_kwargs = dict(net_arch=dict(pi=[args.net, args.net], vf=[args.net, args.net]))
     config = {"seed": args.seed, "envs": args.envs, "workers": args.workers, "total_steps": args.steps,
-              "ppo": ppo, "policy": "MlpPolicy", "policy_kwargs": {"net_arch": {"pi": [128, 128], "vf": [128, 128]}, "activation": "Tanh"},
+              "ppo": ppo, "policy": "MlpPolicy", "policy_kwargs": {"net_arch": {"pi": [args.net, args.net], "vf": [args.net, args.net]}, "activation": "Tanh"},
               "obs_size": env.obs_size, "obs_version": env.obs_version,
               "train_difficulties": {"easy": 0.2, "normal": 0.3, "hard": 0.5}, "train_plans": ["standard", "pincer", "undertow"],
+              "guarded_share": args.guarded_share, "reward": {"rescue": 10, "complete": 10, "hit": args.hit_penalty, "step": -0.01, "shaping": "0.99*phi(next) - phi(prev)"}, "validation_gardens": {"spread": args.val_gardens, "guarded": args.val_guarded},
               "train_gardens": "generated seeds 1..999,998 (classic, showcase, eval and validation gardens excluded)"}
     (run_dir / "config.json").write_text(json.dumps(config, indent=2))
 
@@ -129,7 +136,7 @@ def main() -> None:
     else:
         model = PPO("MlpPolicy", env, policy_kwargs=policy_kwargs, seed=args.seed, device="cpu", verbose=0, **ppo)
     model.set_logger(configure(str(run_dir / "logs"), ["stdout", "csv"]))
-    callback = ValidationCheckpoints(run_dir, config, args.eval_every, args.early_steps, args.val_gardens)
+    callback = ValidationCheckpoints(run_dir, config, args.eval_every, args.early_steps, args.val_gardens, args.val_guarded)
     started = time.time()
     remaining = max(0, args.steps - model.num_timesteps)
     model.learn(total_timesteps=remaining, callback=callback, reset_num_timesteps=not args.resume, log_interval=4)

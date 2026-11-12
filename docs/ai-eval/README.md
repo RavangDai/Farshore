@@ -65,3 +65,7 @@ Injection attempts are still refused every time. That is `tests/athena.test.mjs`
 ## Next measurement
 
 Run the same script against the Colab planner (`gemma3:12b` by default) through the notebook's tunnel. Then add its row here, and choose the planner from the numbers.
+
+## The Lotus-Eaters race rival (reinforcement learning)
+
+The Rescue Race in Encounter 01 uses a different kind of model: a PPO policy trained with Stable-Baselines3 on the game's own rules, run in the browser with ONNX Runtime Web. It needs no language model. Its evaluation compares the early checkpoint, the best checkpoint and an A* baseline on held-out gardens: [lotus-race.md](lotus-race.md) (raw results in `lotus-race.json`). Training, export and the observation layout: [training/README.md](../../training/README.md).

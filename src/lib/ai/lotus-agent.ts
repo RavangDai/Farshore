@@ -22,11 +22,17 @@ export type AgentAction = 0 | 1 | 2 | 3 | 4;
 export const ACTION_DELTAS: [number, number][] = [[0, -1], [0, 1], [-1, 0], [1, 0], [0, 0]];
 export const WAIT: AgentAction = 4;
 
-/** Bumped whenever the observation changes; a model trained on another version is refused. */
+/**
+ * Observation versions. A model records the version it was trained on, and
+ * the game builds exactly that observation for it; any other is refused.
+ * Version 2 adds the direction of each guardian's last step. Version 3 adds
+ * the danger next to each move and progress along the safest route home.
+ */
 export const OBS_VERSION = 1;
 const WINDOW = 7;
 const HALF = (WINDOW - 1) / 2;
 export const OBS_SIZE = 14 + 4 + 4 * 8 + 5 + 2 * 5 + 3 * 4 + 2 * WINDOW * WINDOW;
+export const OBS_SIZES: Record<number, number> = { 1: OBS_SIZE, 2: OBS_SIZE + 4, 3: OBS_SIZE + 4 + 14 };
 
 const GUARD_INTERVALS = [1050, 780, 600];
 const DIFFICULTIES = ["easy", "normal", "hard"];
@@ -65,8 +71,10 @@ export const effectivePlan = (s: LotusState) => (s.plan.source === "ai" ? s.plan
  * only from what the player can see on screen. Documented in
  * training/README.md; the order here is the contract with the trained model.
  */
-export function observe(s: LotusState): Float32Array {
-  const o = new Float32Array(OBS_SIZE);
+export function observe(s: LotusState, version = OBS_VERSION): Float32Array {
+  const size = OBS_SIZES[version];
+  if (!size) throw new Error(`Unknown observation version ${version}.`);
+  const o = new Float32Array(size);
   const maze = s.layout.maze, t = DIFFICULTIES.indexOf(s.difficulty), plan = effectivePlan(s);
   const ship = fromShip(s);
   const sailorMaps = s.sailors.map(p => pathDistances(maze, p));
@@ -145,8 +153,82 @@ export function observe(s: LotusState): Float32Array {
   for (let y = -HALF; y <= HALF; y++) for (let x = -HALF; x <= HALF; x++) put(open(maze, { x: s.player.x + x, y: s.player.y + y }) ? 0 : 1);
   for (let y = -HALF; y <= HALF; y++) for (let x = -HALF; x <= HALF; x++) put(s.guardians.some(p => p.x === s.player.x + x && p.y === s.player.y + y) ? 1 : 0);
 
-  if (i !== OBS_SIZE) throw new Error(`Observation has ${i} values, expected ${OBS_SIZE}.`);
+  // Version 2: which way each guardian last stepped (-1, 0 or 1 on each axis).
+  if (version >= 2) for (let g = 0; g < 2; g++) {
+    const now = s.guardians[g], before = s.lastGuardians?.[g];
+    put(now && before ? Math.sign(now.x - before.x) : 0);
+    put(now && before ? Math.sign(now.y - before.y) : 0);
+  }
+
+  // Version 3: the danger beside each move, and progress along the safe route:
+  // the shortest way to the goal that never passes beside a guardian.
+  if (version >= 3) {
+    const safe = safeDistances(s), safeHere = safe[cell(s.player)];
+    put(safeHere >= 0 ? 1 : 0);
+    put(scaled(safeHere, FAR));
+    const watched = guarded(s);
+    for (const [dx, dy] of ACTION_DELTAS.slice(0, 4)) {
+      const n = { x: s.player.x + dx, y: s.player.y + dy };
+      if (!open(maze, n)) { put(0); put(0); put(1); continue; }
+      const d = safe[cell(n)];
+      put(watched.has(cell(n)) ? 1 : 0);
+      put(safeHere >= 0 && d >= 0 ? Math.max(-1, Math.min(1, safeHere - d)) : 0);
+      put(scaled(d, FAR));
+    }
+  }
+
+  if (i !== size) throw new Error(`Observation has ${i} values, expected ${size}.`);
   return o;
+}
+
+/** Tiles a guardian stands on or beside. Empty while moly protects Odysseus. */
+function guarded(s: LotusState): Set<number> {
+  const tiles = new Set<number>();
+  if (s.protection > 0) return tiles;
+  for (const g of s.guardians) for (const [dx, dy] of [[0, 0], ...ACTION_DELTAS.slice(0, 4)]) tiles.add(cell({ x: g.x + dx, y: g.y + dy }));
+  return tiles;
+}
+
+/**
+ * Path distances to the current goal (the ship while escorting, otherwise the
+ * nearest waiting sailor) through the garden with every guarded tile treated
+ * as a hedge, except the one Odysseus stands on. -1 where no safe route exists.
+ */
+function safeDistances(s: LotusState): Int16Array {
+  const watched = guarded(s), here = cell(s.player), maze = s.layout.maze;
+  const passable = (p: Point) => open(maze, p) && (!watched.has(cell(p)) || cell(p) === here);
+  const dist = new Int16Array(LOTUS_WIDTH * LOTUS_HEIGHT).fill(-1);
+  const goals = (s.carrying || !s.sailors.length ? [s.layout.ship] : s.sailors).filter(passable);
+  const queue: Point[] = [];
+  for (const g of goals) if (dist[cell(g)] < 0) { dist[cell(g)] = 0; queue.push(g); }
+  for (let head = 0; head < queue.length; head++) {
+    const p = queue[head];
+    for (const [dx, dy] of ACTION_DELTAS.slice(0, 4)) {
+      const q = { x: p.x + dx, y: p.y + dy };
+      if (passable(q) && dist[cell(q)] < 0) { dist[cell(q)] = dist[cell(p)] + 1; queue.push(q); }
+    }
+  }
+  return dist;
+}
+
+/**
+ * A guardian-aware baseline: follow the safe route (see safeDistances); when
+ * there is none, step to the open tile farthest from the guardians if that is
+ * further than where Odysseus stands; otherwise fall back to plain A*.
+ */
+export function carefulAction(s: LotusState): AgentAction {
+  const maze = s.layout.maze, safe = safeDistances(s), here = safe[cell(s.player)];
+  const moves = ACTION_DELTAS.slice(0, 4).map(([dx, dy], a) => ({ a: a as AgentAction, p: { x: s.player.x + dx, y: s.player.y + dy } })).filter(m => open(maze, m.p));
+  if (here > 0) {
+    const next = moves.find(m => safe[cell(m.p)] === here - 1);
+    if (next) return next.a;
+  }
+  if (here !== 0 && !s.protection && s.guardians.length) {
+    const far = (p: Point) => Math.min(...s.guardians.map(g => Math.abs(g.x - p.x) + Math.abs(g.y - p.y)));
+    const away = [...moves].sort((a, b) => far(b.p) - far(a.p))[0];
+    if (away && far(away.p) > far(s.player)) return away.a;
+  }
+  return astarAction(s);
 }
 
 /** One agent decision: step (or wait) now. Changes the state in place; returns whether Odysseus moved. */
@@ -184,10 +266,10 @@ export const snapshot = (s: LotusState): StepSnapshot => ({ rescued: s.rescued, 
  * board ends), which cannot be farmed: any loop back to the same state nets
  * nothing, so it never favours picking a sailor up and losing them again.
  */
-export function stepReward(before: StepSnapshot, s: LotusState) {
+export function stepReward(before: StepSnapshot, s: LotusState, hitPenalty = REWARD.hit) {
   const rescues = s.rescued - before.rescued, hits = s.damageTaken - before.damage;
   const shaping = REWARD.gamma * (s.done ? 0 : potential(s)) - before.potential;
-  return REWARD.rescue * rescues + (s.done && s.won ? REWARD.complete : 0) + REWARD.hit * hits + REWARD.step + shaping;
+  return REWARD.rescue * rescues + (s.done && s.won ? REWARD.complete : 0) + hitPenalty * hits + REWARD.step + shaping;
 }
 
 /**

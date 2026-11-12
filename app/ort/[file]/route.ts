@@ -4,12 +4,12 @@ import path from "node:path";
 export const runtime = "nodejs";
 
 /**
- * ONNX Runtime Web's WebAssembly binary, served by the game from the installed
- * package. It always matches the runtime's JavaScript, needs no CDN, and stays
- * same-origin for the content security policy. Only the files the trained
- * Lotus rival needs are served.
+ * ONNX Runtime Web's WebAssembly binary and its JavaScript glue, served by the
+ * game from the installed package. They always match the runtime that loads
+ * them, need no CDN, and stay same-origin for the content security policy.
+ * Only the two files the trained Lotus rival needs are served.
  */
-const FILES: Record<string, string> = { "ort-wasm-simd-threaded.wasm": "application/wasm" };
+const FILES: Record<string, string> = { "ort-wasm-simd-threaded.wasm": "application/wasm", "ort-wasm-simd-threaded.mjs": "text/javascript; charset=utf-8" };
 
 export async function GET(_request: Request, { params }: { params: Promise<{ file: string }> }) {
   const { file } = await params;

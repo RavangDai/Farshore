@@ -11,6 +11,8 @@ const config: NextConfig = {
   outputFileTracingIncludes: {
     // The trained Lotus rival's WebAssembly runtime, served by app/ort/[file].
     "/ort/[file]": ["./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm", "./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs"],
+    // The Oracle's embedding model runs on the same native runtime as the voice.
+    "/api/oracle": [`./node_modules/onnxruntime-node/bin/napi-v3/${process.platform}/${process.arch}/**/*`],
     "/api/voice": [
       "./node_modules/kokoro-js/voices/**/*",
       `./node_modules/onnxruntime-node/bin/napi-v3/${process.platform}/${process.arch}/**/*`,

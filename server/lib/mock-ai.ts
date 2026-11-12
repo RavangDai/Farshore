@@ -105,6 +105,22 @@ export async function mockAthena(request: Request, mode: MockMode) {
   return Response.json({ answer: `Mock counsel (test mode). Mind the ${key}: ${body.facts[key]}.`, usedFacts: key ? [key] : [], model: "mock-ai (test mode)" }, { headers: { "Cache-Control": "no-store" } });
 }
 
+/**
+ * The Oracle's question in test mode: retrieval is real, but the question is
+ * built from the top passage without a model (see mockQuestion).
+ */
+export async function mockOracle(request: Request, mode: MockMode) {
+  const body = await request.json().catch(() => null) as { trialId?: TrialId } | null;
+  const trialIds: TrialId[] = ["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"];
+  if (!body?.trialId || !trialIds.includes(body.trialId)) return Response.json({ error: "Choose one of the eight trials." }, { status: 400 });
+  try { await wait(mode === "slow" ? SLOW_MS : 900, request.signal); }
+  catch { return Response.json({ error: "Question cancelled.", code: "cancelled" }, { status: 499 }); }
+  if (mode === "offline" || mode === "error" || mode === "error-once") return Response.json({ error: "The Oracle cannot be reached.", code: "unreachable" }, { status: 503 });
+  if (mode === "uncertain" || mode === "uncertain-once") return Response.json({ error: "The Oracle's question could not be checked against the text, so it was set aside. Ask again.", code: "invalid_question" }, { status: 422 });
+  const { mockQuestion } = await import("../oracle/oracle.ts");
+  return Response.json(await mockQuestion(body.trialId), { headers: { "Cache-Control": "no-store" } });
+}
+
 const lines = {
   bard: ["The mock bard watches the trial unfold.", "Steady now, the sea is listening.", "A test of nerve, and a test of the game."],
   rival: ["You will not pass so easily.", "I have seen this move before.", "Again, Odysseus. Again."],

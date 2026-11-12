@@ -1,0 +1,126 @@
+/* FARSHORE · The Oracle's Key (oracle-key.tsx).
+   The question that opens an encounter, in the game's navy and bronze, with
+   the retrieval-augmented generation behind it laid out in cyan, the colour
+   the game uses for its AI. The dialog scrolls inside itself; the page never
+   does. */
+
+.fs-oracle-backdrop { z-index: 75; }
+.fs-app .a-modal.fs-oracle {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: clamp(16px, 2.6vmin, 26px);
+  text-align: left;
+}
+.fs-oracle-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fs-oracle-head .a-eyebrow { display: inline-flex; align-items: center; gap: 6px; }
+.fs-oracle-intro { margin: 0; font: italic 13px/1.4 Georgia, serif; color: #b9a983; }
+.fs-oracle h2 { margin: 0; font: 400 clamp(19px, 2.5vmin, 25px)/1.3 Georgia, "Palatino Linotype", serif; color: #f4e6c4; }
+
+/* ----------------------------------------------------------------- options -- */
+
+.fs-oracle-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fs-oracle-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid #b88a4a88;
+  border-radius: 4px;
+  background: linear-gradient(#0f2b40, #0a2032);
+  color: #f1e3c0;
+  font: 15px/1.3 Georgia, serif;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms, background 140ms, transform 140ms;
+}
+.fs-oracle-option kbd {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #e9b85c88;
+  border-radius: 50%;
+  font: 700 12px/1 var(--fs-font-ui, Arial, sans-serif);
+  color: #f2c46d;
+}
+.fs-oracle-option:not(:disabled):hover, .fs-oracle-option:focus-visible { border-color: #e9b85c; background: #143650; transform: translateY(-1px); }
+.fs-oracle-option:focus-visible { outline: 2px solid var(--fs-color-ai, #32d4f5); outline-offset: 2px; }
+.fs-oracle-option:disabled { cursor: default; }
+.fs-oracle-option[data-state="answer"] { border-color: #7fd49a; background: linear-gradient(#123d2c, #0c2a20); }
+.fs-oracle-option[data-state="answer"] kbd { border-color: #7fd49a; color: #a9f0c2; }
+.fs-oracle-option[data-state="wrong"] { border-color: #e8705f; background: linear-gradient(#3d1a18, #2a1210); }
+.fs-oracle-option[data-state="other"] { opacity: 0.55; }
+
+/* ----------------------------------------------------------------- verdict -- */
+
+.fs-oracle-verdict { display: grid; gap: 8px; padding: 12px 14px; border-left: 3px solid #e9b85c; background: #061a29cc; }
+.fs-oracle[data-verdict="correct"] .fs-oracle-verdict { border-color: #7fd49a; }
+.fs-oracle[data-verdict="wrong"] .fs-oracle-verdict { border-color: #e8705f; }
+.fs-oracle-verdict strong { font: 700 17px/1.2 Georgia, serif; color: #f4e6c4; }
+.fs-oracle[data-verdict="correct"] .fs-oracle-verdict strong { color: #a9f0c2; }
+.fs-oracle-verdict p { margin: 0; font: 14px/1.45 Georgia, serif; color: #d9d2c0; }
+.fs-oracle-source { margin: 0; }
+.fs-oracle-source blockquote { margin: 0; font: italic 15px/1.45 Georgia, serif; color: #f6e8c4; }
+.fs-oracle-source blockquote::before { content: "“"; }
+.fs-oracle-source blockquote::after { content: "”"; }
+.fs-oracle-source figcaption { display: flex; align-items: center; gap: 6px; margin-top: 4px; font: 12px/1.3 var(--fs-font-ui, Arial, sans-serif); color: #b9a983; }
+.fs-oracle-source a { color: #f2c46d; }
+.fs-oracle-full summary { cursor: pointer; font: 12px/1.3 var(--fs-font-ui, Arial, sans-serif); color: #c9a466; }
+.fs-oracle-passage { margin: 6px 0 0; font: 13px/1.55 Georgia, serif; color: #c7d6de; }
+.fs-oracle-passage mark { background: #e9b85c33; color: #fff3d6; border-bottom: 1px solid #e9b85c; }
+
+.fs-oracle-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fs-oracle-small { margin: 0; font: 12px/1.45 var(--fs-font-ui, Arial, sans-serif); color: #9fb6c6; }
+
+/* --------------------------------------------------------- loading, error -- */
+
+.fs-oracle-wait { display: grid; justify-items: start; gap: 10px; padding: 8px 0; }
+.fs-oracle-wait > svg { color: #6fe0f5; }
+.fs-oracle-wait ol { margin: 0; padding-left: 20px; font: 14px/1.6 Georgia, serif; color: #c7d6de; }
+
+/* --------------------------------------------- how the Oracle chose it (AI) -- */
+
+.fs-oracle-inspector {
+  border: 1px solid #32d4f544;
+  border-radius: 4px;
+  background: #04131fd9;
+  padding: 8px 12px;
+}
+.fs-oracle-inspector > summary { display: flex; align-items: center; gap: 6px; cursor: pointer; font: 700 12px/1.3 var(--fs-font-ui, Arial, sans-serif); letter-spacing: 0.06em; color: #6fe0f5; }
+.fs-oracle-steps { display: grid; gap: 10px; margin: 10px 0 6px; padding: 0; list-style: none; counter-reset: oracle-step; }
+.fs-oracle-steps > li { display: grid; gap: 5px; padding-left: 26px; position: relative; counter-increment: oracle-step; }
+.fs-oracle-steps > li::before {
+  content: counter(oracle-step);
+  position: absolute; left: 0; top: 0;
+  display: grid; place-items: center; width: 18px; height: 18px;
+  border-radius: 50%; background: #32d4f522; color: #6fe0f5;
+  font: 700 11px/1 var(--fs-font-ui, Arial, sans-serif);
+}
+.fs-oracle-steps h3 { display: flex; align-items: center; gap: 5px; margin: 0; font: 700 12px/1.2 var(--fs-font-ui, Arial, sans-serif); letter-spacing: 0.08em; text-transform: uppercase; color: #b9f3fd; }
+.fs-oracle-steps p { margin: 0; font-size: 13px; color: #d5e6ec; }
+.fs-oracle-steps q { color: #fff3d6; font-style: italic; }
+.fs-oracle-table { width: 100%; border-collapse: collapse; font: 12px/1.3 ui-monospace, Consolas, monospace; color: #c7d6de; }
+.fs-oracle-table th, .fs-oracle-table td { padding: 3px 6px; border-bottom: 1px solid #32d4f51f; text-align: right; }
+.fs-oracle-table th[scope="row"], .fs-oracle-table thead th:first-child { text-align: left; font-weight: 400; }
+.fs-oracle-table thead th { color: #7f98a6; font-weight: 400; }
+.fs-oracle-table tr[data-used] { color: #e8f6fa; background: #32d4f512; }
+.fs-oracle-table tr[data-source] th { color: #f2c46d; }
+.fs-oracle-checks { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font: 12px/1.4 var(--fs-font-ui, Arial, sans-serif); }
+.fs-oracle-checks li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; color: #d5e6ec; }
+.fs-oracle-checks li[data-ok="true"] > svg { color: #7fd49a; }
+.fs-oracle-checks li[data-ok="false"] > svg { color: #e8705f; }
+.fs-oracle-checks b { font-weight: 600; }
+.fs-oracle-checks span { color: #8aa4b2; }
+.fs-oracle-rejected { color: #e8a59a; display: flex; align-items: center; gap: 4px; }
+.fs-oracle-corpus { margin-top: 4px; }
+
+@media (max-width: 760px) {
+  .fs-oracle-options { grid-template-columns: minmax(0, 1fr); }
+  .fs-oracle-head { flex-wrap: wrap; }
+  .fs-oracle-table th, .fs-oracle-table td { padding: 3px 3px; }
+}

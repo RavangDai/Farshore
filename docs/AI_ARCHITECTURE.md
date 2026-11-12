@@ -147,6 +147,26 @@ The moment a block shot is chosen, the hall announces the axe ("Antinous eyes ax
 
 The panel shows her answer with **Athena used** chips for each fact.
 
+## The Oracle's Key (retrieval-augmented generation)
+
+Before a campaign encounter starts, the Oracle asks one multiple-choice question about the trial's episode of the *Odyssey*; the right answer opens the encounter. The question is written fresh each time by retrieval-augmented generation, and the briefing prefetches it while the player reads. Practice, retries, the AI Lab and the Lotus race skip it, and Settings → *The Oracle's key* turns it off.
+
+**Knowledge base.** Books V, IX, X, XII and XXI of Samuel Butler's public-domain translation (Project Gutenberg eBook 1727), the books behind the eight trials, are split into 220 passages of 80–160 words by `scripts/build-oracle-corpus.mjs` (output: `server/oracle/corpus-data.ts`). The Gutenberg header, footer and footnote markers are removed, and names are given in the Greek forms the game uses (Ulysses → Odysseus, Jove → Zeus, …), so a quoted passage matches the question. The game's own Homer summaries for each trial (`chapterLore`, each trial's `homer` line) are added: 236 passages in all.
+
+**Retrieve** (`server/oracle/retrieval.ts`). Each trial has a handful of topic queries; one is drawn at random. Every passage of the trial's book and notes is scored by meaning, as the cosine similarity of all-MiniLM-L6-v2 sentence embeddings run in the game server with transformers.js (downloaded once, about 23 MB; the passage index is cached in `.cache/oracle`), and by words, with BM25. The combined score is 0.7 × meaning + 0.3 × words. The best six are kept and two are drawn from them by score, so the question changes each time. If the embedding model cannot load, retrieval uses BM25 alone and says so.
+
+**Generate** (`server/oracle/oracle.ts`). The connected model gets only the two passages (P1, P2) and a strict JSON schema: question, four options, the answer's index, the source passage, a verbatim evidence quote and a one-line explanation, plus the player's last few questions to avoid.
+
+**Verify.** The server never shows a question it has not checked: four distinct options; a real question under 200 characters; a source among the retrieved passages; evidence found verbatim (after normalising case and punctuation) in that passage; the answer's words present in the evidence or passage; the answer not given away in the question; not a question asked recently; and, with the embedder, no wrong option meaning the same as the answer (cosine below 0.85). A failure sends the model back to freshly sampled passages, up to three attempts; each rejected attempt and its reasons are kept.
+
+**Shuffle.** The server shuffles the options; the model's order is never shown. The answer index travels with the question, since this is a learning gate, not an anti-cheat measure.
+
+**Shown to the player.** After answering: the verdict, the explanation, the quoted evidence with its book and passage, and the whole passage with the quote marked. *How the Oracle chose this question* lays out the four steps: the query and the ranked passages with their meaning, word and combined scores; the model, its time and any rejected attempts; every check with its detail; and the shuffle.
+
+**Measured** on this laptop's processor with `qwen3:4b-instruct` through Ollama: retrieval takes a few milliseconds once the index is built (about 2 s the first time); writing a question takes 15–50 s, and some questions need a second attempt, so a question can take about a minute. On a GPU (the Colab notebook) it takes a few seconds. Known limit: a wrong option that is true in other words can still pass, e.g. "A plant that makes men forget their home" beside "Lotus flowers that cause forgetfulness" scores only 0.46 similar.
+
+**Test mode.** With the mock AI service, retrieval is real but no model is asked: the question blanks one word of a line from the top passage and passes the same checks. `tests/oracle.test.mjs` covers the corpus, BM25, hybrid ranking, the keyword fallback, every check, the shuffle, retries and typed errors, using a stub embedder and a stand-in model.
+
 ## The debrief
 
 After Cyclops, Sirens or Ithaca, the results screen shows **What the rival learned**:

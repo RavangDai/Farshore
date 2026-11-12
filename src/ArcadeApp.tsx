@@ -42,7 +42,7 @@ type Crossing = { from: TrialId; to: TrialId; preview?: boolean; back?: Screen }
 type Prefs = OnlinePreferences;
 type AiState = "idle" | "loading" | "ready" | "error" | "uncertain" | "cancelled";
 /** Every encounter is played against a model-planned rival; this is the gate. */
-type Rival = { status: "checking" | "online" | "offline"; message: string; model: string | null; commentary: string | null };
+type Rival = { status: "checking" | "online" | "offline"; message: string; model: string | null; commentary: string | null; oracle?: string | null; embedder?: string | null };
 type Run = { plan: OpponentPlan; practice: boolean; key: number; modelPrepared: boolean; taunt?: string; opening?: Promise<string>; originalCave?: boolean; demo?: boolean; lab?: boolean; seed?: number; race?: { layout: LotusLayout } };
 function loadPrefs(): Prefs {
   const defaults: Prefs = { ...defaultPreferences(), still: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false };
@@ -163,6 +163,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     if (oracle.trial !== selected) consultOracle(selected);
   }, [screen, selected, oracleOn, rivalOnline]);
   useEffect(() => () => oracleRequest.current?.abort(), []);
+  // Asking the Oracle's status starts its passage index building on the server, ahead of the first briefing.
+  useEffect(() => { if (oracleOn && rivalOnline) void fetch("/api/oracle", { cache: "no-store" }).catch(() => {}); }, [oracleOn, rivalOnline]);
   // Outside an encounter the voyage is at sea; while a briefing is read, the encounter's sounds are rendered.
   useEffect(() => {
     if (screen !== "play") { audio.current?.setScene("sea"); audio.current?.setLoops({}); }
@@ -199,7 +201,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     if (!quiet) setRival(old => ({ ...old, status: "checking", message: "Looking for your AI rival..." }));
     try {
       const r = await fetch("/api/arcade", { signal: AbortSignal.timeout(6000) }); const v = await r.json();
-      setRival({ status: v.aiAvailable ? "online" : "offline", message: typeof v.message === "string" ? v.message : "The AI rival could not be checked.", model: typeof v.model === "string" ? v.model : null, commentary: typeof v.commentary === "string" ? v.commentary : null });
+      setRival({ status: v.aiAvailable ? "online" : "offline", message: typeof v.message === "string" ? v.message : "The AI rival could not be checked.", model: typeof v.model === "string" ? v.model : null, commentary: typeof v.commentary === "string" ? v.commentary : null, oracle: typeof v.oracle === "string" ? v.oracle : null, embedder: typeof v.embedder === "string" ? v.embedder : null });
     } catch { setRival({ status: "offline", message: "The game server could not reach an AI model. Start your model service, then check again.", model: null, commentary: null }); }
   }
   async function prepare() {
@@ -510,7 +512,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     {(storageError || audioError) && <div className="a-notice" role="status">{storageError || audioError}</div>}
     {settings && <div className="a-modal-backdrop"><section className="a-settings a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-settings-title"><div className="a-modal-head"><span className="a-eyebrow">MAKE YOURSELF AT HOME</span><button className="a-btn a-small" onClick={() => setSettings(false)}>Close</button></div><h2 id="a-settings-title">Voyage settings</h2>
       <div className="fs-settings-cols"><div>
-      <div className="a-connection fs-settings-rival" data-status={rival.status}><strong><BrainCircuit size={16}/> AI rival</strong><p role="status">{rival.message}</p>{rivalOnline && <dl className="fs-model-facts"><div><dt>Plans the rivals</dt><dd>{rival.model}</dd></div><div><dt>Voices the commentary</dt><dd>{rival.commentary}</dd></div><div><dt>Voice</dt><dd>{voiceLabels[voiceStatus]}</dd></div></dl>}<button className="a-btn a-small fs-rich" disabled={rival.status === "checking"} onClick={() => void checkModel()}><RefreshCw size={15}/><span><b>Check connection again</b><small>Every encounter needs a connected model</small></span></button>
+      <div className="a-connection fs-settings-rival" data-status={rival.status}><strong><BrainCircuit size={16}/> AI rival</strong><p role="status">{rival.message}</p>{rivalOnline && <dl className="fs-model-facts"><div><dt>Plans the rivals</dt><dd>{rival.model}</dd></div><div><dt>Voices the commentary</dt><dd>{rival.commentary}</dd></div>{oracleOn && <><div><dt>Writes the Oracle&apos;s questions</dt><dd>{rival.oracle ?? rival.model}</dd></div><div><dt>Searches the Odyssey</dt><dd>{rival.embedder ? `${rival.embedder} + BM25` : "BM25 keywords (no embedding service)"}</dd></div></>}<div><dt>Voice</dt><dd>{voiceLabels[voiceStatus]}</dd></div></dl>}<button className="a-btn a-small fs-rich" disabled={rival.status === "checking"} onClick={() => void checkModel()}><RefreshCw size={15}/><span><b>Check connection again</b><small>Every encounter needs a connected model</small></span></button>
         <details><summary>How to connect a model</summary><ol className="fs-connect-steps"><li><b>This computer</b> Install Ollama, run <code>ollama pull qwen3:4b-instruct</code>, then set <code>FARSHORE_MODEL_URL=http://127.0.0.1:11434/v1/chat/completions</code> and <code>FARSHORE_MODEL_NAME=qwen3:4b-instruct</code> in <code>.env</code> and restart the game server.</li><li><b>Google Colab</b> Open <code>colab/farshore_model_server.ipynb</code>, choose a T4 GPU runtime, run every cell, and paste the printed <code>FARSHORE_*</code> lines into <code>.env</code>. It also starts a neural voice.</li><li><b>Online accounts</b> Add an OpenAI, Groq or OpenRouter connection under Account.</li></ol></details></div>
       <div className="a-connection"><strong><Feather size={16}/> Commentary & voice</strong>
         <p className="a-caption" role="status">{voiceNotes[voiceStatus]}</p>

@@ -14,7 +14,7 @@ The paragraphs below describe gameplay and the earlier local setup. For the curr
 
 An eight-encounter Greek mythology arcade adventure: Lotus maze rescue, Cyclops cave runner, Aeolus wind sailing, Circe falling-potion match-3, Sirens melody memory, Scylla & Charybdis paddle defense, Calypso raft hopping, and the archery contest at Ithaca.
 
-**The Oracle's Key: retrieval-augmented generation.** Before each campaign encounter, the Oracle asks a multiple-choice question about that episode of the *Odyssey*; answer it to open the way. The game retrieves passages from Samuel Butler's public-domain translation with sentence embeddings (all-MiniLM-L6-v2, run in the game server) and BM25 keyword scoring, your connected model writes the question from those passages only, and the server checks the quoted evidence against the text before you see it. *How the Oracle chose this question* shows the search, the ranked passages, the model's work and every check. Turn it off in Settings. Details: [AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md#the-oracles-key-retrieval-augmented-generation). To rebuild the text corpus: `node scripts/build-oracle-corpus.mjs`.
+**The Oracle's Key: retrieval-augmented generation.** Before each campaign encounter, the Oracle asks a multiple-choice question about that episode of the *Odyssey*; answer it to open the way. The game retrieves passages from Samuel Butler's public-domain translation with EmbeddingGemma embeddings (served by Ollama or the Colab notebook) and BM25 keyword scoring, your connected model writes the question from those passages only, and the server checks the quoted evidence against the text before you see it. *How the Oracle chose this question* shows the search, the ranked passages, the model's work and every check. Turn it off in Settings. Details: [AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md#the-oracles-key-retrieval-augmented-generation). To rebuild the text corpus: `node scripts/build-oracle-corpus.mjs`.
 
 **Rescue Race against a trained AI.** In the Land of the Lotus-Eaters briefing, **Race the trained AI** puts you on one board and a reinforcement-learning rival on a second: the same garden, ship, sailors and guardians, one shared clock. The rival is a PPO policy trained with Stable-Baselines3 on the game's own rules and run in your browser with ONNX Runtime Web; no language model is involved. Pick the classic garden, the showcase garden with a patrolled crossing, or a new random garden; **Race Again** and **New Maze** restart. Races are exhibitions and never change your voyage. Training, evaluation and export: [training/README.md](training/README.md); results: [docs/ai-eval/lotus-race.md](docs/ai-eval/lotus-race.md).
 
@@ -135,7 +135,7 @@ Changes appear while `npm run dev` is running. In VS Code, **Terminal > Run Task
 
 Any OpenAI-compatible chat server works. The recommended model is **`qwen3:4b-instruct`** (Qwen3-4B-Instruct-2507, Apache 2.0): it scores 69.6 on MMLU-Pro against 22.2 for Llama 3.2 3B, follows JSON schemas reliably, and has no slow thinking phase, which matters for live commentary.
 
-**On this computer.** Install Ollama from https://ollama.com/, run `ollama pull qwen3:4b-instruct`, then set in `.env` and restart the game server:
+**On this computer.** Install Ollama from https://ollama.com/, run `ollama pull qwen3:4b-instruct` and, for the Oracle's passage search, `ollama pull embeddinggemma:300m`. Then set in `.env` and restart the game server:
 
 ```env
 FARSHORE_MODEL_URL=http://127.0.0.1:11434/v1/chat/completions
@@ -144,11 +144,24 @@ FARSHORE_MODEL_NAME=qwen3:4b-instruct
 
 On a CPU-only laptop, a rival strategy takes about 15 seconds (shown with progress on the briefing) and a commentary line about 3 to 7 seconds. The bard's opening line is written while you read the briefing, which also warms the model's prompt cache for the encounter. Setting `OLLAMA_NUM_PARALLEL=2` for Ollama keeps both the strategy and commentary prompts cached.
 
-**On Google Colab (free GPU).** Open [`colab/farshore_model_server.ipynb`](colab/farshore_model_server.ipynb) in Colab, choose a T4 GPU runtime and run every cell. It serves the same model plus the Kokoro-82M neural voice behind an API key and a Cloudflare tunnel, then prints the `FARSHORE_*` lines to paste into `.env`. Lines come back in well under a second. Keep the Colab tab open while you play; the address changes each session.
+**On Google Colab (free GPU).** Open [`colab/farshore_model_server.ipynb`](colab/farshore_model_server.ipynb) in Colab, choose a T4 GPU runtime and run every cell. It serves every AI job behind an API key and a Cloudflare tunnel:
+
+- the planner;
+- the commentary model;
+- the Oracle's question writer and its embedding model;
+- the Kokoro-82M voice.
+
+Step 1 picks a preset. The default has Qwen3.5 9B planning and writing the Oracle's questions, Qwen3.5 4B commenting, and EmbeddingGemma searching the passages; the others are Gemma 4, the measured Gemma 3 setup, Fast and Max. The last steps test each job through the public address the way the game calls it, then print the `FARSHORE_*` lines to paste into `.env`. Restart the game server after pasting. Keep the Colab tab open while you play; the address and key change each session.
 
 **Online accounts.** Signed-in players add an OpenAI, Groq or OpenRouter connection under Account.
 
-**Two models: planner and commentary.** `FARSHORE_MODEL_NAME` is the planner. It chooses every rival plan, every in-game decision, Athena's counsel and the debriefs. `FARSHORE_COMMENTARY_MODEL` can name a smaller, faster model for the live commentary. The Colab notebook sets up both: `gemma3:12b` plans and `qwen3:4b-instruct` comments. To compare planners on the game's real requests, run `node --experimental-strip-types scripts/ai-eval.mjs --url <chat URL> --model <name> [--key <key>]`; results go to [docs/ai-eval](docs/ai-eval/README.md).
+**A model for each job.** `FARSHORE_MODEL_NAME` is the planner. It chooses every rival plan, every in-game decision, Athena's counsel and the debriefs, and by default writes the Oracle's questions too. Three optional settings name other models for the other jobs:
+
+- `FARSHORE_COMMENTARY_MODEL`: a smaller, faster model for the live commentary;
+- `FARSHORE_ORACLE_MODEL`: the model that writes the Oracle's questions;
+- `FARSHORE_EMBED_MODEL`: the embedding model for the Oracle's passage search.
+
+To compare models on the game's real requests, including 16 Oracle questions, run `node --experimental-strip-types scripts/ai-eval.mjs --url <chat URL> --model <name> [--key <key>]`. To compare embedding models on the passage search, run `scripts/rag-eval.mjs --embed <embeddings URL> --model <name>`. Results go to [docs/ai-eval](docs/ai-eval/README.md).
 
 Optional settings: Voices are covered in [Voices and sound](#voices-and-sound). Voice, commentary and volume can be switched off in Settings.
 

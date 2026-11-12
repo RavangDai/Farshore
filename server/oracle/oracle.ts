@@ -3,7 +3,9 @@ import { z } from "zod/v3";
 import { trialFor, type TrialId } from "../../src/lib/arcade/arcade.ts";
 import { chatJson, ModelError } from "../lib/chat.ts";
 import type { ModelConnection } from "../turn.ts";
-import { CORPUS_SOURCE, PASSAGES, WEIGHTS, bookTitle, cosine, embedTexts, retrieve, tokens, type Passage, type Retrieval } from "./retrieval.ts";
+import { GET as arcadeGET } from "../arcade.ts";
+import { oracleModel } from "./config.ts";
+import { CORPUS_SOURCE, PASSAGES, bookTitle, cosine, embedTexts, retrieve, tokens, warmIndex, type Passage, type Retrieval } from "./retrieval.ts";
 
 /**
  * The Oracle's Key: a multiple-choice question written by retrieval-augmented
@@ -94,11 +96,11 @@ export function verifyQuestion(r: OracleReply, passages: Passage[], avoid: strin
 export const SAME_MEANING = 0.85;
 
 /**
- * A wrong option must not mean the same as the right one. Measured with the
- * retrieval embedder: e.g. "Plug his men's ears with wax and bind himself to
- * the mast" against "Bind himself to the mast and keep his ears covered with
- * wax" scores 0.88 and is set aside. Skipped (and said so) while the embedder
- * is unavailable. It cannot catch every ambiguity: a wrong option that is
+ * A wrong option must not mean the same as the right one. Measured with
+ * all-MiniLM-L6-v2 in this server (retrieval.ts, embedTexts): e.g. "Plug his
+ * men's ears with wax and bind himself to the mast" against "Bind himself to
+ * the mast and keep his ears covered with wax" scores 0.88 and is set aside.
+ * Skipped (and said so) while that model is unavailable. It cannot catch every ambiguity: a wrong option that is
  * true in other words can still score low.
  */
 export async function distinctMeaning(options: string[], answer: number): Promise<OracleCheck> {
@@ -125,7 +127,7 @@ export type OracleQuestion = {
   explanation: string;
   evidence: string;
   source: { id: string; ref: string; kind: Passage["kind"]; url: string; text: string; bookTitle: string; label: string };
-  retrieval: Omit<Retrieval, "chosen"> & { weights: typeof WEIGHTS; chosen: { label: string; id: string; ref: string }[] };
+  retrieval: Omit<Retrieval, "chosen"> & { chosen: { label: string; id: string; ref: string }[] };
   generation: { model: string; ms: number; attempts: number; temperature: number; rejected?: { attempt: number; failed: string[] }[] };
   checks: OracleCheck[];
   corpus: { work: string; translator: string; gutenberg: number; passages: number };
@@ -148,7 +150,7 @@ export function oracleResponse(trialId: TrialId, r: OracleReply, retrieval: Retr
     explanation: r.explanation.trim(),
     evidence: r.evidence.trim(),
     source: { id: source.id, ref: source.ref, kind: source.kind, url: source.url, text: source.text, bookTitle: bookTitle(source.book), label: r.source },
-    retrieval: { ...trace, weights: WEIGHTS, chosen: chosen.map((p, i) => ({ label: `P${i + 1}`, id: p.id, ref: p.ref })) },
+    retrieval: { ...trace, chosen: chosen.map((p, i) => ({ label: `P${i + 1}`, id: p.id, ref: p.ref })) },
     generation,
     checks: checked.checks,
     corpus: { work: CORPUS_SOURCE.work, translator: CORPUS_SOURCE.translator, gutenberg: CORPUS_SOURCE.gutenberg, passages: PASSAGES.length },
@@ -195,6 +197,19 @@ export async function mockQuestion(trialId: TrialId, random: (max: number) => nu
   return { ...oracleResponse(trialId, r, retrieval, checked, { model: "mock-ai (test mode)", ms: 0, attempts: 1, temperature: 0 }, started, random), mock: true };
 }
 
+export { oracleModel };
+
+/**
+ * The model status, as /api/arcade reports it. Asking also starts building the
+ * passage index, which takes about a minute on a processor (seconds on a GPU),
+ * so it is ready before the first briefing.
+ */
+export async function GET(connection?: ModelConnection) {
+  const response = await arcadeGET(connection);
+  warmIndex();
+  return response;
+}
+
 export async function POST(request: Request, connection?: ModelConnection) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return Response.json({ error: "The Oracle answers only Farshore." }, { status: 403 });
@@ -205,7 +220,7 @@ export async function POST(request: Request, connection?: ModelConnection) {
     data = input.parse(JSON.parse(raw));
   } catch { return Response.json({ error: "Choose one of the eight trials." }, { status: 400 }); }
   const url = connection ? connection.url : process.env.FARSHORE_MODEL_URL;
-  const model = connection ? connection.model : process.env.FARSHORE_MODEL_NAME;
+  const model = oracleModel(connection);
   const key = connection ? connection.key : process.env.FARSHORE_API_KEY;
   if (!url || !model) return Response.json({ error: "The Oracle needs a connected model to write its question." }, { status: 503 });
   const started = performance.now(), avoid = data.avoid ?? [];

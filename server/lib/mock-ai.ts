@@ -1,5 +1,6 @@
 import { trialFor, planDescription, type TrialId, type OpponentPlan } from "../../src/lib/arcade/arcade.ts";
 import { runtimeConfig } from "./runtime-config.ts";
+import { embeddingConfig } from "../oracle/config.ts";
 
 /**
  * Test-only stand-in for the AI service (CMPS 4200 Phase 3 "mock AI service").
@@ -46,6 +47,8 @@ export function mockStatus(mode: MockMode) {
     message: online ? "Mock AI service (test mode). No model is called." : "Mock AI service (test mode): the model service is unreachable. Start your model service, then check again.",
     model: online ? "mock-ai (test mode)" : null,
     commentary: online ? "mock-ai (test mode)" : null,
+    oracle: online ? "mock-ai (test mode)" : null,
+    embedder: online ? embeddingConfig()?.model ?? null : null,
   }, { headers: { "Cache-Control": "no-store" } });
 }
 

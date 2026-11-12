@@ -3,27 +3,32 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import { CORPUS_SOURCE, ODYSSEY_PASSAGES } from "../server/oracle/corpus-data.ts";
-import { PASSAGES, TOPIC_QUERIES, bm25, candidatesFor, retrieve, setOracleEmbedder, tokens } from "../server/oracle/retrieval.ts";
-import { ORACLE_SCHEMA, POST as oraclePOST, SAME_MEANING, distinctMeaning, mockQuestion, normalize, oraclePrompt, shuffleOptions, verifyQuestion } from "../server/oracle/oracle.ts";
+import { PASSAGES, TOPIC_QUERIES, bm25, candidatesFor, embedPrompt, embeddingConfig, remoteEmbedder, retrieve, setOracleEmbedder, setSimilarityModel, tokens, weightsFor } from "../server/oracle/retrieval.ts";
+import { ORACLE_SCHEMA, POST as oraclePOST, SAME_MEANING, distinctMeaning, mockQuestion, normalize, oracleModel, oraclePrompt, shuffleOptions, verifyQuestion } from "../server/oracle/oracle.ts";
 import { mockOracle } from "../server/lib/mock-ai.ts";
 
 // Retrieval runs offline in tests: a deterministic bag-of-words embedder
-// stands in for all-MiniLM-L6-v2, and the index is cached in a temporary folder.
+// stands in for the embedding service and for all-MiniLM-L6-v2, and the index
+// is cached in a temporary folder.
 process.env.FARSHORE_MODEL_CACHE = path.join(os.tmpdir(), "farshore-oracle-test");
-function stubEmbedder(id = "stub-hash") {
+const hashVectors = texts => texts.map(t => {
+  const v = new Float32Array(96);
+  for (const w of tokens(t)) { let h = 7; for (const c of w) h = (h * 31 + c.charCodeAt(0)) >>> 0; v[h % 96] += 1; }
+  const n = Math.hypot(...v) || 1;
+  return v.map(x => x / n);
+});
+const stubSimilarity = async () => ({ embed: async texts => hashVectors(texts) });
+function stubEmbedder(label = "stub-hash", { failQueries = false } = {}) {
   return async () => ({
-    id, dimensions: 96,
-    async embed(texts) {
-      return texts.map(t => {
-        const v = new Float32Array(96);
-        for (const w of tokens(t)) { let h = 7; for (const c of w) h = (h * 31 + c.charCodeAt(0)) >>> 0; v[h % 96] += 1; }
-        const n = Math.hypot(...v) || 1;
-        return v.map(x => x / n);
-      });
+    id: label, label,
+    async embed(texts, kind) {
+      if (failQueries && kind === "query") throw new TypeError("fetch failed");
+      return hashVectors(texts);
     },
   });
 }
 setOracleEmbedder(stubEmbedder());
+setSimilarityModel(stubSimilarity);
 const seeded = (seed = 1) => { let a = seed; return max => { a = (a * 1103515245 + 12345) >>> 0; return a % max; }; };
 const trials = ["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"];
 
@@ -69,18 +74,102 @@ test("hybrid retrieval ranks by meaning and words, keeps six and samples two of 
   assert.ok(TOPIC_QUERIES.cyclops.includes((await retrieve("cyclops", { random: seeded(9) })).query));
 });
 
-test("without the embedding model, retrieval falls back to keywords and says so", async () => {
+test("without the embedding service, retrieval falls back to keywords and says so", async () => {
   setOracleEmbedder(async () => { throw new Error("offline"); });
+  setSimilarityModel(async () => { throw new Error("offline"); });
+  const warn = console.warn;
+  console.warn = () => {};
   try {
     const r = await retrieve("sirens", { query: "wax in the ears of the crew", random: seeded(2) });
     assert.equal(r.mode, "keyword");
     assert.equal(r.embedder, null);
     assert.ok(r.candidates.every(c => c.semantic === null));
+    assert.equal(r.note, undefined, "no service configured, so nothing to report as down");
     assert.match(PASSAGES.find(p => p.id === r.candidates[0].id).text, /wax/i);
     const meaning = await distinctMeaning(["a", "b", "c", "d"], 0);
     assert.equal(meaning.ok, true);
     assert.match(meaning.detail, /Skipped/);
-  } finally { setOracleEmbedder(stubEmbedder()); }
+  } finally {
+    console.warn = warn;
+    setOracleEmbedder(stubEmbedder());
+    setSimilarityModel(stubSimilarity);
+  }
+});
+
+test("if the embedding service stops answering mid-session, that question uses keywords and says why", async () => {
+  setOracleEmbedder(stubEmbedder("stub-hash", { failQueries: true }));
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const r = await retrieve("cyclops", { query: "the false name Noman", random: seeded(5) });
+    assert.equal(r.mode, "keyword");
+    assert.match(r.note, /keywords only/);
+    assert.equal(r.chosen.length, 2);
+  } finally {
+    console.warn = warn;
+    setOracleEmbedder(stubEmbedder());
+  }
+});
+
+test("the embedding service is the chat model's address with /embeddings, unless named or turned off", () => {
+  const chat = "https://abc.trycloudflare.com/v1/chat/completions";
+  assert.deepEqual(embeddingConfig({ FARSHORE_MODEL_URL: chat, FARSHORE_API_KEY: "k" }), { url: "https://abc.trycloudflare.com/v1/embeddings", model: "embeddinggemma:300m", key: "k" });
+  assert.deepEqual(embeddingConfig({ FARSHORE_MODEL_URL: chat, FARSHORE_EMBED_URL: "http://127.0.0.1:11434/v1/embeddings", FARSHORE_EMBED_MODEL: "nomic-embed-text", FARSHORE_EMBED_KEY: "" }), { url: "http://127.0.0.1:11434/v1/embeddings", model: "nomic-embed-text", key: "" });
+  assert.equal(embeddingConfig({ FARSHORE_MODEL_URL: chat, FARSHORE_EMBED_URL: "off" }), null);
+  assert.equal(embeddingConfig({}), null);
+  assert.equal(embeddingConfig({ FARSHORE_MODEL_URL: "https://api.example.com/generate" }), null, "no guess for an address that is not OpenAI-style");
+});
+
+test("each embedding model gets the retrieval prompts it was trained with, and its measured weight", () => {
+  assert.equal(embedPrompt("embeddinggemma:300m", "query", "Who is Noman?"), "task: search result | query: Who is Noman?");
+  assert.equal(embedPrompt("embeddinggemma:300m", "document", "Text."), "title: none | text: Text.");
+  assert.match(embedPrompt("qwen3-embedding:0.6b", "query", "Q?"), /^Instruct: [^\n]+\nQuery: Q\?$/);
+  assert.equal(embedPrompt("qwen3-embedding:0.6b", "document", "Text."), "Text.");
+  assert.equal(embedPrompt("nomic-embed-text", "query", "Q?"), "search_query: Q?");
+  assert.equal(embedPrompt("all-minilm", "query", "Q?"), "Q?");
+  assert.deepEqual(weightsFor("embeddinggemma:300m"), { semantic: 0.8, keyword: 0.2 });
+  assert.deepEqual(weightsFor("nomic-embed-text"), { semantic: 0.7, keyword: 0.3 });
+  assert.deepEqual(weightsFor(null), { semantic: 0, keyword: 1 });
+});
+
+test("the remote embedder sends the prompts in batches with the key, and returns unit vectors in order", async () => {
+  const calls = [], oldFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    calls.push({ url, auth: init.headers.Authorization, body });
+    // Out of order on purpose: the embedder sorts by index.
+    return Response.json({ data: body.input.map((t, i) => ({ index: i, embedding: [t.length, 0, 3] })).reverse() });
+  };
+  try {
+    const e = remoteEmbedder({ url: "https://abc.trycloudflare.com/v1/embeddings", model: "embeddinggemma:300m", key: "secret" });
+    assert.equal(e.label, "embeddinggemma:300m");
+    const texts = Array.from({ length: 40 }, (_, i) => "x".repeat(i + 1));
+    const out = await e.embed(texts, "document");
+    assert.equal(calls.length, 2, "40 texts go in batches of 32");
+    assert.equal(calls[0].body.input.length, 32);
+    assert.equal(calls[0].auth, "Bearer secret");
+    assert.equal(calls[0].body.model, "embeddinggemma:300m");
+    assert.equal(calls[0].body.input[0], "title: none | text: x");
+    assert.equal(out.length, 40);
+    assert.ok(out.every(v => Math.abs(Math.hypot(...v) - 1) < 1e-5));
+    assert.ok(out[39][0] > out[0][0], "vectors stay in the order of the texts");
+    globalThis.fetch = async () => new Response("no", { status: 401 });
+    await assert.rejects(e.embed(["a"], "query"), /401/);
+  } finally { globalThis.fetch = oldFetch; }
+});
+
+test("FARSHORE_ORACLE_MODEL writes the questions on the server's own service, not on a player's connection", () => {
+  const keys = ["FARSHORE_MODEL_URL", "FARSHORE_MODEL_NAME", "FARSHORE_ORACLE_MODEL"], old = Object.fromEntries(keys.map(k => [k, process.env[k]]));
+  Object.assign(process.env, { FARSHORE_MODEL_URL: "https://abc.trycloudflare.com/v1/chat/completions", FARSHORE_MODEL_NAME: "qwen3.5:9b", FARSHORE_ORACLE_MODEL: "gemma4:12b" });
+  try {
+    assert.equal(oracleModel(), "gemma4:12b");
+    assert.equal(oracleModel({ url: process.env.FARSHORE_MODEL_URL, model: "qwen3.5:9b", key: "" }), "gemma4:12b");
+    assert.equal(oracleModel({ url: "https://api.example.com/v1/chat/completions", model: "their-model", key: "k" }), "their-model");
+    delete process.env.FARSHORE_ORACLE_MODEL;
+    assert.equal(oracleModel(), "qwen3.5:9b");
+  } finally {
+    for (const k of keys) if (old[k] === undefined) delete process.env[k]; else process.env[k] = old[k];
+  }
 });
 
 const lotus = PASSAGES.find(p => /Lotus-eaters, who live on a food/.test(p.text));

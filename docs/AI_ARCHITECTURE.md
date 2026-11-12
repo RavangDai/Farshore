@@ -153,19 +153,38 @@ Before a campaign encounter starts, the Oracle asks one multiple-choice question
 
 **Knowledge base.** Books V, IX, X, XII and XXI of Samuel Butler's public-domain translation (Project Gutenberg eBook 1727), the books behind the eight trials, are split into 220 passages of 80–160 words by `scripts/build-oracle-corpus.mjs` (output: `server/oracle/corpus-data.ts`). The Gutenberg header, footer and footnote markers are removed, and names are given in the Greek forms the game uses (Ulysses → Odysseus, Jove → Zeus, …), so a quoted passage matches the question. The game's own Homer summaries for each trial (`chapterLore`, each trial's `homer` line) are added: 236 passages in all.
 
-**Retrieve** (`server/oracle/retrieval.ts`). Each trial has a handful of topic queries; one is drawn at random. Every passage of the trial's book and notes is scored by meaning, as the cosine similarity of all-MiniLM-L6-v2 sentence embeddings run in the game server with transformers.js (downloaded once, about 23 MB; the passage index is cached in `.cache/oracle`), and by words, with BM25. The combined score is 0.7 × meaning + 0.3 × words. The best six are kept and two are drawn from them by score, so the question changes each time. If the embedding model cannot load, retrieval uses BM25 alone and says so.
+**Retrieve** (`server/oracle/retrieval.ts`). Each trial has a handful of topic queries; one is drawn at random. Every passage of the trial's book and notes is scored two ways:
+
+- **By meaning:** the cosine similarity of embeddings from an OpenAI-compatible `/v1/embeddings` service (`server/oracle/config.ts`). By default this is EmbeddingGemma (`embeddinggemma:300m`) at the chat model's own address, which Ollama and the Colab notebook both serve. Each model gets the retrieval prompts it was trained with: for EmbeddingGemma, `task: search result | query: …` for the question and `title: none | text: …` for passages.
+- **By words:** BM25.
+
+For EmbeddingGemma the combined score is 0.8 × meaning + 0.2 × words (0.7/0.3 for other models). The best six are kept and two are drawn from them by score, so the question changes each time.
+
+The passage index is built once per embedding model and cached in `.cache/oracle`. That takes about 2 s on the Colab GPU and about a minute on this laptop's processor, and the game starts it in the background when it first checks the model. Without an embedding service, or if it stops answering mid-session, retrieval uses BM25 alone, says so in the inspector, and tries the service again a minute later.
 
 **Generate** (`server/oracle/oracle.ts`). The connected model gets only the two passages (P1, P2) and a strict JSON schema: question, four options, the answer's index, the source passage, a verbatim evidence quote and a one-line explanation, plus the player's last few questions to avoid.
 
-**Verify.** The server never shows a question it has not checked: four distinct options; a real question under 200 characters; a source among the retrieved passages; evidence found verbatim (after normalising case and punctuation) in that passage; the answer's words present in the evidence or passage; the answer not given away in the question; not a question asked recently; and, with the embedder, no wrong option meaning the same as the answer (cosine below 0.85). A failure sends the model back to freshly sampled passages, up to three attempts; each rejected attempt and its reasons are kept.
+**Verify.** The server never shows a question it has not checked: four distinct options; a real question under 200 characters; a source among the retrieved passages; evidence found verbatim (after normalising case and punctuation) in that passage; the answer's words present in the evidence or passage; the answer not given away in the question; not a question asked recently; and no wrong option meaning the same as the answer (cosine below 0.85, measured with all-MiniLM-L6-v2 in the game server, on which that threshold was calibrated; skipped if it cannot load). A failure sends the model back to freshly sampled passages, up to three attempts; each rejected attempt and its reasons are kept.
 
 **Shuffle.** The server shuffles the options; the model's order is never shown. The answer index travels with the question, since this is a learning gate, not an anti-cheat measure.
 
 **Shown to the player.** After answering: the verdict, the explanation, the quoted evidence with its book and passage, and the whole passage with the quote marked. *How the Oracle chose this question* lays out the four steps: the query and the ranked passages with their meaning, word and combined scores; the model, its time and any rejected attempts; every check with its detail; and the shuffle.
 
-**Measured** on this laptop's processor with `qwen3:4b-instruct` through Ollama: retrieval takes a few milliseconds once the index is built (about 2 s the first time); writing a question takes 15–50 s, and some questions need a second attempt, so a question can take about a minute. On a GPU (the Colab notebook) it takes a few seconds. Known limit: a wrong option that is true in other words can still pass, e.g. "A plant that makes men forget their home" beside "Lotus flowers that cause forgetfulness" scores only 0.46 similar.
+**Choosing the embedder, measured.** `scripts/rag-eval.mjs` asks 25 paraphrased questions, such as "What false name did Odysseus give the giant?", each labelled by a phrase that only its answering passages contain. It ranks each trial's pool the way the game does. Results (2026-11-12, `docs/ai-eval/rag-retrieval.json`):
 
-**Test mode.** With the mock AI service, retrieval is real but no model is asked: the question blanks one word of a line from the top passage and passes the same checks. `tests/oracle.test.mjs` covers the corpus, BM25, hybrid ranking, the keyword fallback, every check, the shuffle, retries and typed errors, using a stub embedder and a stand-in model.
+| Retrieval | Hit@1 | Hit@3 | MRR |
+|---|---|---|---|
+| BM25 alone | 60% | 80% | 0.718 |
+| all-MiniLM-L6-v2 alone | 20% | 68% | 0.453 |
+| all-MiniLM-L6-v2 + BM25 (0.7/0.3, the first version) | 44% | 76% | 0.629 |
+| EmbeddingGemma alone | 60% | 92% | 0.743 |
+| **EmbeddingGemma + BM25 (0.8/0.2, the game)** | **68%** | **88%** | **0.774** |
+
+MiniLM made keyword search worse; EmbeddingGemma with its task prompts makes it better. Without the prompts EmbeddingGemma alone found the right passage first 40% of the time. `qwen3-embedding:0.6b` reached MRR 0.747 in the hybrid, but took six times as long to index on a processor. Twenty-five questions is a small set, so these are coarse numbers; the weights 0.8 and 0.9 tie on hit@1 and hit@3.
+
+**Measured** on this laptop's processor with `qwen3:4b-instruct` through Ollama: retrieval takes a fraction of a second once the index is built; writing a question takes 15–50 s, and some questions need a second attempt, so a question can take about a minute. On a GPU (the Colab notebook) it takes a few seconds. Known limit: a wrong option that is true in other words can still pass, e.g. "A plant that makes men forget their home" beside "Lotus flowers that cause forgetfulness" scores only 0.46 similar.
+
+**Test mode.** With the mock AI service, retrieval is real but no model is asked: the question blanks one word of a line from the top passage and passes the same checks. `tests/oracle.test.mjs` covers the corpus, BM25, hybrid ranking, the keyword fallback, every check, the shuffle, retries and typed errors, using a stub embedder and a stand-in model. They also cover the embedding service: the default address, each model's prompts and weights, batching with the key, and the fallback when the service stops mid-session.
 
 ## The debrief
 
@@ -224,7 +243,16 @@ For each model it reports:
 
 Results are saved in `docs/ai-eval/`. See [the results](ai-eval/README.md).
 
-The Colab notebook (`colab/farshore_model_server.ipynb`) runs two models: a **planner** for decisions, Athena and debriefs (`FARSHORE_MODEL_NAME`, default `gemma3:12b`), and the fast `qwen3:4b-instruct` for commentary (`FARSHORE_COMMENTARY_MODEL`).
+The Colab notebook (`colab/farshore_model_server.ipynb`) serves a model for each job:
+
+| Job | Setting | Default preset |
+|---|---|---|
+| Decisions, Athena and debriefs | `FARSHORE_MODEL_NAME` | `qwen3.5:9b` |
+| Live commentary | `FARSHORE_COMMENTARY_MODEL` | `qwen3.5:4b` |
+| The Oracle's questions | `FARSHORE_ORACLE_MODEL` | the planner |
+| The Oracle's passage search | `FARSHORE_EMBED_MODEL` | `embeddinggemma:300m` |
+
+The notebook turns thinking off at its gateway (`reasoning_effort: "none"`), because the game's requests have short time limits. Its other presets are Gemma 4 12B, the measured `gemma3:12b` with `qwen3:4b-instruct`, Fast and Max. Before printing the `.env` lines, its self-test sends each job a request shaped like the game's: a decision, a line, an Oracle question checked for a verbatim quote, a passage ranking and a voice line.
 
 ## Testing it
 

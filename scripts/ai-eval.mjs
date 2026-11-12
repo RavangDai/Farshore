@@ -1,7 +1,7 @@
 // Measures a model on FARSHORE's real in-game AI jobs, through the same server
 // handlers the game uses, so every number reflects the checks players get.
 //
-//   node --experimental-strip-types scripts/ai-eval.mjs --url <chat-completions URL> --model <name> [--key <key>] [--limit <n>] [--only athena,choose,debrief] [--out docs/ai-eval]
+//   node --experimental-strip-types scripts/ai-eval.mjs --url <chat-completions URL> --model <name> [--key <key>] [--limit <n>] [--only athena,choose,debrief,oracle] [--embed-model <name>] [--out docs/ai-eval]
 //
 // The requests are generated from seeded engine runs, so every model sees the
 // same menus, facts and questions. Reported per model:
@@ -10,6 +10,9 @@
 //   agreement  share of decisions matching the game's own top option (not a
 //              score of quality: a model may disagree for good reasons)
 //   refusals   share of Athena's off-topic and injection questions refused
+//   oracle     share of the Oracle's questions that passed every check, the
+//              share that passed on the first try, and the mean attempts
+//              (retrieval uses the service's /v1/embeddings, or BM25 without it)
 //   latency    median and 95th-percentile seconds per request
 import { mkdirSync, writeFileSync } from "node:fs";
 import { adaptivePlan } from "../src/lib/arcade/arcade.ts";
@@ -20,6 +23,8 @@ import { bestAim, mythicAction, newMythic, songBeat, tickMythic } from "../src/l
 import { newCave, tickCave, caveAction } from "../src/lib/encounters/cave-runner.ts";
 import { POST as decide } from "../server/decide.ts";
 import { POST as athena, REFUSAL } from "../server/athena.ts";
+import { POST as oracle } from "../server/oracle/oracle.ts";
+import { retrieve, retrievalStatus } from "../server/oracle/retrieval.ts";
 
 const arg = name => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const url = arg("url"), model = arg("model"), key = arg("key"), limit = Number(arg("limit") || 0), out = arg("out") || "docs/ai-eval";
@@ -29,6 +34,9 @@ if (!url || !model) { console.error("Usage: --url <chat-completions URL> --model
 process.env.FARSHORE_MODEL_URL = url;
 process.env.FARSHORE_MODEL_NAME = model;
 if (key) process.env.FARSHORE_API_KEY = key; else delete process.env.FARSHORE_API_KEY;
+// The Oracle writes with --model; its passage search uses the same service's embeddings.
+delete process.env.FARSHORE_ORACLE_MODEL;
+if (arg("embed-model")) process.env.FARSHORE_EMBED_MODEL = arg("embed-model");
 
 const advance = (s, ms) => { for (let t = 0; t < ms && !s.done; t += 50) s = tickMythic(s, 50); return s; };
 function loose(s, aim) {
@@ -94,20 +102,31 @@ for (const difficulty of ["easy", "hard"]) {
   while (s.phase !== "player") s = advance(s, 500);
   for (const [question, offTopic] of questions) cases.push({ kind: "athena", offTopic, body: { trialId: "bow", difficulty, question, facts: athenaFacts(s) } });
 }
+// The Oracle: two questions per trial, from fresh retrievals.
+for (const trialId of ["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"]) for (let i = 0; i < 2; i++) cases.push({ kind: "oracle", body: { trialId } });
 const chosen = only ? cases.filter(c => only.includes(c.kind)) : cases;
 const run = limit > 0 ? chosen.slice(0, limit) : chosen;
 
 // ---- Run ------------------------------------------------------------------
 const post = body => new Request("http://localhost/api/eval", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const results = [];
+// The game builds the Oracle's passage index in the background when it first checks the model; do the same before timing.
+if (run.some(c => c.kind === "oracle")) {
+  const started = performance.now();
+  await retrieve("lotus");
+  console.log(`Oracle passage index ready in ${((performance.now() - started) / 1000).toFixed(1)} s (${retrievalStatus().service ?? "keywords only"}).`);
+}
 for (const [i, c] of run.entries()) {
   const started = performance.now();
-  const response = await (c.kind === "athena" ? athena : decide)(post(c.body));
+  const response = await (c.kind === "athena" ? athena : c.kind === "oracle" ? oracle : decide)(post(c.body));
   const seconds = (performance.now() - started) / 1000;
   const data = await response.json().catch(() => ({}));
   const r = { kind: c.kind, trial: c.body.trialId, ok: response.ok, status: response.status, seconds };
   if (c.kind === "choose" && response.ok) Object.assign(r, { agreed: data.optionId === c.enginePick, grounded: !data.edited });
   if (c.kind === "athena") Object.assign(r, { offTopic: c.offTopic, refused: response.ok && data.answer === REFUSAL });
+  if (c.kind === "oracle") Object.assign(r, response.ok
+    ? { attempts: data.generation.attempts, retrieval: data.retrieval.mode, question: data.question, failed: data.generation.rejected.flatMap(x => x.failed) }
+    : { attempts: data.rejected?.length ?? null, failed: data.rejected?.flatMap(x => x.failed) ?? [data.code] });
   results.push(r);
   process.stdout.write(`\r${i + 1}/${run.length} ${c.kind} ${c.body.trialId} ${response.status} ${seconds.toFixed(1)}s   `);
 }
@@ -119,6 +138,8 @@ const share = (list, test) => pct(list.filter(test).length, list.length);
 const quantile = (values, q) => { const v = [...values].sort((a, b) => a - b); return v.length ? v[Math.min(v.length - 1, Math.floor(q * v.length))] : 0; };
 const decisions = results.filter(r => r.kind === "choose"), accepted = decisions.filter(r => r.ok);
 const asks = results.filter(r => r.kind === "athena");
+const oracleRuns = results.filter(r => r.kind === "oracle"), passed = oracleRuns.filter(r => r.ok);
+const reasons = Object.entries(oracleRuns.flatMap(r => r.failed ?? []).reduce((a, f) => ({ ...a, [f]: (a[f] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]);
 const summary = {
   model,
   requests: results.length,
@@ -128,14 +149,24 @@ const summary = {
   refusals: share(asks.filter(r => r.offTopic), r => r.refused),
   answered: share(asks.filter(r => !r.offTopic), r => r.ok && !r.refused),
   debriefs: share(results.filter(r => r.kind === "debrief"), r => r.ok),
+  oracle: share(oracleRuns, r => r.ok),
+  oracleFirstTry: share(oracleRuns, r => r.ok && r.attempts === 1),
+  oracleAttempts: passed.length ? +(passed.reduce((s, r) => s + r.attempts, 0) / passed.length).toFixed(2) : null,
+  oracleRetrieval: oracleRuns.length ? `${retrievalStatus().service ?? "none"} (${passed[0]?.retrieval ?? "—"})` : null,
+  oracleSetAside: Object.fromEntries(reasons),
   p50: `${quantile(results.map(r => r.seconds), 0.5).toFixed(1)} s`,
   p95: `${quantile(results.map(r => r.seconds), 0.95).toFixed(1)} s`,
   byTrial: Object.fromEntries(["bow", "sirens", "cyclops"].map(t => [t, { valid: share(decisions.filter(r => r.trial === t), r => r.ok), agreement: share(accepted.filter(r => r.trial === t), r => r.agreed) }])),
   measured: new Date().toISOString(),
 };
-console.log("| Model | Valid | Grounded | Agrees with game | Refuses off-topic | Answers on-topic | Debriefs | Median | 95th pct |");
-console.log("|---|---|---|---|---|---|---|---|---|");
-console.log(`| ${model} | ${summary.valid} | ${summary.grounded} | ${summary.agreement} | ${summary.refusals} | ${summary.answered} | ${summary.debriefs} | ${summary.p50} | ${summary.p95} |`);
+console.log("| Model | Valid | Grounded | Agrees with game | Refuses off-topic | Answers on-topic | Debriefs | Oracle questions | Median | 95th pct |");
+console.log("|---|---|---|---|---|---|---|---|---|---|");
+console.log(`| ${model} | ${summary.valid} | ${summary.grounded} | ${summary.agreement} | ${summary.refusals} | ${summary.answered} | ${summary.debriefs} | ${summary.oracle} | ${summary.p50} | ${summary.p95} |`);
+if (oracleRuns.length) {
+  const median = quantile(oracleRuns.map(r => r.seconds), 0.5).toFixed(1);
+  console.log(`Oracle: ${summary.oracle} passed every check, ${summary.oracleFirstTry} on the first try, ${summary.oracleAttempts ?? "—"} attempt(s) on average when passed, median ${median} s; retrieval ${summary.oracleRetrieval}.`);
+  if (reasons.length) console.log(`Set aside: ${reasons.map(([f, n]) => `${f} (${n})`).join("; ")}`);
+}
 mkdirSync(out, { recursive: true });
 const file = `${out}/${model.replace(/[^a-z0-9.-]+/gi, "_")}${only ? `.${only.join("-")}` : ""}.json`;
 writeFileSync(file, JSON.stringify({ summary, results }, null, 2));

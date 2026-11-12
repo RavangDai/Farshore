@@ -4,6 +4,7 @@ import path from "node:path";
 import { trialFor, type TrialId } from "../../src/lib/arcade/arcade.ts";
 import { chapterLore, homerLink } from "../../src/lib/story/odyssey.ts";
 import { BOOK_TITLES, CORPUS_SOURCE, ODYSSEY_PASSAGES } from "./corpus-data.ts";
+import { embeddingConfig } from "./config.ts";
 
 /**
  * The Oracle's retrieval: the "R" in its retrieval-augmented generation.
@@ -12,11 +13,11 @@ import { BOOK_TITLES, CORPUS_SOURCE, ODYSSEY_PASSAGES } from "./corpus-data.ts";
  * (Butler's translation, corpus-data.ts) plus the game's own notes on each
  * episode. A question starts from one of the trial's topic queries. Every
  * candidate passage is scored two ways: by meaning, as the cosine similarity
- * of sentence embeddings (all-MiniLM-L6-v2, run in this server with
- * transformers.js), and by words, with BM25. The best six by the combined
- * score are kept, and three are sampled from them, weighted by score, to
- * ground the question. If the embedding model cannot load (say, the first run
- * offline), retrieval uses BM25 alone and says so.
+ * of embeddings from an embedding service (EmbeddingGemma by default, served
+ * by the Colab notebook or Ollama), and by words, with BM25. The best six by
+ * the combined score are kept, and two are sampled from them, weighted by
+ * score, to ground the question. Without an embedding service, retrieval uses
+ * BM25 alone and says so. scripts/rag-eval.mjs measures the choices.
  */
 
 export type Passage = {
@@ -101,27 +102,67 @@ export function bm25(query: string, passage: Passage) {
 
 // ------------------------------------------------------------ embeddings --
 
-export type Embedder = { id: string; dimensions: number; embed(texts: string[]): Promise<Float32Array[]> };
-export const EMBEDDER_ID = "Xenova/all-MiniLM-L6-v2";
+export type EmbedKind = "query" | "document";
+export type Embedder = { id: string; label: string; embed(texts: string[], kind: EmbedKind): Promise<Float32Array[]> };
 
-async function loadMiniLM(): Promise<Embedder> {
-  const { env, pipeline } = await import("@huggingface/transformers");
-  env.cacheDir = process.env.FARSHORE_MODEL_CACHE || path.join(process.cwd(), ".cache", "models");
-  env.allowLocalModels = false;
-  const extract = await pipeline("feature-extraction", EMBEDDER_ID, { dtype: "q8", device: "cpu" });
+/**
+ * Embedding models retrieve best with the prompts they were trained on.
+ * EmbeddingGemma's are its documented retrieval prompts; without them it found
+ * the right passage first 40% of the time on scripts/rag-eval.mjs, with them 60%.
+ */
+export function embedPrompt(model: string, kind: EmbedKind, text: string) {
+  const m = model.toLowerCase();
+  if (m.includes("embeddinggemma")) return kind === "query" ? `task: search result | query: ${text}` : `title: none | text: ${text}`;
+  if (m.includes("qwen3-embedding")) return kind === "query" ? `Instruct: Given a question about Homer's Odyssey, retrieve the passage that answers it\nQuery: ${text}` : text;
+  if (m.includes("nomic-embed")) return kind === "query" ? `search_query: ${text}` : `search_document: ${text}`;
+  return text;
+}
+
+/**
+ * How much meaning counts against keywords, per embedder. Measured with
+ * scripts/rag-eval.mjs (25 paraphrased questions with labelled answers):
+ * EmbeddingGemma ranks best at 0.8 to 0.9 (MRR 0.774 to 0.791, against 0.718
+ * for BM25 alone); 0.8 keeps more say for exact names such as "Noman". Other
+ * models default to 0.7.
+ */
+export function weightsFor(embedder: string | null) {
+  const semantic = !embedder ? 0 : embedder.toLowerCase().includes("embeddinggemma") ? 0.8 : 0.7;
+  return { semantic, keyword: +(1 - semantic).toFixed(2) };
+}
+
+const unit = (v: number[]) => { const n = Math.hypot(...v) || 1; return Float32Array.from(v, x => x / n); };
+
+export function remoteEmbedder(config: NonNullable<ReturnType<typeof embeddingConfig>>): Embedder {
   return {
-    id: "all-MiniLM-L6-v2",
-    dimensions: 384,
-    async embed(texts) {
+    id: `${config.model}@${new URL(config.url).host}`,
+    label: config.model,
+    async embed(texts, kind) {
       const out: Float32Array[] = [];
-      for (let i = 0; i < texts.length; i += 16) {
-        const tensor = await extract(texts.slice(i, i + 16), { pooling: "mean", normalize: true });
-        const rows = tensor.tolist() as number[][];
-        for (const row of rows) out.push(Float32Array.from(row));
+      for (let i = 0; i < texts.length; i += 32) {
+        const response = await fetch(config.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(config.key ? { Authorization: `Bearer ${config.key}` } : {}) },
+          body: JSON.stringify({ model: config.model, input: texts.slice(i, i + 32).map(t => embedPrompt(config.model, kind, t)) }),
+          // One short query is quick even on a processor; a batch of passages on a cold model is not.
+          signal: AbortSignal.timeout(kind === "query" ? 20_000 : 60_000),
+        });
+        if (!response.ok) throw new Error(`The embedding service answered ${response.status}.`);
+        const body = await response.json() as { data?: { embedding: number[]; index?: number }[] };
+        const rows = [...(body.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+        if (rows.length !== Math.min(32, texts.length - i)) throw new Error("The embedding service returned the wrong number of vectors.");
+        out.push(...rows.map(r => unit(r.embedding)));
       }
       return out;
     },
   };
+}
+
+async function loadConfigured(): Promise<Embedder> {
+  const config = embeddingConfig();
+  if (!config) throw new Error("No embedding service is configured.");
+  const embedder = remoteEmbedder(config);
+  await embedder.embed(["Odysseus"], "query");
+  return embedder;
 }
 
 type IndexState = {
@@ -133,18 +174,18 @@ type IndexState = {
   built: { ms: number; cached: boolean } | null;
   error: string;
 };
-// On globalThis, so a development server's recompiles share one loaded model (as with the voice).
-const STATE = Symbol.for("farshore.oracle.retrieval");
+// On globalThis, so a development server's recompiles share one index (as with the voice).
+const STATE = Symbol.for("farshore.oracle.retrieval.v2");
 const store = globalThis as unknown as Record<symbol, IndexState | undefined>;
-const state: IndexState = (store[STATE] ??= { loader: loadMiniLM, embedder: null, index: null, status: "idle", failedAt: 0, built: null, error: "" });
+const state: IndexState = (store[STATE] ??= { loader: loadConfigured, embedder: null, index: null, status: "idle", failedAt: 0, built: null, error: "" });
 const RETRY_MS = 60_000;
 
 const encode = (v: Float32Array) => Buffer.from(v.buffer, v.byteOffset, v.byteLength).toString("base64");
-const decode = (s: string) => { const b = Buffer.from(s, "base64"); return new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4); };
+const decode = (s: string) => { const b = Buffer.from(s, "base64"); return new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); };
 
 async function buildIndex(embedder: Embedder): Promise<Map<string, Float32Array>> {
   const dir = path.join(process.env.FARSHORE_MODEL_CACHE || path.join(process.cwd(), ".cache"), "oracle");
-  const file = path.join(dir, `index-${CORPUS_HASH}-${embedder.id}.json`);
+  const file = path.join(dir, `index-${CORPUS_HASH}-${embedder.label.replace(/[^a-z0-9.-]+/gi, "_")}.json`);
   const started = performance.now();
   try {
     const saved = JSON.parse(await readFile(file, "utf8")) as Record<string, string>;
@@ -153,7 +194,7 @@ async function buildIndex(embedder: Embedder): Promise<Map<string, Float32Array>
       return new Map(PASSAGES.map(p => [p.id, decode(saved[p.id])]));
     }
   } catch { /* No saved index yet. */ }
-  const vectors = await embedder.embed(PASSAGES.map(p => p.text));
+  const vectors = await embedder.embed(PASSAGES.map(p => p.text), "document");
   const index = new Map(PASSAGES.map((p, i) => [p.id, vectors[i]]));
   state.built = { ms: Math.round(performance.now() - started), cached: false };
   try {
@@ -161,6 +202,17 @@ async function buildIndex(embedder: Embedder): Promise<Map<string, Float32Array>
     await writeFile(file, JSON.stringify(Object.fromEntries([...index].map(([id, v]) => [id, encode(v)]))));
   } catch { /* The index works from memory if it cannot be saved. */ }
   return index;
+}
+
+function fail(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  // Said once per kind of failure, not on every retry.
+  if (message !== state.error) console.warn(`The Oracle's embedding service is unavailable, so retrieval uses keywords only: ${message}`);
+  state.status = "failed";
+  state.failedAt = Date.now();
+  state.error = message;
+  state.embedder = null;
+  state.index = null;
 }
 
 /** The embedder and the passage index, loading them on first use. Null while unavailable. */
@@ -174,30 +226,24 @@ async function semantic(): Promise<{ embedder: Embedder; index: Map<string, Floa
   try {
     const [embedder, index] = await Promise.all([state.embedder, state.index!]);
     state.status = "ready";
+    state.error = "";
     return { embedder, index };
   } catch (error) {
-    state.status = "failed";
-    state.failedAt = Date.now();
-    state.error = error instanceof Error ? error.message : String(error);
-    state.embedder = null;
-    state.index = null;
-    console.warn(`The Oracle's embedding model could not load, so retrieval uses keywords only: ${state.error}`);
+    fail(error);
     return null;
   }
 }
 
-export const retrievalStatus = () => ({ status: state.status, built: state.built, error: state.error });
-
-/** Unit-length embeddings of short texts with the Oracle's embedder, or null while it is unavailable. */
-export async function embedTexts(texts: string[]): Promise<Float32Array[] | null> {
-  const loaded = await semantic();
-  return loaded ? loaded.embedder.embed(texts) : null;
+/** Starts loading the embedder and the index in the background, so the first question need not wait. */
+export function warmIndex() {
+  void semantic();
 }
-export const cosine = (a: Float32Array, b: Float32Array) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
 
-/** Tests swap in a stub embedder (null restores MiniLM). Resets the index. */
+export const retrievalStatus = () => ({ status: state.status, built: state.built, error: state.error, service: embeddingConfig()?.model ?? null });
+
+/** Tests swap in a stub embedder (null restores the configured service). Resets the index. */
 export function setOracleEmbedder(loader: (() => Promise<Embedder>) | null) {
-  state.loader = loader ?? loadMiniLM;
+  state.loader = loader ?? loadConfigured;
   state.embedder = null;
   state.index = null;
   state.status = "idle";
@@ -206,6 +252,50 @@ export function setOracleEmbedder(loader: (() => Promise<Embedder>) | null) {
   state.error = "";
 }
 
+// ------------------------------------------- similarity for the checks --
+
+/**
+ * The near-duplicate check (a wrong option that means the same as the answer)
+ * uses all-MiniLM-L6-v2 in this server, whatever the retrieval embedder: its
+ * threshold was calibrated on MiniLM's similarities (oracle.ts, SAME_MEANING).
+ */
+export type SimilarityModel = { embed(texts: string[]): Promise<Float32Array[]> };
+async function loadMiniLM(): Promise<SimilarityModel> {
+  const { env, pipeline } = await import("@huggingface/transformers");
+  env.cacheDir = process.env.FARSHORE_MODEL_CACHE || path.join(process.cwd(), ".cache", "models");
+  env.allowLocalModels = false;
+  const extract = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { dtype: "q8", device: "cpu" });
+  return {
+    async embed(texts) {
+      const tensor = await extract(texts, { pooling: "mean", normalize: true });
+      return (tensor.tolist() as number[][]).map(row => Float32Array.from(row));
+    },
+  };
+}
+type CheckerState = { loader: () => Promise<SimilarityModel>; model: Promise<SimilarityModel> | null; failedAt: number };
+const CHECKER = Symbol.for("farshore.oracle.similarity");
+const checkerStore = globalThis as unknown as Record<symbol, CheckerState | undefined>;
+const checker: CheckerState = (checkerStore[CHECKER] ??= { loader: loadMiniLM, model: null, failedAt: 0 });
+
+/** Unit-length MiniLM embeddings of short texts for the checks, or null while unavailable. */
+export async function embedTexts(texts: string[]): Promise<Float32Array[] | null> {
+  if (!checker.model && Date.now() - checker.failedAt < RETRY_MS) return null;
+  checker.model ??= checker.loader();
+  try { return await (await checker.model).embed(texts); }
+  catch (error) {
+    checker.model = null;
+    checker.failedAt = Date.now();
+    console.warn(`The Oracle's similarity check is unavailable: ${error instanceof Error ? error.message : error}`);
+    return null;
+  }
+}
+export function setSimilarityModel(loader: (() => Promise<SimilarityModel>) | null) {
+  checker.loader = loader ?? loadMiniLM;
+  checker.model = null;
+  checker.failedAt = 0;
+}
+export const cosine = (a: Float32Array, b: Float32Array) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+
 // ------------------------------------------------------------- retrieval --
 
 export type Candidate = { id: string; ref: string; kind: Passage["kind"]; semantic: number | null; keyword: number; score: number; chosen: boolean };
@@ -213,15 +303,15 @@ export type Retrieval = {
   query: string;
   mode: "hybrid" | "keyword";
   embedder: string | null;
+  weights: { semantic: number; keyword: number };
   candidates: Candidate[];
   chosen: Passage[];
   pool: number;
   ms: number;
   index: { passages: number; builtMs: number | null; cached: boolean | null };
+  note?: string;
 };
 
-const dot = (a: Float32Array, b: Float32Array) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
-export const WEIGHTS = { semantic: 0.7, keyword: 0.3 };
 const KEEP = 6, CHOOSE = 2;
 
 /** Weighted sampling without replacement. */
@@ -239,25 +329,33 @@ function sample<T>(items: T[], weight: (t: T) => number, n: number, random: (max
 /**
  * Retrieves passages for a question about `trial`: picks a topic query (or
  * uses `query`), ranks the trial's passages by meaning and by words, keeps
- * the best six and samples three of them by score.
+ * the best six and samples two of them by score.
  */
 export async function retrieve(trial: TrialId, options: { query?: string; random?: (max: number) => number; exclude?: string[] } = {}): Promise<Retrieval> {
   const started = performance.now(), random = options.random ?? randomInt;
   const topics = TOPIC_QUERIES[trial];
   const query = options.query ?? topics[random(topics.length)];
   const pool = candidatesFor(trial);
-  const loaded = await semantic();
-  let sims: Map<string, number> | null = null;
+  let loaded = await semantic(), sims: Map<string, number> | null = null, note: string | undefined;
   if (loaded) {
-    const [q] = await loaded.embedder.embed([query]);
-    sims = new Map(pool.map(p => [p.id, dot(q, loaded.index.get(p.id)!)]));
+    try {
+      const [q] = await loaded.embedder.embed([query], "query");
+      sims = new Map(pool.map(p => [p.id, cosine(q, loaded!.index.get(p.id)!)]));
+    } catch (error) {
+      // The service went away mid-session (a closed Colab tab): fall back for now, retry later.
+      fail(error);
+      loaded = null;
+      note = "The embedding service stopped answering; this question used keywords only.";
+    }
   }
+  if (!loaded && !note && state.status === "failed" && embeddingConfig()) note = "The embedding service did not answer, so this question used keywords only. The game tries it again in a minute.";
+  const weights = weightsFor(loaded ? loaded.embedder.label : null);
   const keywords = new Map(pool.map(p => [p.id, bm25(query, p)]));
   const top = Math.max(1e-9, ...keywords.values());
   const ranked = pool
     .map(p => {
       const keyword = keywords.get(p.id)! / top, s = sims?.get(p.id) ?? null;
-      return { p, semantic: s, keyword, score: s === null ? keyword : WEIGHTS.semantic * s + WEIGHTS.keyword * keyword };
+      return { p, semantic: s, keyword, score: s === null ? keyword : weights.semantic * s + weights.keyword * keyword };
     })
     .sort((a, b) => b.score - a.score);
   const kept = ranked.filter(r => !options.exclude?.includes(r.p.id)).slice(0, KEEP);
@@ -266,13 +364,15 @@ export async function retrieve(trial: TrialId, options: { query?: string; random
   return {
     query,
     mode: sims ? "hybrid" : "keyword",
-    embedder: loaded ? loaded.embedder.id : null,
+    embedder: loaded ? loaded.embedder.label : null,
+    weights,
     candidates: kept.map(r => ({ id: r.p.id, ref: r.p.ref, kind: r.p.kind, semantic: r.semantic === null ? null : +r.semantic.toFixed(3), keyword: +r.keyword.toFixed(3), score: +r.score.toFixed(3), chosen: chosenIds.has(r.p.id) })),
     chosen: chosen.map(c => c.p),
     pool: pool.length,
     ms: Math.round(performance.now() - started),
     index: { passages: PASSAGES.length, builtMs: state.built?.ms ?? null, cached: state.built?.cached ?? null },
+    ...(note ? { note } : {}),
   };
 }
 
-export { CORPUS_SOURCE };
+export { CORPUS_SOURCE, embeddingConfig };

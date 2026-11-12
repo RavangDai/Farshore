@@ -4,6 +4,7 @@ import { GET as modelGET, type ModelConnection } from "./turn.ts";
 import { modelText } from "./lib/chat.ts";
 import { cleanLine } from "../src/lib/arcade/commentary.ts";
 import { personas } from "../src/lib/arcade/rivals.ts";
+import { embeddingConfig, oracleModel } from "./oracle/config.ts";
 
 const summary = z.object({ won: z.boolean(), source: z.enum(["ai", "standard"]), hits: z.number().int().min(0).max(100), successes: z.number().int().min(0).max(100), early: z.number().int().min(0).max(100), late: z.number().int().min(0).max(100), misses: z.number().int().min(0).max(100), laneMs: z.tuple([z.number().int().min(0).max(60000), z.number().int().min(0).max(60000), z.number().int().min(0).max(60000)]), score: z.number().int().min(0).max(1000000).optional(), timeMs: z.number().int().min(0).max(3600000).optional(), difficulty: z.enum(["easy", "normal", "hard"]).optional(), laneMisses: z.tuple([z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100), z.number().int().min(0).max(100)]).optional() }).strict();
 const input = z.object({ trialId: z.enum(["lotus", "cyclops", "aeolus", "circe", "sirens", "scylla", "calypso", "bow"]), difficulty: z.enum(["easy", "normal", "hard"]), recent: z.array(summary).max(2) }).strict();
@@ -15,6 +16,9 @@ export async function GET(connection?: ModelConnection) {
   const url = connection ? connection.url : process.env.FARSHORE_MODEL_URL;
   status.model = status.aiAvailable ? (connection ? connection.model : process.env.FARSHORE_MODEL_NAME) : null;
   status.commentary = status.aiAvailable ? (!connection || url === process.env.FARSHORE_MODEL_URL) && process.env.FARSHORE_COMMENTARY_MODEL || status.model : null;
+  status.oracle = status.aiAvailable ? oracleModel(connection) : null;
+  // The passage search runs on the server's embedding service, whichever model a player connects.
+  status.embedder = status.aiAvailable ? embeddingConfig()?.model ?? null : null;
   return Response.json(status, { headers: { "Cache-Control": "no-store" } });
 }
 export async function POST(request: Request, connection?: ModelConnection) {

@@ -1,5 +1,4 @@
-import { GET as get } from "../../../server/arcade";
-import { POST as post } from "../../../server/oracle/oracle";
+import { GET as get, POST as post } from "../../../server/oracle/oracle";
 import { modelApi } from "../../../server/lib/model-api";
 export const dynamic = "force-dynamic";
 // The Oracle's Key: a retrieval-augmented question before an encounter (server/oracle).

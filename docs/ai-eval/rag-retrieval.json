@@ -1,0 +1,58 @@
+{
+  "measured": "2026-11-12T08:04:55.177Z",
+  "embedUrl": "127.0.0.1:11434",
+  "questions": 25,
+  "passages": 236,
+  "prompts": {
+    "embeddinggemma:300m": {
+      "query": "task: search result | query: …",
+      "document": "title: none | text: …"
+    }
+  },
+  "rows": [
+    {
+      "name": "BM25 (keywords only)",
+      "hit1": 0.6,
+      "hit3": 0.8,
+      "mrr": 0.718
+    },
+    {
+      "name": "embeddinggemma:300m",
+      "hit1": 0.6,
+      "hit3": 0.92,
+      "mrr": 0.743,
+      "seconds": 78.1
+    },
+    {
+      "name": "embeddinggemma:300m + BM25 at 0.8 (game setting)",
+      "hit1": 0.68,
+      "hit3": 0.88,
+      "mrr": 0.774
+    },
+    {
+      "name": "embeddinggemma:300m + BM25 at 0.9 (best)",
+      "hit1": 0.68,
+      "hit3": 0.88,
+      "mrr": 0.791
+    },
+    {
+      "name": "all-MiniLM-L6-v2",
+      "hit1": 0.2,
+      "hit3": 0.68,
+      "mrr": 0.453,
+      "seconds": 4.7
+    },
+    {
+      "name": "all-MiniLM-L6-v2 + BM25 at 0.7 (game setting)",
+      "hit1": 0.44,
+      "hit3": 0.76,
+      "mrr": 0.629
+    },
+    {
+      "name": "all-MiniLM-L6-v2 + BM25 at 0.1 (best)",
+      "hit1": 0.6,
+      "hit3": 0.8,
+      "mrr": 0.719
+    }
+  ]
+}

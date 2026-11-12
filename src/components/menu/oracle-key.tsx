@@ -46,8 +46,8 @@ function Inspector({ item }: { item: OracleQuestion }) {
           <p>Query: <q>{r.query}</q></p>
           <p className="fs-oracle-small">
             {r.mode === "hybrid"
-              ? `Ranked by meaning (${r.embedder} sentence embeddings, ${Math.round(r.weights.semantic * 100)}%) and by words (BM25, ${Math.round(r.weights.keyword * 100)}%)`
-              : "Ranked by words only (BM25): the embedding model is not available"}
+              ? `Ranked by meaning (${r.embedder} embeddings, ${Math.round(r.weights.semantic * 100)}%) and by words (BM25, ${Math.round(r.weights.keyword * 100)}%)`
+              : r.note ?? "Ranked by words only (BM25): no embedding service is connected"}
             {` across ${r.pool} passages of ${pool} in ${r.ms} ms. `}
             {r.index.builtMs !== null && `Index of ${r.index.passages} passages ${r.index.cached ? "loaded from cache" : `built in ${(r.index.builtMs / 1000).toFixed(1)} s`}.`}
           </p>

@@ -7,6 +7,7 @@
 - Polyphemus' section plans
 - the rivals' debriefs
 - Athena's questions, including injection attempts
+- the Oracle's questions, two per trial, with retrieval and every check
 
 The requests come from seeded engine runs, so every model gets the same set. Each run is saved here as JSON.
 
@@ -24,6 +25,7 @@ node --experimental-strip-types scripts/ai-eval.mjs --url <chat-completions URL>
 | Refuses off-topic | Share of off-topic and injection questions Athena refused. |
 | Answers on-topic | Share of real questions about the shot Athena answered. |
 | Debriefs | Share of debriefs that passed the number check. |
+| Oracle questions | Share of the Oracle's questions that passed every check within three attempts. The run also prints the share that passed first time, the mean number of attempts and which checks set questions aside. |
 | Median / 95th pct | Seconds per request. |
 
 ## Results
@@ -34,6 +36,9 @@ Measured on 2026-11-08 on the development laptop, a CPU-only machine with Ollama
 |---|---|---|---|---|---|---|---|---|---|
 | `qwen3:4b-instruct` | CPU laptop, all 81 requests | 62% | 89% | 26% | 100% | 50% | 83% | 18.3 s | 21.4 s |
 | `qwen3:4b-instruct` | CPU laptop, Athena only, after the prompt fix below | 100% | — | — | 100% | 100% | — | 5.2 s | 18.1 s |
+| `gemma3:12b` | Colab GPU through the notebook's tunnel, all 81 requests (2026-11-10) | 100% | 100% | 21% | 100% | 100% | 100% | 4.0 s | 5.4 s |
+
+These runs predate the Oracle, so they have no Oracle column.
 
 ### Valid replies by encounter (first run)
 
@@ -64,7 +69,15 @@ Injection attempts are still refused every time. That is `tests/athena.test.mjs`
 
 ## Next measurement
 
-Run the same script against the Colab planner (`gemma3:12b` by default) through the notebook's tunnel. Then add its row here, and choose the planner from the numbers.
+The notebook's default is now `qwen3.5:9b`, chosen on vendor benchmarks: IFEval 91.5 and MMLU-Pro 82.5, measured with thinking on. The game runs it with thinking off, so those numbers do not carry over directly. Run this script against it through the notebook's tunnel, then add its row beside `gemma3:12b` and keep whichever does better on these numbers. The notebook's **Proven** preset brings back the measured setup.
+
+## The Oracle's passage search
+
+`scripts/rag-eval.mjs` measures retrieval alone, without a chat model: hit@1, hit@3 and MRR on 25 labelled questions. Results are in `rag-retrieval.json`, and the table and the choice of EmbeddingGemma are in [AI_ARCHITECTURE.md](../AI_ARCHITECTURE.md#the-oracles-key-retrieval-augmented-generation).
+
+```powershell
+node --experimental-strip-types scripts/rag-eval.mjs --embed http://127.0.0.1:11434/v1/embeddings --model embeddinggemma:300m --minilm
+```
 
 ## The Lotus-Eaters race rival (reinforcement learning)
 

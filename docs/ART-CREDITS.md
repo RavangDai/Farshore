@@ -18,7 +18,9 @@ The atlas is rendered with percentage background positions, avoiding a separate 
 
 Water currents, shore foam, reflections, and the captain's brows, blink, and speaking mouth are original SVG/CSS overlays on the existing artwork. Character reactions are authored from the encounter and decision, rather than acoustic emotion detection or phoneme-level lip sync.
 
-Press Start 2P by CodeMan38 is bundled under the SIL Open Font License. See `public/fonts/OFL.txt`. Source: https://github.com/google/fonts/tree/main/ofl/pressstart2p.
+Three pixel typefaces are bundled under the SIL Open Font License (see `public/fonts/OFL.txt`): Press Start 2P by CodeMan38 (https://github.com/google/fonts/tree/main/ofl/pressstart2p) for the logo, numerals and countdowns; Pixelify Sans by Stefie Justprince (https://github.com/google/fonts/tree/main/ofl/pixelifysans) for everything players read; and VT323 by Peter Hull (https://github.com/google/fonts/tree/main/ofl/vt323) for AI data and map numerals.
+
+The pixel art in `public/art/farshore/px/` is derived from the painted FARSHORE art in the same folder by `scripts/pixelate-art.mjs`: each tile is downscaled, mapped to one shared 64-colour palette (k-means in OKLab, seeded with the interface colours) with ordered Bayer dithering, and sprites get a one-pixel ink outline. The portrait sheet combines painted faces with the earlier portraits in `public/art/portraits.png`, redrawn in the same palette. Menus, cinematics and overlays use the pixel sheets; gameplay canvases keep the painted originals.
 
 The original version used a moonlit image from the supplied presentation. The laptop edition uses the new pixel assets listed above.
 

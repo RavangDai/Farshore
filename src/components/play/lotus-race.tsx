@@ -260,20 +260,19 @@ export function LotusRaceRound({ difficulty, plan, layout: initialLayout, onLeav
         {phase === "loading" && <>
           <span className="a-eyebrow">RESCUE RACE</span>
           <h2>Loading the trained rival…</h2>
-          <p>The PPO policy runs in your browser. Nothing starts until it is ready.</p>
+          <p>The trained rival is loading in your browser.</p>
         </>}
         {phase === "error" && <>
           <span className="a-eyebrow">RESCUE RACE</span>
           <h2>The trained rival could not be loaded</h2>
           <p role="alert">{error}</p>
-          <p className="fs-race-small">No rival is driven by anything else: without the trained model there is no race.</p>
-          <button className="a-btn a-primary fs-rich" onClick={loadModel}><RefreshCw size={17} /><span><b>Try again</b><small>Reload the trained model</small></span></button>
-          <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Back to the briefing</b><small>Solo play is unaffected</small></span></button>
+          <button className="a-btn a-primary fs-rich" onClick={loadModel}><RefreshCw size={17} /><span><b>Try again</b></span></button>
+          <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Briefing</b></span></button>
         </>}
         {phase === "countdown" && <>
           <span className="a-eyebrow">YOU VS TRAINED AI · {layout.name.toUpperCase()}</span>
           <strong className="fs-veil-count" key={count}>{count}</strong>
-          <p>Same garden, same guardians, one clock. Bring all three sailors aboard first. Arrows or WASD to move; Escape pauses.</p>
+          <p>Bring all three sailors aboard first.</p>
           <p className="fs-race-small">Rival: {checkpoint}</p>
         </>}
         {phase === "paused" && <>
@@ -281,8 +280,8 @@ export function LotusRaceRound({ difficulty, plan, layout: initialLayout, onLeav
           <h2>Both boards are stopped</h2>
           <p>The clock, both rescuers and every guardian wait for you.</p>
           <button className="a-btn a-primary fs-rich" onClick={resume}><Play size={17} /><span><b>Resume</b><small>A 3-second countdown first</small></span><kbd>Esc</kbd></button>
-          <button className="a-btn fs-rich" onClick={again}><RotateCcw size={17} /><span><b>Race again</b><small>Same garden, fresh start</small></span></button>
-          <button className="a-btn fs-rich" onClick={newMaze}><Shuffle size={17} /><span><b>New maze</b><small>A fresh validated garden</small></span></button>
+          <button className="a-btn fs-rich" onClick={again}><RotateCcw size={17} /><span><b>Race again</b></span></button>
+          <button className="a-btn fs-rich" onClick={newMaze}><Shuffle size={17} /><span><b>New garden</b></span></button>
           <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Leave the race</b><small>Back to the briefing</small></span></button>
         </>}
         {phase === "done" && result && words && <div className="fs-race-result" data-winner={result.winner}>
@@ -300,9 +299,9 @@ export function LotusRaceRound({ difficulty, plan, layout: initialLayout, onLeav
           </table>
           <p className="fs-race-small">Race time {(result.ms / 1000).toFixed(1)} s · Rival: {checkpoint}</p>
           <div className="fs-race-actions">
-            <button className="a-btn a-primary fs-rich" onClick={again}><RotateCcw size={17} /><span><b>Race again</b><small>Same garden</small></span></button>
-            <button className="a-btn fs-rich" onClick={newMaze}><Shuffle size={17} /><span><b>New maze</b><small>A fresh validated garden</small></span></button>
-            <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Back to the briefing</b><small>Nothing is saved</small></span></button>
+            <button className="a-btn a-primary fs-rich" onClick={again}><RotateCcw size={17} /><span><b>Race again</b></span></button>
+            <button className="a-btn fs-rich" onClick={newMaze}><Shuffle size={17} /><span><b>New garden</b></span></button>
+            <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Briefing</b><small>Not saved</small></span></button>
           </div>
         </div>}
       </div>

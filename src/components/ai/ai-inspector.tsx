@@ -31,14 +31,14 @@ import type { DecisionMenu } from "../../lib/arcade/decisions";
 export type InspectorMode = "immersive" | "insights" | "lab";
 export const INSPECTOR_MODES: InspectorMode[] = ["immersive", "insights", "lab"];
 export const MODE_LABELS: Record<InspectorMode, string> = {
-  immersive: "Immersive",
-  insights: "AI Insights",
-  lab: "AI Lab",
+  immersive: "Game",
+  insights: "AI",
+  lab: "AI detail",
 };
 export const MODE_BLURBS: Record<InspectorMode, string> = {
-  immersive: "Gameplay only. Attack telegraphs stay visible; the inspector is hidden.",
-  insights: "A compact live panel showing the opponent's current decision and why.",
-  lab: "The full decision pipeline, candidate scores, timeline, and metrics.",
+  immersive: "Gameplay only. Attack warnings stay visible. F3 cycles.",
+  insights: "The rival's current decision and why. F3 cycles.",
+  lab: "Every option the rival scored, its timeline and metrics. F3 cycles.",
 };
 export const nextMode = (mode: InspectorMode): InspectorMode =>
   INSPECTOR_MODES[(INSPECTOR_MODES.indexOf(mode) + 1) % INSPECTOR_MODES.length];
@@ -267,7 +267,7 @@ export function AIInsightsBaseline({ feed, onExpand }: { feed: InspectorFeed; on
         </div>
       )}
       <button className="ai-expand" onClick={onExpand}>
-        Open AI Lab <ChevronRight size={13} />
+        AI detail <ChevronRight size={13} />
       </button>
     </aside>
   );
@@ -358,7 +358,7 @@ export function AIInsights({ feed, onExpand }: { feed: InspectorFeed; onExpand: 
         {decision && decision.summary && <p className="ai-plan-full">{decision.reason}</p>}
       </details>
       <button className="ai-expand" onClick={onExpand}>
-        Open AI Lab <ChevronRight size={13} />
+        AI detail <ChevronRight size={13} />
       </button>
     </aside>
   );
@@ -427,7 +427,7 @@ export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: (
   }
 
   return (
-    <aside className="ai-lab" aria-label="AI Lab">
+    <aside className="ai-lab" aria-label="AI detail">
       <header className="ai-lab-head">
         <div>
           <span className="a-eyebrow">EXPLAINABLE OPPONENT</span>

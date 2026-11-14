@@ -6,6 +6,7 @@ import { isAdventure, isCave, type GameState } from "../../lib/arcade/arcade-run
 import type { CommentaryLine } from "../../lib/arcade/commentary";
 import { voices } from "../../lib/arcade/rivals";
 import { CharacterPortrait } from "../farshore-art";
+import { Typewriter } from "../fx/pixel-fx";
 import { FieldNotes } from "../ai/encounter-intel";
 
 type Track = { icon: ReactNode; label: string; value: string; fill?: number; pips?: [number, number]; warn?: boolean };
@@ -136,9 +137,9 @@ export function EncounterCodex({
         <p aria-live="polite">{state.rivalLine}</p>
       </section>
       <section className="fs-codex-card fs-codex-log" aria-label="Live commentary">
-        <h3><Feather size={13} /> Live from the voyage</h3>
+        <h3><Feather size={13} /> Commentary</h3>
         {log.length === 0 ? (
-          <p className="fs-codex-empty">The bard is watching. Lines appear here as the encounter unfolds.</p>
+          <p className="fs-codex-empty">Lines appear here as you play.</p>
         ) : (
           <ol>
             {log.slice(-4).reverse().map((line, i) => (
@@ -157,12 +158,12 @@ export function EncounterCodex({
 }
 
 /** Broadcast-style subtitle for the newest line, over the action. */
-export function CommentarySubtitle({ line, id }: { line: CommentaryLine | null; id: TrialId }) {
+export function CommentarySubtitle({ line, id, still = false }: { line: CommentaryLine | null; id: TrialId; still?: boolean }) {
   if (!line) return null;
   return (
     <div className="fs-subtitle" key={line.id} data-speaker={line.speaker} role="status" aria-live="polite">
       <span>{speakerName(line, id)}</span>
-      <p>{line.text}</p>
+      <Typewriter as="p" text={line.text} still={still} cps={48} />
     </div>
   );
 }

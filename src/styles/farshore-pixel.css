@@ -1,0 +1,178 @@
+/* FARSHORE pixel skin for the arcade. Loaded last; every rule is scoped to
+   .fs-app.a-app[data-skin="pixel"] (specificity 0,3,0) so it outranks the
+   layered legacy sheets without touching them. This sheet sets skin only:
+   type, colour, frames, shadows and image rendering. Layout fixes for the
+   fixed desktop viewport live in the "fit" section at the end.
+   Fonts, palette and frame images: farshore-pixel-shell.css.
+   Motion: farshore-pixel-motion.css. */
+
+/* ============================================================ tokens == */
+.fs-app.a-app[data-skin="pixel"] {
+  /* Every legacy variable set reads the one palette. */
+  --a-ink: var(--px-cream); --a-muted: var(--px-mist); --a-gold: var(--px-gold); --a-teal: var(--px-ai); --a-line: var(--px-steel);
+  --midnight: var(--px-night); --navy: var(--px-deep); --panel: var(--px-lapis); --gold: var(--px-gold); --bright-gold: var(--px-gold-hi);
+  --cyan: var(--px-ai); --red: var(--px-red); --green: var(--px-green); --purple: #a879ff; --text: var(--px-cream); --muted: var(--px-mist);
+  --fs-gold: var(--px-gold); --fs-edge: var(--px-bronze-1); --fs-light: var(--px-gold-hi); --fs-cream: var(--px-cream); --fs-blue: var(--px-lapis);
+  --fs-navy-900: var(--px-ink); --fs-navy-800: var(--px-night); --fs-navy-700: var(--px-deep); --fs-navy-600: var(--px-lapis);
+  --fs-gold-bright: var(--px-gold-hi); --fs-bronze: var(--px-bronze-2); --fs-ink: var(--px-mist);
+  --fs-color-bg: var(--px-night); --fs-color-surface: var(--px-deep); --fs-color-text: var(--px-cream); --fs-color-text-muted: var(--px-mist);
+  --fs-color-accent: var(--px-gold); --fs-color-ai: var(--px-ai); --fs-color-error: var(--px-red); --fs-color-success: var(--px-green);
+  /* A 2x2 checker: the pixel way to say "disabled" or "behind glass". */
+  --px-checker: repeating-conic-gradient(rgba(4, 8, 15, 0.55) 0 25%, transparent 0 50%) 0 0 / calc(var(--px) * 2) calc(var(--px) * 2);
+  --px-drop: 0 calc(var(--px) * 3) 0 rgba(4, 8, 15, 0.6);
+  background: var(--px-night);
+  color: var(--px-cream);
+  font-family: var(--fs-font-ui);
+  font-synthesis: none;
+  letter-spacing: 0.01em;
+}
+.fs-app.a-app[data-skin="pixel"] ::selection { background: var(--px-gold); color: var(--px-ink); }
+
+/* ============================================================== type == */
+.fs-app.a-app[data-skin="pixel"] :is(h1, h2, h3, h4) { font-family: var(--fs-font-display); font-weight: 700; font-style: normal; letter-spacing: 0.02em; text-shadow: var(--px) var(--px) 0 var(--px-ink); }
+.fs-app.a-app[data-skin="pixel"] :is(em, i, cite, blockquote, q) { font-style: normal; }
+.fs-app.a-app[data-skin="pixel"] :is(b, strong) { font-weight: 700; }
+.fs-app.a-app[data-skin="pixel"] p { line-height: 1.45; }
+/* Pixelify's regular strokes blur at small sizes; medium keeps every letter distinct. */
+.fs-app.a-app[data-skin="pixel"] :is(p, li, small, dd, td, th, label, figcaption, blockquote, span, .a-caption) { font-weight: 500; }
+.fs-app.a-app[data-skin="pixel"] svg text { font-family: var(--fs-font-ui); font-weight: 600; }
+.fs-app.a-app[data-skin="pixel"] .a-eyebrow { font-family: var(--fs-font-ui); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--px-gold); }
+.fs-app.a-app[data-skin="pixel"] kbd {
+  font: 600 12px/1 var(--fs-font-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 6px 4px; color: var(--px-cream); background: var(--px-lapis); border: 0; border-radius: 0;
+  box-shadow: 0 0 0 var(--px) var(--px-ink), inset 0 calc(var(--px) * -1) 0 var(--px-ink), inset 0 var(--px) 0 var(--px-foam);
+}
+
+/* =========================================================== buttons == */
+/* One button: a notched ink outline, a bevel, a hard drop. Variants only
+   change the --btn-* inks. */
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn, .od-menu > button, .od-enter, .od-sound, .fs-voice-toggle, .a-setting-toggle, .fs-account-chip, .fs-rival-chip button, .fs-view-switch button, .fs-stage-fullscreen-btn, .fs-hud-pause, .fs-oracle-option, .fs-crossing-skip, .a-segment button, .fs-lab-segment button, .fs-race-panel button, .fs-touch-pad button) {
+  --btn-face: var(--px-lapis); --btn-ink: var(--px-cream); --btn-hi: rgba(255, 227, 161, 0.2); --btn-lo: rgba(4, 8, 15, 0.6);
+  border-style: solid; border-color: transparent; border-width: var(--px);
+  border-image: var(--px-frame-btn) var(--px-frame-btn-slice) / calc(var(--px-frame-btn-slice) * var(--px)) stretch;
+  border-radius: 0;
+  background: var(--btn-face);
+  color: var(--btn-ink);
+  font-family: var(--fs-font-ui);
+  text-shadow: none;
+  box-shadow: inset var(--px) var(--px) 0 var(--btn-hi), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--btn-lo), 0 var(--px) 0 var(--px-ink);
+  transition: transform 80ms steps(2, end), background-color 0s;
+}
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn, .od-menu > button, .od-enter, .od-sound, .fs-voice-toggle, .a-setting-toggle, .fs-account-chip, .fs-rival-chip button, .fs-view-switch button, .fs-stage-fullscreen-btn, .fs-hud-pause, .fs-oracle-option, .fs-crossing-skip, .a-segment button, .fs-lab-segment button, .fs-race-panel button, .fs-touch-pad button):hover:not(:disabled) { --btn-face: var(--px-sea); transform: none; }
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn, .od-menu > button, .od-enter, .od-sound, .fs-voice-toggle, .a-setting-toggle, .fs-account-chip, .fs-rival-chip button, .fs-view-switch button, .fs-stage-fullscreen-btn, .fs-hud-pause, .fs-oracle-option, .fs-crossing-skip, .a-segment button, .fs-lab-segment button, .fs-race-panel button, .fs-touch-pad button):active:not(:disabled) {
+  transform: translateY(var(--px));
+  box-shadow: inset var(--px) var(--px) 0 var(--btn-lo), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--btn-hi);
+}
+/* Primary: gold. */
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn.a-primary, .od-menu > .od-menu-primary, .a-btn.fs-start, .od-enter) { --btn-face: var(--px-gold); --btn-ink: var(--px-ink); --btn-hi: var(--px-gold-hi); --btn-lo: var(--px-bronze-1); }
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn.a-primary, .od-menu > .od-menu-primary, .a-btn.fs-start, .od-enter):hover:not(:disabled) { --btn-face: #f3c870; }
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn.a-primary, .od-menu > .od-menu-primary, .a-btn.fs-start) :is(small, kbd) { color: var(--px-bronze-0); }
+.fs-app.a-app[data-skin="pixel"] .a-btn.a-ghost { --btn-face: var(--px-deep); }
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn.a-primary, .a-btn.fs-start, .od-menu-primary) kbd { background: var(--px-bronze-1); color: var(--px-gold-hi); box-shadow: 0 0 0 var(--px) var(--px-bronze-0), inset 0 calc(var(--px) * -1) 0 var(--px-bronze-0); }
+/* The title menu's own sheet is more specific (viewport fit); match it. */
+.fs-app.a-app[data-skin="pixel"] .fs-title-panel .od-menu.fs-menu-rich > button {
+  border: var(--px) solid transparent; border-radius: 0;
+  border-image: var(--px-frame-btn) var(--px-frame-btn-slice) / calc(var(--px-frame-btn-slice) * var(--px)) stretch;
+  background: var(--btn-face); color: var(--btn-ink);
+  box-shadow: inset var(--px) var(--px) 0 var(--btn-hi), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--btn-lo), 0 var(--px) 0 var(--px-ink);
+}
+.fs-app.a-app[data-skin="pixel"] .fs-title-panel .od-menu.fs-menu-rich > button:hover:not(:disabled) { --btn-face: var(--px-sea); transform: none; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary { --btn-face: var(--px-gold); --btn-ink: var(--px-ink); --btn-hi: var(--px-gold-hi); --btn-lo: var(--px-bronze-1); }
+.fs-app.a-app[data-skin="pixel"] .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary:hover:not(:disabled) { --btn-face: #f3c870; }
+.fs-app.a-app[data-skin="pixel"] .od-menu.fs-menu-rich > button::after, .fs-app.a-app[data-skin="pixel"] .a-btn.fs-rich::after { content: none; }
+/* Chosen: sea with a gold ink. */
+.fs-app.a-app[data-skin="pixel"] :is(button[aria-pressed="true"], button[aria-selected="true"], button[aria-checked="true"]):not(.a-primary) { --btn-face: var(--px-sea); --btn-ink: var(--px-gold-hi); --btn-hi: rgba(156, 239, 255, 0.25); }
+/* Disabled: checkered, not faded. */
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn, .od-menu > button, .fs-oracle-option, .a-setting-toggle):disabled {
+  --btn-face: var(--px-deep); --btn-ink: var(--px-steel);
+  background-image: var(--px-checker); opacity: 1; cursor: not-allowed;
+}
+.fs-app.a-app[data-skin="pixel"] :is(.a-btn.a-primary, .a-btn.fs-start):disabled { --btn-face: var(--px-bronze-1); --btn-ink: var(--px-sand); }
+.fs-app.a-app[data-skin="pixel"] :is(button, a, summary, select, input, [tabindex]:not([tabindex="-1"])):focus-visible { outline: var(--px) solid var(--px-cream); outline-offset: calc(var(--px) * 2); box-shadow: 0 0 0 calc(var(--px) * 3) var(--px-ink); }
+/* Two-line buttons: label in bold, detail below in the same face. */
+.fs-app.a-app[data-skin="pixel"] :is(.fs-rich, .od-menu > button) b { font-family: var(--fs-font-ui); font-weight: 700; letter-spacing: 0.04em; }
+.fs-app.a-app[data-skin="pixel"] :is(.fs-rich, .od-menu > button) small { font-family: var(--fs-font-ui); font-style: normal; font-weight: 400; letter-spacing: 0.01em; }
+.fs-app.a-app[data-skin="pixel"] .a-text-btn { font-family: var(--fs-font-ui); color: var(--px-ai); text-decoration-thickness: var(--px); text-underline-offset: 4px; }
+
+/* ============================================================ panels == */
+/* Tier 1, paper: the bronze frame. */
+.fs-app.a-app[data-skin="pixel"] :is(.a-paper, .a-modal, .a-brief, .fs-trial-panel, .fs-trial-gallery, .fs-veil-panel, .fs-rival-panel, .fs-oracle, .fs-crossing-card, .fs-race-panel, .fs-lab-card, .fs-codex-card) {
+  border-style: solid; border-color: transparent;
+  border-image: var(--px-frame-paper) var(--px-frame-paper-slice) / calc(var(--px-frame-paper-slice) * var(--px)) stretch;
+  border-radius: 0;
+  box-shadow: var(--px-drop);
+}
+.fs-app.a-app[data-skin="pixel"] :is(.a-paper, .a-modal, .a-brief, .fs-trial-panel, .fs-trial-gallery, .fs-veil-panel, .fs-oracle, .fs-crossing-card, .fs-lab-card) { background: var(--px-deep); }
+/* Tier 2, inset: a sunken well inside a paper panel. */
+.fs-app.a-app[data-skin="pixel"] :is(.a-opponent-info, .a-connection, .od-control-guide, .a-result-stats > *, .fs-recap, .fs-oracle-passage, .fs-rival-panel blockquote, .a-segment, .fs-view-switch, .fs-performance-seals > *) {
+  border-style: solid; border-color: transparent;
+  border-image: var(--px-frame-inset) var(--px-frame-inset-slice) / calc(var(--px-frame-inset-slice) * var(--px)) stretch;
+  border-radius: 0;
+  background: var(--px-night);
+  box-shadow: none;
+}
+/* AI state wears cyan, and only AI state does. */
+.fs-app.a-app[data-skin="pixel"] :is(.fs-rival-panel[data-state="ready"], .fs-rival-panel[data-state="loading"], .ai-panel, .fs-ai-note) {
+  border-image: var(--px-frame-ai) var(--px-frame-ai-slice) / calc(var(--px-frame-ai-slice) * var(--px)) stretch;
+}
+.fs-app.a-app[data-skin="pixel"] :is(.a-modal-backdrop) { background: rgba(4, 8, 15, 0.8); backdrop-filter: none; }
+
+/* ============================================================= forms == */
+.fs-app.a-app[data-skin="pixel"] select,
+.fs-app.a-app[data-skin="pixel"] .a-field select {
+  border-radius: 0; border: var(--px) solid var(--px-steel); background-color: var(--px-ink); color: var(--px-cream);
+  font: 500 15px/1.2 var(--fs-font-ui); box-shadow: inset var(--px) var(--px) 0 rgba(0, 0, 0, 0.5);
+}
+.fs-app.a-app[data-skin="pixel"] input[type="range"] { accent-color: var(--px-gold); }
+.fs-app.a-app[data-skin="pixel"] input[type="checkbox"] { accent-color: var(--px-gold); border-radius: 0; }
+.fs-app.a-app[data-skin="pixel"] summary { font-family: var(--fs-font-ui); }
+.fs-app.a-app[data-skin="pixel"] summary::marker { color: var(--px-gold); }
+
+/* ===================================================== crisp pixels == */
+.fs-app.a-app[data-skin="pixel"] :is(.fs-trial-art, .a-portrait, .od-backdrop, .fs-prologue-art, .fs-hud-portrait, .fs-brief-art, .fs-title-art, .fs-crossing-art, svg image) { image-rendering: pixelated; }
+.fs-app.a-app[data-skin="pixel"] :is(.a-portrait, .fs-portrait, .fs-hud-portrait) {
+  border-radius: 0; border: 0;
+  box-shadow: 0 0 0 var(--px) var(--px-ink), 0 0 0 calc(var(--px) * 2) var(--px-bronze-2), 0 0 0 calc(var(--px) * 3) var(--px-ink);
+}
+
+/* ============================================================ chrome == */
+/* The wordmark: Press Start 2P, banded gold, a one-pixel ink outline and a bronze drop. */
+.fs-app.a-app[data-skin="pixel"] .fs-logo {
+  font-family: var(--fs-font-pixel); font-weight: 400; letter-spacing: 0; line-height: 1; color: var(--px-gold);
+  filter: drop-shadow(var(--px) 0 0 var(--px-ink)) drop-shadow(calc(var(--px) * -1) 0 0 var(--px-ink)) drop-shadow(0 var(--px) 0 var(--px-ink)) drop-shadow(0 calc(var(--px) * -1) 0 var(--px-ink)) drop-shadow(0 calc(var(--px) * 2) 0 var(--px-bronze-0));
+}
+.fs-app.a-app[data-skin="pixel"] .fs-logo-text {
+  font: inherit !important; letter-spacing: 0 !important; -webkit-text-stroke: 0; text-shadow: none;
+  background: linear-gradient(var(--px-gold-hi) 0 28%, var(--px-gold) 28% 52%, var(--px-bronze-2) 52% 78%, var(--px-bronze-1) 78%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.fs-app.a-app[data-skin="pixel"] .fs-logo-trident { left: calc(68.75% - 0.12em); top: -0.62em; width: 0.24em; height: 0.6em; color: var(--px-gold); filter: none; }
+.fs-app.a-app[data-skin="pixel"] .od-wordmark { font-size: 48px; line-height: 1.2; letter-spacing: 0; text-shadow: none; }
+.fs-app.a-app[data-skin="pixel"] .od-splash-content .od-wordmark { font-size: clamp(48px, 6.6vw, 96px); }
+.fs-app.a-app[data-skin="pixel"] .a-brand .fs-logo { font-size: 24px !important; }
+.fs-app.a-app[data-skin="pixel"] .a-brand .fs-logo-trident { display: none; }
+
+/* =========================================================== details == */
+/* Numerals where Pixelify's zero could pass for a D: VT323 has unmistakable digits. */
+.fs-app.a-app[data-skin="pixel"] :is(.fs-chart-pin text, .fs-chart-graticule text) { font-family: var(--fs-font-mono); font-weight: 400; font-size: 17px; }
+.fs-app.a-app[data-skin="pixel"] .a-setting-toggle strong { color: var(--px-steel); font-family: var(--fs-font-ui); }
+.fs-app.a-app[data-skin="pixel"] .a-setting-toggle[aria-pressed="true"] strong { color: var(--px-gold-hi); }
+.fs-app.a-app[data-skin="pixel"] .a-modal-head h2 { margin: 0; }
+
+/* =============================================================== fit == */
+/* Layout corrections for the fixed desktop viewport (see farshore-viewport.css). */
+@media (min-width: 761px) and (min-height: 560px) {
+  /* An empty side column must not leave a phantom track that narrows the banner. */
+  .fs-app.a-app[data-skin="pixel"] .fs-rich-result:has(> .fs-result-side:empty) > .fs-result-side { display: none; }
+  .fs-app.a-app[data-skin="pixel"] .fs-rich-result > .fs-result-frieze { height: clamp(78px, 13vh, 150px); }
+  .fs-app.a-app[data-skin="pixel"] .fs-rich-result > .a-result-stats { margin-top: 8px; padding: 6px 0; }
+  /* Pixel faces stand taller than the old serif; the rival panel stays inside its column. */
+  .fs-app.a-app[data-skin="pixel"] .fs-rival-panel > p { font-size: 13px; line-height: 1.4; }
+  .fs-app.a-app[data-skin="pixel"] .fs-rival-taunt p { font-size: 14px; line-height: 1.4; }
+  .fs-app.a-app[data-skin="pixel"] .fs-rival-taunt { padding-block: 8px; }
+}
+.fs-app.a-app[data-skin="pixel"] .od-preferences small { font-size: 12px; }
+.fs-app.a-app[data-skin="pixel"] .fs-result-frieze > div { gap: 6px; }
+.fs-app.a-app[data-skin="pixel"] .fs-result-frieze > div > span { padding: 4px 18px 5px; font: 700 14px/1.3 var(--fs-font-ui); letter-spacing: 0.08em; border: 0; border-radius: 0; box-shadow: 0 0 0 var(--px) var(--px-ink), inset var(--px) var(--px) 0 var(--px-gold-hi), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--px-bronze-1); background: var(--px-gold); color: var(--px-ink); }
+.fs-app.a-app[data-skin="pixel"] .fs-result-frieze.defeat > div > span { background: var(--px-red); color: var(--px-cream); box-shadow: 0 0 0 var(--px) var(--px-ink); }
+.fs-app.a-app[data-skin="pixel"] .fs-result-stars svg { width: 30px; height: 30px; }

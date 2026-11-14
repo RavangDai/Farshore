@@ -133,7 +133,7 @@
   height: 6%;
   min-height: 28px;
   padding: 0 clamp(16px, 3vw, 40px);
-  font: 700 10px/1 var(--fs-font-ui);
+  font: 700 max(var(--fs-font-floor,0px),10px)/1 var(--fs-font-ui);
   letter-spacing: 0.22em;
   color: #c9a466;
   animation: fs-reveal 1s var(--fs-cine) 1.1s both;
@@ -164,7 +164,7 @@
   animation: fs-x-olympus calc(var(--x-dive) + 0.5s) var(--fs-cine) both;
 }
 .fs-crossing-olympus span {
-  font: 700 11px/1 var(--fs-font-ui);
+  font: 700 max(var(--fs-font-floor,0px),11px)/1 var(--fs-font-ui);
   letter-spacing: 0.34em;
   color: #f3d79c;
   text-shadow: 0 1px 3px #000c, 0 0 14px #0009;
@@ -193,7 +193,7 @@
   max-width: min(720px, calc(100vw - 32px));
   margin: 0;
   padding: 10px 20px 12px;
-  border-radius: 3px;
+  border-radius: calc(var(--fs-round,1)*3px);
   background: linear-gradient(90deg, transparent, #020a12c4 14%, #020a12c4 86%, transparent);
   transform: translateX(-50%);
   font: italic clamp(15px, 1.7vw, 20px)/1.45 var(--fs-font-display);
@@ -205,7 +205,7 @@
     fs-x-fade-out 0.4s ease calc(var(--x-arrive) - 0.1s) forwards;
 }
 .fs-crossing-line > span {
-  font: 700 10px/1 var(--fs-font-ui);
+  font: 700 max(var(--fs-font-floor,0px),10px)/1 var(--fs-font-ui);
   font-style: normal;
   letter-spacing: 0.26em;
   text-transform: uppercase;
@@ -231,7 +231,7 @@
   max-width: calc(100vw - 32px);
   padding: 12px 26px 12px 12px;
   border: 1px solid #b88a4a;
-  border-radius: 4px;
+  border-radius: calc(var(--fs-round,1)*4px);
   background: linear-gradient(135deg, #0c2639f5, #061726f5);
   box-shadow: inset 0 0 0 3px #020b15, inset 0 0 0 4px #a67a3c44, 0 18px 44px #000b;
   transform: translateX(-50%);
@@ -243,12 +243,12 @@
   aspect-ratio: 3 / 4;
   height: auto;
   border: 1px solid #c89b50;
-  border-radius: 3px;
+  border-radius: calc(var(--fs-round,1)*3px);
   box-shadow: 0 4px 12px #0009;
 }
 .fs-crossing-card > div { display: grid; gap: 4px; min-width: 0; }
 .fs-crossing-eyebrow {
-  font: 700 10px/1.2 var(--fs-font-ui);
+  font: 700 max(var(--fs-font-floor,0px),10px)/1.2 var(--fs-font-ui);
   letter-spacing: 0.2em;
   color: #c9a466;
 }
@@ -296,10 +296,10 @@
   min-height: 44px;
   padding: 0 14px 0 16px;
   border: 1px solid #b88a4a99;
-  border-radius: 3px;
+  border-radius: calc(var(--fs-round,1)*3px);
   background: #03101dd9;
   color: #f1dfb6;
-  font: 700 11px/1 var(--fs-font-ui);
+  font: 700 max(var(--fs-font-floor,0px),11px)/1 var(--fs-font-ui);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   cursor: pointer;
@@ -311,8 +311,8 @@
 .fs-crossing-skip kbd {
   padding: 3px 6px;
   border: 1px solid #b88a4a66;
-  border-radius: 2px;
-  font: 10px/1 var(--fs-font-ui);
+  border-radius: calc(var(--fs-round,1)*2px);
+  font: max(var(--fs-font-floor,0px),10px)/1 var(--fs-font-ui);
   letter-spacing: 0.06em;
   color: #c9a466;
 }

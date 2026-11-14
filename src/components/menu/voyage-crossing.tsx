@@ -5,6 +5,7 @@ import { trials, type ArcadeSave, type TrialId } from "../../lib/arcade/arcade";
 import { crossingBeats, crossingLines, ease, lerp, span } from "../../lib/story/crossing";
 import type { SoundName } from "../../lib/audio/sounds";
 import { TrialArtwork } from "../farshore-art";
+import { ART } from "../../lib/art";
 import { ANCHORS, ChartCompass, ChartDefs, ChartIsland, ChartRoute, ChartSea, FRAME, R, ROUTE, ROUTE_SCALE, ROUTE_TRANSFORM } from "./voyage-chart";
 import { shortNames } from "./trial-panel";
 
@@ -41,7 +42,8 @@ type Point = { x: number; y: number };
 type Beat = "sky" | "voyage" | "arrived" | "card";
 
 /** The sprite sheet: Odysseus standing (tile 0) and his ship (tile 3), on transparency. */
-const SHEET = "/art/farshore/odysseus-and-ship.png";
+/** The pixel sprite sheet; its SVG <image> is drawn at the painted sheet's size, so the geometry below is unchanged. */
+const SHEET = ART.px.sprites;
 const SHEET_SIZE = 1254;
 const TILE = SHEET_SIZE / 2;
 /**
@@ -324,9 +326,9 @@ export function VoyageCrossing(props: Props) {
     "--x-arrive": `${beats.arrive}s`,
     "--x-card": `${beats.card}s`,
   } as CSSProperties;
-  const rivalLine = preview ? "Preview · your voyage is unchanged"
-    : rival === "studying" ? `${trial.character} is studying your last attempts…`
-    : rival === "ready" ? `${trial.character} has chosen a strategy`
+  const rivalLine = preview ? "Preview"
+    : rival === "studying" ? `${trial.character} is preparing…`
+    : rival === "ready" ? `${trial.character} is ready`
     : `${trial.character} awaits`;
   const sprite = <image href={SHEET} width={SHEET_SIZE} height={SHEET_SIZE} />;
 
@@ -405,24 +407,19 @@ export function VoyageCrossing(props: Props) {
       <span className="fs-letterbox fs-letterbox-bottom" aria-hidden="true" />
 
       <header className="fs-crossing-top">
-        <span>THE VOYAGE CONTINUES</span>
         <span>{pad(fromIndex + 1)} {shortNames[from]} <ArrowRight size={12} aria-label="to" /> {pad(toIndex + 1)} {shortNames[to]}</span>
       </header>
-      <div className="fs-crossing-olympus" aria-hidden="true">
-        <span>FROM MOUNT OLYMPUS</span>
-        <strong>The gods are watching.</strong>
-      </div>
       <p className="fs-crossing-line" aria-live="polite"><span>The bard</span>{line}</p>
       <section className="fs-crossing-card">
         <TrialArtwork id={to} className="fs-crossing-art" />
         <div>
-          <span className="fs-crossing-eyebrow">ENCOUNTER {pad(toIndex + 1)} / {pad(trials.length)} · {trial.kind.toUpperCase()}</span>
+          <span className="fs-crossing-eyebrow">Trial {toIndex + 1} of {trials.length} · {trial.kind}</span>
           <h1 id="fs-crossing-title">{trial.title}</h1>
           <p data-rival={preview ? "preview" : rival}>{rivalLine}</p>
         </div>
       </section>
       <button className="fs-crossing-skip" onClick={() => finish(true)} aria-label={preview ? "End the preview" : beat === "card" ? "Open the briefing" : "Skip the voyage and open the briefing"}>
-        {beat === "card" ? <>{preview ? "Done" : "Open the briefing"} <ArrowRight size={15} /></> : <>Skip <SkipForward size={15} /></>}
+        {beat === "card" ? <>{preview ? "Done" : "Briefing"} <ArrowRight size={15} /></> : <>Skip <SkipForward size={15} /></>}
         <kbd>Enter</kbd>
       </button>
     </main>

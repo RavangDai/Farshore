@@ -1,6 +1,10 @@
 import { voices, type VoiceId } from "../arcade/rivals.ts";
+import { SPLIT } from "../story/spoken-lines.ts";
 import { pickBrowserVoice } from "./browser-voices.ts";
+import { pauseAfter, sentences } from "./sentences.ts";
 import { playWithFx, type Playback } from "./voice-fx.ts";
+
+export { sentences } from "./sentences.ts";
 
 export const VOICE_PREFS = "farshore-voice-v1";
 export type VoicePrefs = { commentary: boolean; voice: boolean; volume: number };
@@ -26,43 +30,35 @@ export function readVoicePrefs(): VoicePrefs {
  * to load, so the browser speaks for now.
  */
 export type VoiceStatus = "checking" | "loading" | "neural" | "browser" | "unavailable";
-
-/**
- * Splits a line into sentences so the first one can be spoken while the next
- * is synthesized. Fragments shorter than 16 characters stay with a neighbour
- * so the voice keeps its phrasing, and an over-long sentence breaks at commas.
- */
-export function sentences(text: string): string[] {
-  const out: string[] = [];
-  for (const part of text.trim().split(/(?<=[.!?…]["')\]]*)\s+/)) {
-    if (!part) continue;
-    if (out.length && (part.length < 16 || out[out.length - 1].length < 16)) out[out.length - 1] += " " + part;
-    else out.push(part);
-  }
-  return out.flatMap(sentence => {
-    if (sentence.length <= 200) return [sentence];
-    const pieces: string[] = [];
-    for (const clause of sentence.split(/(?<=[,;:])\s+/)) {
-      if (pieces.length && pieces[pieces.length - 1].length + clause.length < 200) pieces[pieces.length - 1] += " " + clause;
-      else pieces.push(clause);
-    }
-    return pieces;
-  });
-}
+/** How far the natural voice has downloaded, while it loads. */
+export type VoiceLoad = { progress: number; sizeMb: number | null };
 
 type Line = { text: string; voice: VoiceId; at: number };
 type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
+export type VoiceBoxOptions = {
+  /** How soon the server is asked again while its answer may still change. */
+  pollMs?: number;
+  /** The same, while the natural voice is loading: it is usually seconds away. */
+  loadingPollMs?: number;
+  /** How long a line waits for a loading natural voice before the browser reads it. */
+  readyWaitMs?: number;
+};
+
+/** Lines fetched ahead of time, by size: about a minute of speech. */
+const PRIMED_BYTES = 6 * 1024 * 1024;
 
 /**
  * Speaks lines one at a time. Natural Kokoro voices come from the game server
  * and play through each character's voice chain; when they are unavailable the
  * browser's best natural voice reads the line instead. Lines that wait too long
  * are dropped, so the voice never narrates something that already passed.
+ * Lines the game knows in advance can be primed, so they play without a wait.
  */
 export class VoiceBox {
   private queue: Line[] = [];
   private speaking = false;
   private status: VoiceStatus = "checking";
+  private load: VoiceLoad = { progress: 0, sizeMb: null };
   private context: AudioContext | null = null;
   private playback: Playback | null = null;
   private element: HTMLAudioElement | null = null;
@@ -71,6 +67,8 @@ export class VoiceBox {
   private assigned = new Map<VoiceId, string>();
   private speakingListener: ((speaking: boolean) => void) | null = null;
   private statusListener: ((status: VoiceStatus) => void) | null = null;
+  private loadListener: ((load: VoiceLoad) => void) | null = null;
+  private readyWaiters = new Set<() => void>();
   private generation = 0;
   private poll: ReturnType<typeof setTimeout> | null = null;
   private pollUntil = 0;
@@ -78,11 +76,20 @@ export class VoiceBox {
   private disposed = false;
   private fetcher: Fetcher;
   private pollMs: number;
+  private loadingPollMs: number;
+  private readyWaitMs: number;
+  /** The fetches of the line being spoken; stop() cancels them. */
+  private live = new AbortController();
+  private primed = new Map<string, ArrayBuffer>();
+  private primedBytes = 0;
+  private inflight = new Map<string, Promise<ArrayBuffer | null>>();
 
-  /** pollMs: how soon the server is asked again while its answer may still change. */
-  constructor(fetcher: Fetcher = (input, init) => fetch(input, init), pollMs = 3000) {
+  constructor(fetcher: Fetcher = (input, init) => fetch(input, init), options: number | VoiceBoxOptions = {}) {
+    const o = typeof options === "number" ? { pollMs: options, loadingPollMs: options } : options;
     this.fetcher = fetcher;
-    this.pollMs = pollMs;
+    this.pollMs = o.pollMs ?? 3000;
+    this.loadingPollMs = o.loadingPollMs ?? Math.min(1000, this.pollMs);
+    this.readyWaitMs = o.readyWaitMs ?? 2500;
     if (typeof window === "undefined") return;
     const load = () => { this.browserVoices = window.speechSynthesis?.getVoices() ?? []; };
     load();
@@ -92,6 +99,7 @@ export class VoiceBox {
 
   onSpeaking(listener: ((speaking: boolean) => void) | null) { this.speakingListener = listener; }
   onStatus(listener: ((status: VoiceStatus) => void) | null) { this.statusListener = listener; listener?.(this.status); }
+  onLoad(listener: ((load: VoiceLoad) => void) | null) { this.loadListener = listener; listener?.(this.load); }
   get voiceStatus() { return this.status; }
   get usesNeural() { return this.status === "neural"; }
 
@@ -108,9 +116,21 @@ export class VoiceBox {
     if (!this.speaking) void this.next();
   }
 
+  /**
+   * Fetches a line the game will probably say soon (a taunt on the briefing,
+   * the bard's opening line), behind any line someone is listening to. Only
+   * while the natural voice is ready; a later say() of the same line plays at once.
+   */
+  prime(text: string, voice: VoiceId) {
+    if (this.disposed || this.status !== "neural" || !text.trim()) return;
+    for (const piece of sentences(text, SPLIT)) void this.fetchPiece(piece, voice, "prime");
+  }
+
   stop() {
     this.generation++;
     this.queue = [];
+    this.live.abort();
+    this.live = new AbortController();
     this.playback?.stop();
     this.playback = null;
     this.element?.pause();
@@ -123,8 +143,11 @@ export class VoiceBox {
     this.stop();
     this.disposed = true;
     if (this.poll) clearTimeout(this.poll);
+    for (const wake of this.readyWaiters) wake();
+    this.readyWaiters.clear();
     this.speakingListener = null;
     this.statusListener = null;
+    this.loadListener = null;
     void this.context?.close().catch(() => {});
     this.context = null;
   }
@@ -139,6 +162,10 @@ export class VoiceBox {
     if (this.status === value) return;
     this.status = value;
     this.statusListener?.(value);
+    if (value !== "checking" && value !== "loading") {
+      for (const wake of this.readyWaiters) wake();
+      this.readyWaiters.clear();
+    }
   }
 
   /** The first run downloads the voice model, so keep asking for three minutes. */
@@ -156,11 +183,15 @@ export class VoiceBox {
     let again = 0;
     try {
       const response = await this.fetcher("/api/voice", { signal: AbortSignal.timeout(5000) });
-      const v = (await response.json()) as { neural?: boolean; engine?: string; ready?: boolean };
+      const v = (await response.json()) as { neural?: boolean; engine?: string; ready?: boolean; progress?: number; sizeMb?: number };
       if (this.disposed || asked !== this.asked) return;
       if (v?.neural) {
+        if (!v.ready && typeof v.progress === "number") {
+          this.load = { progress: v.progress, sizeMb: typeof v.sizeMb === "number" ? v.sizeMb : null };
+          this.loadListener?.(this.load);
+        }
         this.setStatus(v.ready ? "neural" : "loading");
-        again = v.ready ? 0 : this.pollMs;
+        again = v.ready ? 0 : this.loadingPollMs;
       } else if (v?.engine === "browser") this.setStatus("browser");
       else {
         // The server tries a model that failed to load again after a minute.
@@ -178,22 +209,36 @@ export class VoiceBox {
     else if (this.status === "checking") this.setStatus("unavailable");
   }
 
+  /** While the natural voice is a moment away, a line waits for it rather than switch voices. */
+  private waitForReady() {
+    if (this.status !== "checking" && this.status !== "loading") return Promise.resolve();
+    return new Promise<void>(resolve => {
+      const wake = () => { clearTimeout(timer); this.readyWaiters.delete(wake); resolve(); };
+      const timer = setTimeout(wake, this.readyWaitMs);
+      this.readyWaiters.add(wake);
+    });
+  }
+
   private async next() {
     const line = this.queue.shift();
     if (!line || this.disposed) { this.setSpeaking(false); return; }
     if (performance.now() - line.at > 7000) { void this.next(); return; }
     this.setSpeaking(true);
     const generation = this.generation;
+    await this.waitForReady();
+    if (generation !== this.generation || this.disposed) return;
     const spoke = (this.status === "neural" && (await this.neuralSay(line, generation))) || (generation === this.generation && (await this.browserSay(line)));
     if (generation !== this.generation) return;
     if (!spoke) this.setSpeaking(false);
     if (!this.disposed) void this.next();
   }
 
-  /** Plays the line sentence by sentence, fetching the next while one is heard. */
+  /** Plays the line piece by piece, fetching and decoding the next while one is heard. */
   private async neuralSay(line: Line, generation: number): Promise<boolean> {
-    const parts = sentences(line.text);
-    let pending = this.synthesize(parts[0], line.voice);
+    const parts = sentences(line.text, SPLIT);
+    const signal = this.live.signal;
+    const ahead = (i: number) => this.decode(this.fetchPiece(parts[i], line.voice, "live", signal));
+    let pending = ahead(0);
     for (let i = 0; i < parts.length; i++) {
       const audio = await pending;
       if (generation !== this.generation || this.disposed) return true;
@@ -201,23 +246,49 @@ export class VoiceBox {
         if (i === 0) return false;
         return this.browserSay({ ...line, text: parts.slice(i).join(" ") });
       }
-      if (i + 1 < parts.length) pending = this.synthesize(parts[i + 1], line.voice);
+      if (i + 1 < parts.length) pending = ahead(i + 1);
       await this.play(audio, line.voice);
+      if (generation !== this.generation || this.disposed) return true;
+      if (i + 1 < parts.length) await new Promise(resolve => setTimeout(resolve, pauseAfter(parts[i]) * 1000));
     }
     return true;
   }
 
-  private async synthesize(text: string, voice: VoiceId): Promise<ArrayBuffer | null> {
+  /** One piece of a line: from the primed cache, a fetch already on its way, or the server. */
+  private fetchPiece(text: string, voice: VoiceId, priority: "live" | "prime", signal?: AbortSignal): Promise<ArrayBuffer | null> {
+    const key = `${voice}|${text}`, primed = this.primed.get(key);
+    if (primed) return Promise.resolve(primed);
+    const going = this.inflight.get(key);
+    if (going && priority === "prime") return going;
+    // A live request is always sent, even when a prime of the same piece is on
+    // its way: the server synthesizes the piece once and moves it to the front.
+    const request = this.request(text, voice, priority, signal).then(data => {
+      if (data && !this.primed.has(key)) {
+        this.primed.set(key, data);
+        this.primedBytes += data.byteLength;
+        while (this.primedBytes > PRIMED_BYTES && this.primed.size > 1) {
+          const [oldest, bytes] = this.primed.entries().next().value!;
+          this.primed.delete(oldest);
+          this.primedBytes -= bytes.byteLength;
+        }
+      }
+      return data;
+    }).finally(() => { if (this.inflight.get(key) === request) this.inflight.delete(key); });
+    this.inflight.set(key, request);
+    return request;
+  }
+
+  private async request(text: string, voice: VoiceId, priority: "live" | "prime", signal?: AbortSignal): Promise<ArrayBuffer | null> {
     try {
       const response = await this.fetcher("/api/voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, voice }),
-        signal: AbortSignal.timeout(12000),
+        body: JSON.stringify(priority === "prime" ? { text, voice, priority } : { text, voice }),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(30000),
       });
       if (response.ok) return await response.arrayBuffer();
       // A busy voice is momentary; anything else may mean the server changed.
-      if (response.status !== 503 || !response.headers.get("retry-after")) this.recheck();
+      if (priority === "live" && (response.status !== 503 || !response.headers.get("retry-after"))) this.recheck();
     } catch { /* The browser reads this line. */ }
     return null;
   }
@@ -229,14 +300,22 @@ export class VoiceBox {
     return this.context;
   }
 
-  private async play(data: ArrayBuffer, voice: VoiceId) {
+  /** Decodes as soon as the data arrives, so the next piece is ready when this one ends. */
+  private async decode(data: Promise<ArrayBuffer | null>): Promise<AudioBuffer | ArrayBuffer | null> {
+    const bytes = await data;
+    if (!bytes) return null;
     const context = this.audioContext();
-    if (context) {
+    if (!context) return bytes;
+    try { return await context.decodeAudioData(bytes.slice(0)); } catch { return bytes; }
+  }
+
+  private async play(audio: AudioBuffer | ArrayBuffer, voice: VoiceId) {
+    const context = this.audioContext();
+    if (context && !(audio instanceof ArrayBuffer)) {
       try {
         if (context.state !== "running") await context.resume();
         if (context.state === "running") {
-          const buffer = await context.decodeAudioData(data.slice(0));
-          const playback = playWithFx(context, buffer, voices[voice].fx, this.volume);
+          const playback = playWithFx(context, audio, voices[voice].fx, this.volume);
           this.playback = playback;
           await playback.done;
           if (this.playback === playback) this.playback = null;
@@ -244,7 +323,7 @@ export class VoiceBox {
         }
       } catch { /* The plain media element still works. */ }
     }
-    await this.playElement(data);
+    if (audio instanceof ArrayBuffer) await this.playElement(audio);
   }
 
   private async playElement(data: ArrayBuffer) {

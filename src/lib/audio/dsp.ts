@@ -231,7 +231,10 @@ export function seamless(channels: Float32Array[], sampleRate: number, crossfade
   });
 }
 
-const SPACES: Record<Space, { seconds: number; rt60: number; predelay: number; bright: number; dark: number; reflections: number }> = {
+/** How a room rings: its length, decay time, pre-delay, brightness over time and early reflections. */
+export type SpaceSpec = { seconds: number; rt60: number; predelay: number; bright: number; dark: number; reflections: number };
+
+const SPACES: Record<Space, SpaceSpec> = {
   hall: { seconds: 2.2, rt60: 1.7, predelay: 0.012, bright: 9000, dark: 2500, reflections: 6 },
   cave: { seconds: 3.6, rt60: 3.0, predelay: 0.022, bright: 6000, dark: 1100, reflections: 12 },
   sea: { seconds: 1, rt60: 0.6, predelay: 0.004, bright: 7000, dark: 2000, reflections: 2 },
@@ -239,9 +242,11 @@ const SPACES: Record<Space, { seconds: number; rt60: number; predelay: number; b
   storm: { seconds: 2.6, rt60: 2, predelay: 0.015, bright: 4500, dark: 1000, reflections: 4 },
 };
 
-/** A stereo reverb impulse: decorrelated noise whose tail decays and darkens like a real room. */
-export function impulseResponse(space: Space, sampleRate: number, seed = 1): Stereo {
-  const spec = SPACES[space];
+/**
+ * A stereo reverb impulse: decorrelated noise whose tail decays and darkens
+ * like a real room. `spec` overrides the room, as the voices' drier rooms do.
+ */
+export function impulseResponse(space: Space, sampleRate: number, seed = 1, spec: SpaceSpec = SPACES[space]): Stereo {
   const channel = (c: number) => {
     const rand = rng(seed * 7919 + c * 104729 + 1);
     const n = length(spec.seconds, sampleRate), pre = Math.round(spec.predelay * sampleRate), out = new Float32Array(n);

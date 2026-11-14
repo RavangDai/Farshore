@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import { trials, type TrialId } from "../lib/arcade/arcade";
+import { ART, castPosition } from "../lib/art";
 
-export const FARSHORE_ATLAS = "/art/farshore/trials-and-cast.png";
+export const FARSHORE_ATLAS = ART.px.trials;
 export const artPosition = (index: number) => `${index % 4 * 100 / 3}% ${Math.floor(index / 4) * 50}%`;
 
 export function FarshoreLogo({ compact = false }: { compact?: boolean }) {
@@ -17,8 +18,7 @@ export function TrialArtwork({ id, className = "" }: { id: TrialId; className?: 
   return <span className={`fs-trial-art ${className}`} style={{ backgroundPosition: artPosition(index), "--fs-art-position": artPosition(index) } as CSSProperties} aria-hidden="true"/>;
 }
 
+/** A portrait from the pixel cast sheet, which keeps the legacy numbering: painted faces where the arcade has them, the rest redrawn in the same palette. */
 export function CharacterPortrait({ tile = 0, label = "Odysseus", large = false }: { tile?: number; label?: string; large?: boolean }) {
-  const cast: Record<number, number> = { 0: 8, 5: 11, 6: 0, 7: 9, 9: 2, 11: 10, 12: 5, 13: 6 };
-  const index = cast[tile];
-  return <span role="img" aria-label={label} className={`a-portrait fs-portrait${large ? " large" : ""}`} style={index === undefined ? { backgroundPosition: `${tile % 5 * 25}% ${Math.floor(tile / 5) * 100 / 3}%` } : { backgroundImage: `url('${FARSHORE_ATLAS}')`, backgroundSize: "400% 300%", backgroundPosition: artPosition(index) }}/>;
+  return <span role="img" aria-label={label} className={`a-portrait fs-portrait${large ? " large" : ""}`} style={{ backgroundImage: `url('${ART.px.cast}')`, backgroundSize: "500% 400%", backgroundPosition: castPosition(tile) }}/>;
 }

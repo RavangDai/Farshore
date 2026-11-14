@@ -125,31 +125,25 @@ export function OracleKey({ trialTitle, state, onSolved, onEnter, onAgain, onClo
     <div className="a-modal-backdrop fs-oracle-backdrop">
       <section ref={root} className="a-modal a-paper fs-oracle" role="dialog" aria-modal="true" aria-labelledby="fs-oracle-title" data-state={state.status} data-verdict={picked === null ? undefined : correct ? "correct" : "wrong"}>
         <div className="fs-oracle-head">
-          <span className="a-eyebrow"><KeyRound size={13} /> THE ORACLE&apos;S KEY · {trialTitle.toUpperCase()}</span>
-          <button className="a-btn a-small" onClick={close}>Back to the briefing</button>
+          <span className="a-eyebrow"><KeyRound size={13} /> The Oracle&apos;s key · {trialTitle}</span>
+          <button className="a-btn a-small" onClick={close}>Briefing</button>
         </div>
         {state.status === "loading" && (
           <div className="fs-oracle-wait" role="status" aria-live="polite">
             <Loader2 size={22} className="fs-spin" />
             <h2 id="fs-oracle-title">The Oracle consults the Odyssey…</h2>
-            <ol>
-              <li>Searching the poem for passages about this trial</li>
-              <li>Your connected model writes a question from them</li>
-              <li>The game checks it against the text</li>
-            </ol>
-            <p className="fs-oracle-small">{elapsed} s{elapsed > 20 ? " · a model on this computer's processor can take up to a minute" : ""}</p>
+            <p className="fs-oracle-small">A question from Homer&apos;s own words · {elapsed} s{elapsed > 20 ? " · this can take a minute" : ""}</p>
           </div>
         )}
         {state.status === "error" && (
           <div className="fs-oracle-wait" role="alert">
             <h2 id="fs-oracle-title">The Oracle is silent</h2>
             <p>{state.error}</p>
-            <div className="fs-oracle-actions"><button className="a-btn a-primary fs-rich" onClick={onAgain}><RefreshCw size={16} /><span><b>Ask again</b><small>A fresh question</small></span></button></div>
+            <div className="fs-oracle-actions"><button className="a-btn a-primary fs-rich" onClick={onAgain}><RefreshCw size={16} /><span><b>New question</b></span></button></div>
           </div>
         )}
         {item && (
           <>
-            <p className="fs-oracle-intro">Answer to open the way. The question is written for you, from Homer&apos;s own words.</p>
             <h2 id="fs-oracle-title">{item.question}</h2>
             <div className="fs-oracle-options" role="group" aria-label="Choose an answer">
               {item.options.map((o, i) => (
@@ -177,9 +171,9 @@ export function OracleKey({ trialTitle, state, onSolved, onEnter, onAgain, onClo
               </div>
             )}
             <div className="fs-oracle-actions">
-              {picked === null ? <p className="fs-oracle-small">Press A–D or 1–4.</p> : correct
-                ? <button className="a-btn a-primary fs-rich" onClick={onEnter}><ArrowRight size={17} /><span><b>Enter the encounter</b><small>{trialTitle}</small></span></button>
-                : <button className="a-btn a-primary fs-rich" onClick={onAgain}><RefreshCw size={16} /><span><b>Ask the Oracle again</b><small>A new question from the poem</small></span></button>}
+              {picked === null ? null : correct
+                ? <button className="a-btn a-primary fs-rich" onClick={onEnter}><ArrowRight size={17} /><span><b>Enter the trial</b></span></button>
+                : <button className="a-btn a-primary fs-rich" onClick={onAgain}><RefreshCw size={16} /><span><b>New question</b></span></button>}
             </div>
             <Inspector item={item} />
           </>

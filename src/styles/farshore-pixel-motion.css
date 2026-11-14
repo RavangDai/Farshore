@@ -1,0 +1,81 @@
+/* FARSHORE pixel motion: the cinematic layer of the pixel skin.
+   Rules of motion: interface moves in whole steps (steps()), never in blurs;
+   each screen has one orchestrated moment; everything stops under reduced
+   motion (.a-still, set from the setting or the system preference). */
+
+/* ------------------------------------------------- effect components -- */
+.fs-px-transition { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 95; pointer-events: none; image-rendering: pixelated; }
+.fs-px-assembly { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 6; pointer-events: none; image-rendering: pixelated; }
+.fs-px-ambience { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; }
+.fs-px-filters { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+.fs-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fs-type { position: relative; cursor: default; }
+.fs-type-rest { visibility: hidden; }
+/* The caret takes no room, so the line wraps exactly as the finished one. */
+.fs-type-caret { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: baseline; }
+.fs-type-caret::after { content: ""; position: absolute; left: 1px; bottom: 0.1em; width: 0.5em; height: 0.12em; background: currentColor; animation: px-blink 0.8s steps(2, jump-none) infinite; }
+.fs-app.a-app .a-ending { position: relative; isolation: isolate; }
+.fs-app.a-app .a-ending > .fs-px-ambience { z-index: -1; }
+
+/* ------------------------------------------------------- keyframes -- */
+@keyframes px-blink { from { opacity: 1; } to { opacity: 0; } }
+@keyframes px-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes px-slide-in { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+@keyframes px-pop { 0% { opacity: 0; transform: scale(0.4); } 60% { opacity: 1; transform: scale(1.18); } 100% { transform: none; } }
+@keyframes px-slam { 0% { opacity: 0; transform: scale(2.4); } 55% { opacity: 1; transform: scale(0.92); } 100% { transform: none; } }
+@keyframes px-shake { 0%, 100% { transform: none; } 25% { transform: translate(2px, -2px); } 50% { transform: translate(-2px, 2px); } 75% { transform: translate(2px, 2px); } }
+@keyframes px-drop { 0% { opacity: 0; transform: translateY(-36px); } 50% { opacity: 1; transform: translateY(4px); } 75% { transform: translateY(-4px); } 100% { transform: none; } }
+@keyframes px-nudge { from { transform: translateX(0); } to { transform: translateX(4px); } }
+@keyframes px-pan { from { background-position-y: 30%; } to { background-position-y: 46%; } }
+@keyframes px-logo-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes px-bars { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+/* Art resolves like an old console loading a picture: 32, 16, 8, 4 px blocks, then sharp. */
+@keyframes px-mosaic { 0% { filter: url(#fs-mosaic-32); } 25% { filter: url(#fs-mosaic-16); } 50% { filter: url(#fs-mosaic-8); } 75% { filter: url(#fs-mosaic-4); } 100% { filter: none; } }
+
+/* ------------------------------------------- stepped entrances -- */
+/* The painted look eased and blurred things in; the pixel look steps them. */
+.fs-app.a-app[data-skin="pixel"] .fs-reveal { animation-name: px-reveal; animation-duration: 0.6s; animation-timing-function: steps(4, end); }
+.fs-app.a-app[data-skin="pixel"] .fs-rise { animation-name: px-reveal; animation-duration: 0.6s; animation-timing-function: steps(4, end); }
+.fs-app.a-app[data-skin="pixel"] .od-enter.fs-reveal { animation: px-reveal 0.6s steps(4, end) var(--d, 0s) both; }
+.fs-app.a-app[data-skin="pixel"] .od-menu.fs-menu-rich > button { animation: px-slide-in 0.48s steps(4, end) calc(0.3s + var(--i, 0) * 0.08s) both; }
+.fs-app.a-app[data-skin="pixel"] .fs-menu-temple.fs-title-panel { animation: px-slide-in 0.48s steps(4, end) both; }
+.fs-app.a-app[data-skin="pixel"] .fs-kenburns { animation: px-pan 40s steps(16, end) infinite alternate; transform: none; will-change: auto; }
+.fs-app.a-app[data-skin="pixel"] .fs-fog, .fs-app.a-app[data-skin="pixel"] .fs-sweep { display: none; }
+
+/* -------------------------------------------------------- splash -- */
+/* The wordmark gathers from the sea (WordmarkAssembly), then the real one takes over. */
+.fs-app.a-app[data-skin="pixel"] .fs-wordmark-reveal { animation: none; }
+.fs-app.a-app[data-skin="pixel"] .od-splash .od-wordmark .fs-logo { animation: px-logo-in 0.2s steps(2, end) 1.85s both; }
+.fs-app.a-app[data-skin="pixel"] .od-enter svg { animation: px-nudge 0.6s steps(2, jump-none) infinite; }
+
+/* ---------------------------------------------------------- title -- */
+.fs-app.a-app[data-skin="pixel"] :is(.od-menu > button, .a-btn.fs-rich):is(:hover, :focus-visible) > svg:last-child { opacity: 1; animation: px-nudge 0.6s steps(2, jump-none) infinite; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-track li { border-radius: 0; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-track li[data-done] + li:not([data-done]) { animation: px-blink 1.2s steps(2, jump-none) infinite; }
+
+/* ------------------------------------------------ art reveals -- */
+.fs-app.a-app[data-skin="pixel"] :is(.fs-brief-art, .fs-title-art, .fs-crossing-art, .fs-result-frieze .fs-trial-art) { animation: px-mosaic 0.64s step-end backwards; }
+
+/* ----------------------------------------------------- title card -- */
+.fs-app.a-app[data-skin="pixel"] .fs-title-card { animation: px-shake 0.24s steps(4, end) 0.62s both; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-copy h2 { animation: px-slam 0.42s steps(3, end) 0.25s both; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-chapter { animation: px-reveal 0.32s steps(3, end) 0.1s both; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-rival { animation: px-slide-in 0.4s steps(4, end) 0.7s both; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-taunt { animation: px-reveal 0.4s steps(4, end) 0.95s both; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-bars::before, .fs-app.a-app[data-skin="pixel"] .fs-title-bars::after { animation: px-bars 0.16s steps(2, end) both; }
+.fs-app.a-app[data-skin="pixel"] .fs-title-count strong { font: 400 40px/1 var(--fs-font-pixel); color: var(--px-gold-hi); text-shadow: var(--px) var(--px) 0 var(--px-ink), calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--px-bronze-0); animation: px-pop 0.3s steps(3, end) both; }
+.fs-app.a-app[data-skin="pixel"] .fs-veil-count { font-family: var(--fs-font-pixel); animation: px-pop 0.3s steps(3, end) both; }
+
+/* -------------------------------------------------------- results -- */
+.fs-app.a-app[data-skin="pixel"] .fs-result-frieze > div > span { animation: px-slam 0.36s steps(3, end) 0.2s both; }
+.fs-app.a-app[data-skin="pixel"] .fs-result-stars svg { animation: px-drop 0.48s steps(6, end) both; }
+.fs-app.a-app[data-skin="pixel"] .fs-result-stars svg:nth-child(1) { animation-delay: 0.55s; }
+.fs-app.a-app[data-skin="pixel"] .fs-result-stars svg:nth-child(2) { animation-delay: 0.8s; }
+.fs-app.a-app[data-skin="pixel"] .fs-result-stars svg:nth-child(3) { animation-delay: 1.05s; }
+.fs-app.a-app[data-skin="pixel"] .fs-rich-result h1 { animation: px-slam 0.42s steps(3, end) 0.35s both; }
+
+/* ------------------------------------------------- reduced motion -- */
+.fs-app.a-still[data-skin="pixel"] *, .fs-app.a-still[data-skin="pixel"] *::before, .fs-app.a-still[data-skin="pixel"] *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-app.a-app[data-skin="pixel"] *, .fs-app.a-app[data-skin="pixel"] *::before, .fs-app.a-app[data-skin="pixel"] *::after { animation: none !important; transition: none !important; }
+}

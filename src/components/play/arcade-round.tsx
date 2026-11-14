@@ -44,7 +44,8 @@ function loadInspectorMode(): InspectorMode {
   } catch {
     /* Storage is optional. */
   }
-  return "insights";
+  // Gameplay opens clean; F3 or the HUD's AI button shows the rival's reasoning.
+  return "immersive";
 }
 
 const statusOf = (s: GameState) => (isCave(s) ? caveStatus(s) : isAdventure(s) ? adventureStatus(s) : statusLabel(s));
@@ -115,7 +116,7 @@ export function ArcadeRound({
   const [count, setCount] = useState(3);
   const countdown = useRef(3000);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const [inspector, setInspector] = useState<InspectorMode>("insights");
+  const [inspector, setInspector] = useState<InspectorMode>("immersive");
   // The opening countdown doubles as the encounter's title card; a resume
   // countdown after a pause is just a countdown.
   const [opening, setOpening] = useState(true);
@@ -477,14 +478,14 @@ export function ArcadeRound({
   const live = isSong(round);
   const effect = !live && !perspective ? PLAN_EFFECTS[id]?.[plan.planId] : undefined;
   const note = demo
-    ? "AI demonstration · no progress is saved."
+    ? "Demonstration · not saved"
     : practice
-      ? "Practice leaves your voyage progress untouched."
+      ? "Practice · not saved"
       : modelPrepared
         ? decisions && (id === "bow" || id === "sirens" || id === "cyclops")
-          ? "Your AI rival chose this strategy before the round, and makes its in-game choices live from options the game has checked. The game owns every collision, score and unlock."
-          : `Your AI rival chose this strategy before the round.${effect ? ` ${effect}` : ""} The game carries it out and owns every collision, score and unlock. F3 opens the AI Lab.`
-        : "Rival logic reacts to you during play.";
+          ? "Your rival picks each move live, from options the game has checked. F3 shows its reasoning."
+          : `Your rival chose this strategy before the round.${effect ? ` ${effect}` : ""}`
+        : "The rival reacts as you play.";
 
   const veil =
     phase !== "active" ? (
@@ -501,7 +502,7 @@ export function ArcadeRound({
             <span className="fs-title-bars" aria-hidden="true" />
             <div className="fs-title-copy">
               <span className="fs-title-chapter">
-                {demo ? "Demonstration" : practice ? "Practice" : `Encounter ${chapter} of ${trials.length}`} · {trial.kind}
+                {demo ? "Demonstration" : practice ? "Practice" : `Trial ${chapter} of ${trials.length}`} · {trial.kind}
               </span>
               <h2>{trial.title}</h2>
               <div className="fs-title-rival">
@@ -526,37 +527,34 @@ export function ArcadeRound({
           <div className="fs-veil-panel">
             {phase === "countdown" ? (
               <>
-                <span className="a-eyebrow">BACK TO THE ACTION</span>
                 <strong className="fs-veil-count" key={count}>{count}</strong>
-                <p>{trial.controls}</p>
               </>
             ) : (
               <>
-                <span className="a-eyebrow">TAKE A BREATH</span>
                 <h2>Paused</h2>
-                <p>{trial.title} · {difficultyNames[difficulty]} · Score {round.score.toLocaleString()}. Both rivals and every clock are stopped.</p>
+                <p>{trial.title} · {difficultyNames[difficulty]} · Score {round.score.toLocaleString()}</p>
                 {confirmLeave ? (
                   <>
-                    <p>Leave this attempt? It will not be recorded. Completed encounters stay saved.</p>
+                    <p>Leave this attempt? It won&apos;t be saved.</p>
                     <button className="a-btn a-primary fs-rich" onClick={onLeave}>
                       <LogOut size={17} />
-                      <span><b>Leave attempt</b><small>Return to the voyage map</small></span>
+                      <span><b>Leave</b><small>Voyage map</small></span>
                     </button>
                     <button className="a-btn fs-rich" onClick={() => setConfirmLeave(false)}>
                       <Play size={17} />
-                      <span><b>Keep playing</b><small>Back to the pause menu</small></span>
+                      <span><b>Back</b></span>
                     </button>
                   </>
                 ) : (
                   <>
                     <button className="a-btn a-primary fs-rich" onClick={resume}>
                       <Play size={17} />
-                      <span><b>Resume</b><small>A 3-second countdown first</small></span>
+                      <span><b>Resume</b></span>
                       <kbd>Esc</kbd>
                     </button>
                     <button className="a-btn fs-rich" onClick={restartRound}>
                       <RotateCcw size={17} />
-                      <span><b>Restart encounter</b><small>Same rival strategy, fresh attempt</small></span>
+                      <span><b>Restart</b></span>
                     </button>
                     <details className="od-pause-controls">
                       <summary><Keyboard size={15} /> Controls</summary>
@@ -564,11 +562,11 @@ export function ArcadeRound({
                     </details>
                     <button className="a-btn fs-rich" onClick={onSettings}>
                       <SettingsIcon size={17} />
-                      <span><b>Settings</b><small>Sound, voice, commentary, motion</small></span>
+                      <span><b>Settings</b></span>
                     </button>
                     <button className="a-btn fs-rich" onClick={() => setConfirmLeave(true)}>
                       <LogOut size={17} />
-                      <span><b>Return to map</b><small>This attempt will not be saved</small></span>
+                      <span><b>Leave</b><small>Not saved</small></span>
                     </button>
                   </>
                 )}
@@ -596,7 +594,7 @@ export function ArcadeRound({
       overlay={
         <>
           {veil}
-          {phase === "active" && <CommentarySubtitle line={latest} id={id} />}
+          {phase === "active" && <CommentarySubtitle line={latest} id={id} still={still} />}
           {phase === "active" && isBow(round) && decisions && (
             <AthenaCounsel
               state={round}

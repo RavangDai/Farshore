@@ -7,7 +7,7 @@ import { TrialArtwork } from "../farshore-art";
 
 export function FieldNotes({ id }: { id: GameState["id"] }) {
   const note = fieldNotes[id];
-  return <div className="fs-field-notes"><span><Star size={13}/> BONUS CHALLENGE</span><strong>{note.bonus}</strong><p>{note.lesson}</p><div>{note.keys.map(k => <kbd key={k}>{k}</kbd>)}</div></div>;
+  return <div className="fs-field-notes"><span><Star size={13}/> Bonus</span><strong>{note.bonus}</strong><p>{note.lesson}</p></div>;
 }
 
 export function PerformanceSeals({ state: s }: { state: GameState }) {
@@ -22,5 +22,5 @@ export function PerformanceSeals({ state: s }: { state: GameState }) {
 
 export function ResultFrieze({ state }: { state: GameState }) {
   const medal = medalFor(gameSummary(state)), stars = medal === "gold" ? 3 : medal === "silver" ? 2 : 1;
-  return <div className={`fs-result-frieze ${state.won ? "victory" : "defeat"}`}><TrialArtwork id={state.id}/><div><span>{state.practice ? "PRACTICE VOYAGE" : state.won ? "TRIAL COMPLETE" : "THE SEA WAS NOT KIND"}</span>{state.won && !state.practice ? <div className="fs-result-stars" aria-label={`${medal} medal`}>{[0, 1, 2].map(i => <Star key={i} size={39} className={i < stars ? "earned" : ""} fill="currentColor"/>)}</div> : <Trophy size={34}/>}<small>{state.practice ? "Your voyage progress is untouched" : state.won ? `${medal.toUpperCase()} MEDAL EARNED` : "Gather your courage. Try again."}</small></div></div>;
+  return <div className={`fs-result-frieze ${state.won ? "victory" : "defeat"}`}><TrialArtwork id={state.id}/><div><span>{state.practice ? "Practice" : state.won ? "Trial complete" : "The sea was not kind"}</span>{state.won && !state.practice ? <div className="fs-result-stars" aria-label={`${medal} medal`}>{[0, 1, 2].map(i => <Star key={i} size={39} className={i < stars ? "earned" : ""} fill="currentColor"/>)}</div> : <Trophy size={34}/>}</div></div>;
 }

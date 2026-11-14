@@ -66,7 +66,7 @@ export async function POST(request: Request, connection?: ModelConnection) {
         messages: [{ role: "system", content: `Prepare ${trial.character}'s policy. Output a JSON object with exactly planId, focus and taunt. Choose planId from ${aiPlans.join(" or ")}. focus must be exactly "${expectedFocus}", the game-derived habit. ${policyGuide} These policies execute locally after preparation. You cannot change speed, hit windows, scoring or progress. taunt: one spoken sentence of at most 16 words, in character as ${personas[data.trialId as TrialId]}, addressed to Odysseus, hinting at your chosen strategy without numbers. Return JSON only.` }, { role: "user", content: JSON.stringify({ encounter: data.trialId, difficulty: data.difficulty, observations, requiredFocus: expectedFocus, previousWins: data.recent.filter(a => a.won).length }) }],
       }),
     });
-    if (!response.ok) return Response.json({ error: response.status === 429 ? "The model is busy. Retry in a moment." : "The model service could not prepare the rival. Retry in a moment.", code: "provider_error" }, { status: 502 });
+    if (!response.ok) return Response.json({ error: response.status === 429 ? "Your rival is busy. Try again in a moment." : "Your rival could not be prepared. Try again in a moment.", code: "provider_error" }, { status: 502 });
     const body = z.object({ choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1) }).parse(await response.json());
     const { taunt, ...candidate } = z.object({ planId: z.string(), focus: z.string(), taunt: z.string().max(400).optional() }).strict().parse(JSON.parse(modelText(body.choices[0].message.content)));
     const plan = { ...candidate, source: "ai" };
@@ -78,6 +78,6 @@ export async function POST(request: Request, connection?: ModelConnection) {
     const cancelled = request.signal.aborted;
     const timeout = error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name);
     const invalid = error instanceof SyntaxError || error instanceof z.ZodError || (error instanceof Error && error.message === "Invalid plan");
-    return Response.json({ error: cancelled ? "Preparation cancelled." : timeout ? "The model took too long. It may still be loading; retry in a moment." : invalid ? "The model returned an unsupported strategy. Nothing changed. Prepare another." : "The model is not reachable. Start your model service, then retry.", code: cancelled ? "cancelled" : invalid ? "invalid_plan" : timeout ? "timeout" : "unreachable" }, { status: cancelled ? 499 : timeout ? 504 : invalid ? 422 : 503 });
+    return Response.json({ error: cancelled ? "Preparation cancelled." : timeout ? "Your rival took too long. The model may still be loading; try again in a moment." : invalid ? "That strategy could not be used. Try a new one." : "The model is not reachable. Start your model service, then try again.", code: cancelled ? "cancelled" : invalid ? "invalid_plan" : timeout ? "timeout" : "unreachable" }, { status: cancelled ? 499 : timeout ? 504 : invalid ? 422 : 503 });
   }
 }

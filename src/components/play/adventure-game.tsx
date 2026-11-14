@@ -142,5 +142,5 @@ export function AdventureGame({ state: s, active, act, still }: { state: Adventu
       <button className="a-btn" disabled={!active} onClick={() => move(0, 1)}>{s.id === "cyclops" ? "Slide ↓" : "Back ↓"}</button>
       <button className="a-btn" disabled={!active} aria-label="Move right" onClick={() => move(1, 0)}>→</button>
     </>}
-  </div><p className="m-help">{s.id === "aeolus" ? "SPACE / W / ↑ to lift · Release to descend" : "WASD / Arrow keys to move"}{s.id === "cyclops" ? " · SPACE to jump" : ""} · ESC to pause</p></div>;
+  </div>{s.id === "aeolus" && <p className="m-help">Hold to lift · release to descend</p>}</div>;
 }

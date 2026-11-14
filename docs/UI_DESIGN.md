@@ -44,6 +44,22 @@ Four families, each a token:
 
 The AI rival panel (all five states) and the shared page colours use only tokens. In the older stylesheets, every value that matched a token was replaced with it (179 font sizes, 244 font-family stacks, 38 colours and 393 spacing values). Values that are not on the scale remain, mostly in in-game HUD labels and minified menu rules. They will be moved onto the scale screen by screen in Phase 4.
 
+## The pixel skin (2026-11-14)
+
+Menus, cinematics, dialogs and the overlays during play are drawn as pixel art. Gameplay canvases (the 3D cave and hall, the 2D encounters) keep their painted rendering. `?skin=classic` shows the earlier painted look for comparison.
+
+**How it is applied.** The root of the arcade and the account shell carry `data-skin="pixel"`. `src/styles/farshore-pixel-shell.css` (loaded by the layout) holds the fonts, the palette and the frame images; `src/styles/farshore-pixel.css` and `farshore-pixel-motion.css` load last in the arcade, and every rule is scoped to `.fs-app.a-app[data-skin="pixel"]`, so the older layered sheets are restyled without being rewritten. `scripts/css-codemod.mjs` made those sheets read three variables (`--fs-font-floor`, `--fs-round`, and the font tokens); with the skin off they resolve to the old values.
+
+**Palette.** One palette for art and interface: ink `#04080f`, night `#071523`, deep `#0b2033`, lapis `#123049`, sea `#1d4a66`, cream `#f6f0e3`, mist `#93afc0`, bronze `#8a5a2b`/`#c08a3e`, gold `#e9b85c`/`#ffe3a1`. Cyan `#32d4f5` stays reserved for AI state, red for threat, green for success. The pixel art is quantized to the same colours (`src/lib/render/palette.generated.ts`).
+
+**Type.** Pixelify Sans (weight 500 for reading, 700 for headings and labels) carries everything players read; Press Start 2P is for the wordmark, numerals and countdowns, at multiples of 8 px; VT323 is the AI's instrument voice and the map's numerals, where Pixelify's zero could pass for a D. No text is smaller than 12 px. Italics are not used: the faces have none.
+
+**Frames.** One notched 9-slice frame per tier, drawn as SVG `border-image`s: paper (bronze, main panels), inset (sunken wells), AI (cyan, AI state only) and the button outline. Buttons have one style: an ink outline, a bevel and a hard drop; gold is the primary action, sea marks the chosen option, a checker pattern marks disabled. Radii are 0.
+
+**Motion.** Interface moves in whole steps (`steps()`), never in blurs. Each screen has one moment: a dithered dissolve between screens (`PixelTransition`), the wordmark gathering from the sea on the splash (`WordmarkAssembly`), stars, petals, embers, notes or rain drifting over scenes (`PixelAmbience`), art resolving through 32, 16, 8 and 4 px mosaics, typed story lines, taunts and subtitles (`Typewriter`), the title card's slam and the result's falling stars. Lightning is limited to one small flash every few seconds. Reduced motion stops all of it and shows the final state.
+
+**Words.** One term per concept: a *trial* is one of the eight episodes, an *island* is a place on the chart, the *rival* is the AI opponent, its plan is its *strategy*, the campaign and save are the *voyage*, and the map screen is the *Voyage map*. A button's second line stays only when it adds something the label does not say. Developer details (model names, setup steps) live in Settings and the AI Lab, not on play screens.
+
 ## The immersive gameplay stage (`src/components/play/game-stage.tsx`)
 
 The highest-priority correction from the design brief: the previous Cyclops screen was a small canvas embedded in a page column. The replacement is a dedicated, full-viewport stage:

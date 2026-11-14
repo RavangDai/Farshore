@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { preload } from "react-dom";
 import "../src/styles/global.css";
 import "./online.css";
 import "../src/styles/farshore-brand.css";
+import "../src/styles/farshore-pixel-shell.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -13,5 +15,8 @@ export const metadata: Metadata = {
   icons: { icon: [{ url: "/favicon.svg", type: "image/svg+xml" }] },
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // The pixel faces are needed on the first frame of every arcade screen.
+  preload("/fonts/pixelify-sans.ttf", { as: "font", type: "font/ttf", crossOrigin: "" });
+  preload("/fonts/press-start-2p.ttf", { as: "font", type: "font/ttf", crossOrigin: "" });
   return <html lang="en"><body>{children}</body></html>;
 }

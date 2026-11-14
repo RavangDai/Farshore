@@ -18,7 +18,7 @@
   max-width: 230px;
   padding: 5px 10px;
   border: 1px solid #9f733a88;
-  border-radius: 3px;
+  border-radius: calc(var(--fs-round,1)*3px);
   background: #041320c9;
   color: #e6d5af;
   text-align: left;
@@ -26,8 +26,8 @@
 }
 .fs-account-chip > svg { flex: none; color: var(--fs-color-accent); }
 .fs-account-chip > span { display: grid; min-width: 0; line-height: 1.25; }
-.fs-account-chip b { overflow: hidden; font: 700 10px/1.3 var(--fs-font-ui); letter-spacing: 0.08em; color: #e6d5af; text-overflow: ellipsis; white-space: nowrap; }
-.fs-account-chip small { display: flex; align-items: center; gap: 5px; overflow: hidden; font: 11px/1.3 var(--fs-font-display); color: #9fb6c6; text-overflow: ellipsis; white-space: nowrap; }
+.fs-account-chip b { overflow: hidden; font: 700 max(var(--fs-font-floor,0px),10px)/1.3 var(--fs-font-ui); letter-spacing: 0.08em; color: #e6d5af; text-overflow: ellipsis; white-space: nowrap; }
+.fs-account-chip small { display: flex; align-items: center; gap: 5px; overflow: hidden; font: max(var(--fs-font-floor,0px),11px)/1.3 var(--fs-font-display); color: #9fb6c6; text-overflow: ellipsis; white-space: nowrap; }
 .fs-account-chip small::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: #7eb6a7; }
 .fs-account-chip:is([data-status="pending"], [data-status="conflict"], [data-status="expired"]) small::before { background: #ecc282; }
 .fs-account-chip:is([data-status="loading"], [data-status="saving"]) small::before { background: #a6c5d5; }
@@ -56,7 +56,7 @@
   max-width: 520px;
   margin-top: 22px;
 }
-.fs-title-track > span { font: 700 11px/1 var(--fs-font-ui); letter-spacing: 0.22em; color: #e6dccb; }
+.fs-title-track > span { font: 700 max(var(--fs-font-floor,0px),11px)/1 var(--fs-font-ui); letter-spacing: 0.22em; color: #e6dccb; }
 .fs-title-track ol { position: relative; display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 0; list-style: none; }
 .fs-title-track ol::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #c9a35a88; }
 .fs-title-track li { position: relative; width: 11px; height: 11px; border: 1.5px solid #c9a35a; border-radius: 50%; background: #071523; }
@@ -76,19 +76,19 @@
   padding: 0;
   transform: translateY(-50%);
   background-color: transparent;
-  background-image: url('/art/farshore/trials-and-cast.png');
+  background-image: url('/art/farshore/px/trials.png');
   background-size: 400% 300%;
   background-repeat: no-repeat;
 }
 .fs-trial-panel .fs-chart-ai p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.fs-trial-panel h2 { font-family: "Palatino Linotype", Georgia, serif; }
+.fs-trial-panel h2 { font-family: var(--fs-font-display); }
 
 /* Lab cards are 4:3 but the atlas tiles are 3:4: show a centred slice rather
    than stretching the painting. */
 .fs-lab-card .fs-trial-art { inset: 50% auto auto 0; width: 100%; height: auto; aspect-ratio: 3 / 4; transform: translateY(-50%); }
 
 /* The chart's degrees, medallions and plaques. */
-.fs-chart-graticule text { fill: #d8c08a; font: 12px Georgia, "Palatino Linotype", serif; letter-spacing: 0.03em; }
+.fs-chart-graticule text { fill: #d8c08a; font: 12px var(--fs-font-display); letter-spacing: 0.03em; }
 .fs-chart-island .fs-medallion { transform-box: fill-box; transform-origin: center; transition: transform 0.22s ease; }
 .fs-chart-island.selected .fs-medallion { transform: scale(1.08); }
 .fs-chart-island .fs-chart-pin { filter: drop-shadow(0 2px 2px #000a); }
@@ -202,7 +202,7 @@
     align-items: center;
     gap: 14px;
     max-width: 520px;
-    font: 400 11px/1.6 var(--fs-font-ui);
+    font: 400 max(var(--fs-font-floor,0px),11px)/1.6 var(--fs-font-ui);
     letter-spacing: 0.34em;
     color: #e6dccb;
   }
@@ -234,7 +234,7 @@
     gap: 12px;
     padding: 8px 14px;
     border: 1px solid #b88a4a;
-    border-radius: 4px;
+    border-radius: calc(var(--fs-round,1)*4px);
     background: linear-gradient(#0c2234ee, #06141fee);
     box-shadow: inset 0 0 0 1px #00000066, 0 3px 8px #0006;
     color: #efe3c6;
@@ -251,13 +251,13 @@
     gap: 16px;
     padding: 10px 22px;
     border: 1px solid #fbdc97;
-    border-radius: 6px;
+    border-radius: calc(var(--fs-round,1)*6px);
     background: linear-gradient(180deg, #f8dd9b 0%, #e8bb66 46%, #c58d40 100%);
     box-shadow: inset 0 1px 0 #fff4d2, inset 0 0 0 3px #a8742e44, 0 8px 22px #000a, 0 0 28px #e9b85c33;
     color: #1d1307;
   }
   .fs-app.a-app .fs-title-panel .od-menu.fs-menu-rich > button.od-menu-primary > span > b {
-    font: 700 clamp(17px, 2.8vh, 25px)/1.15 "Palatino Linotype", Georgia, serif;
+    font: 700 clamp(17px, 2.8vh, 25px)/1.15 var(--fs-font-display);
     letter-spacing: 0.1em;
     color: #1d1307;
   }
@@ -299,17 +299,17 @@
 
   .fs-app.a-app .fs-selection { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: clamp(10px, 1.8vh, 18px); }
   .fs-app.a-app .fs-selection-heading { margin: 0; align-items: flex-end; }
-  .fs-app.a-app .fs-selection-heading > div > .a-eyebrow { font: 400 11px/1.4 var(--fs-font-ui); letter-spacing: 0.3em; color: #e6dccb; }
+  .fs-app.a-app .fs-selection-heading > div > .a-eyebrow { font: 400 max(var(--fs-font-floor,0px),11px)/1.4 var(--fs-font-ui); letter-spacing: 0.3em; color: #e6dccb; }
   .fs-app.a-app .fs-selection-heading h1 {
     margin: 2px 0 0;
-    font: 700 clamp(28px, 5.4vh, 48px)/1.05 "Palatino Linotype", Georgia, serif !important;
+    font: 700 clamp(28px, 5.4vh, 48px)/1.05 var(--fs-font-display) !important;
     letter-spacing: 0.01em !important;
     text-transform: none;
     color: #f1cf86 !important;
     text-shadow: 0 2px 0 #3b260f, 0 6px 18px #0009;
   }
   .fs-app.a-app .fs-view-switch { gap: var(--fs-space-2); padding: 0; border: 0; background: none; }
-  .fs-app.a-app .fs-view-switch button { min-height: 42px; padding: 8px 18px; border-color: #b88a4a88; border-radius: 4px; background: #061624; color: #e6dccb; font-size: 13px; }
+  .fs-app.a-app .fs-view-switch button { min-height: 42px; padding: 8px 18px; border-color: #b88a4a88; border-radius: calc(var(--fs-round,1)*4px); background: #061624; color: #e6dccb; font-size: 13px; }
   .fs-app.a-app .fs-view-switch button[aria-pressed="true"] { border-color: #6fd6e6; background: linear-gradient(#123a4d, #0a2535); color: #f7ecd2; box-shadow: 0 0 14px #32d4f533, inset 0 0 12px #32d4f51a; }
 
   .fs-app.a-app .fs-selection > :is(.fs-chart-layout, .fs-trial-layout) {
@@ -328,7 +328,7 @@
     gap: clamp(6px, 1.15vh, 12px);
     padding: clamp(10px, 1.6vh, 16px);
     border: 1px solid #b88a4a;
-    border-radius: 4px;
+    border-radius: calc(var(--fs-round,1)*4px);
     box-shadow: inset 0 0 0 3px #020b15, inset 0 0 0 4px #b88a4a33, 0 10px 30px #0007;
   }
   .fs-app.a-app .fs-trial-panel .fs-chart-art { height: clamp(58px, 15vh, 150px); }
@@ -336,7 +336,7 @@
   .fs-app.a-app .fs-trial-panel .fs-chart-objective { font-size: clamp(13px, 2vh, 15px); line-height: 1.45; color: #e2e6e2; }
   .fs-app.a-app .fs-trial-panel .fs-difficulty legend { margin-bottom: clamp(4px, 0.8vh, 10px); }
   .fs-app.a-app .fs-trial-panel .fs-difficulty button { min-height: clamp(34px, 5.4vh, 44px); font-size: 14px; }
-  .fs-app.a-app .fs-trial-panel .fs-chart-start { min-height: clamp(44px, 7.6vh, 64px); font: 700 clamp(16px, 2.7vh, 22px)/1.1 "Palatino Linotype", Georgia, serif; letter-spacing: 0.02em; }
+  .fs-app.a-app .fs-trial-panel .fs-chart-start { min-height: clamp(44px, 7.6vh, 64px); font: 700 clamp(16px, 2.7vh, 22px)/1.1 var(--fs-font-display); letter-spacing: 0.02em; }
   /* However short the window, the way into the trial stays in view. */
   .fs-app.a-app .fs-trial-panel .fs-chart-start { position: sticky; bottom: 0; z-index: 2; }
 
@@ -369,7 +369,7 @@
      window is wide and short it fills the height instead. */
   .fs-app.a-app .fs-chart-frame { container-type: size; min-width: 0; min-height: 0; display: grid; place-items: start center; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
   .fs-app.a-app .fs-trial-panel { align-self: start; max-height: 100%; }
-  .fs-app.a-app .fs-chart { width: min(100cqw, calc(100cqh * 1000 / 620)); height: auto; aspect-ratio: 1000 / 620; border: 1px solid #b88a4a; border-radius: 4px; box-shadow: 0 0 0 4px #04101b, 0 0 0 5px #b88a4a55, 0 12px 34px #0008; }
+  .fs-app.a-app .fs-chart { width: min(100cqw, calc(100cqh * 1000 / 620)); height: auto; aspect-ratio: 1000 / 620; border: 1px solid #b88a4a; border-radius: calc(var(--fs-round,1)*4px); box-shadow: 0 0 0 4px #04101b, 0 0 0 5px #b88a4a55, 0 12px 34px #0008; }
 
   /* ---------------------------------------------------------- briefing -- */
 

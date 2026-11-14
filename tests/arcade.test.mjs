@@ -112,7 +112,7 @@ test("invalid opponent results are uncertain, never silently replaced", async ()
   }
 });
 test("provider failures and rate limits expose recovery without awarding progress", async () => {
-  for (const status of [404, 429, 500]) await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 502); const error = (await r.json()).error; assert.match(error, /retry/i); assert.doesNotMatch(error, /standard/); }, async () => Response.json({ error: "test" }, { status }));
+  for (const status of [404, 429, 500]) await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 502); const error = (await r.json()).error; assert.match(error, /retry|try again/i); assert.doesNotMatch(error, /standard/); }, async () => Response.json({ error: "test" }, { status }));
   await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 503); }, async () => { throw new TypeError("offline"); });
   await mockedProvider(async () => { const r = await POST(request(sample)); assert.equal(r.status, 504); }, async () => { throw new DOMException("deadline", "TimeoutError"); });
 });

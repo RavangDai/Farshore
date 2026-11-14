@@ -5,11 +5,10 @@ import { isBow, isCave, type GameState } from "../../lib/arcade/arcade-runtime";
 import { caveProgress, START_GAP } from "../../lib/encounters/cave-runner";
 import { BOW, bowScoreShown } from "../../lib/encounters/mythic";
 import { encounterCue, fieldNotes } from "../../lib/story/field-notes";
-import { FARSHORE_ATLAS, artPosition } from "../farshore-art";
+import { ART, castPosition } from "../../lib/art";
 import { InspectorModeSwitch, type InspectorMode } from "../ai/ai-inspector";
 
 /** Odysseus' own portrait cell in the cast atlas. */
-const ODYSSEUS_TILE = 8;
 
 function Hearts({ lives, max }: { lives: number; max: number }) {
   return (
@@ -65,14 +64,14 @@ export function ArcadeHUD({
             role="img"
             aria-label="Odysseus"
             style={{
-              backgroundImage: `url('${FARSHORE_ATLAS}')`,
-              backgroundSize: "400% 300%",
-              backgroundPosition: artPosition(ODYSSEUS_TILE),
+              backgroundImage: `url('${ART.px.cast}')`,
+              backgroundSize: "500% 400%",
+              backgroundPosition: castPosition(0),
             }}
           />
           <div className="fs-hud-captain">
             <span className="fs-hud-name">ODYSSEUS</span>
-            {lives !== null ? <Hearts lives={lives} max={3} /> : <span className="fs-hud-name">THE WANDERER</span>}
+            {lives !== null && <Hearts lives={lives} max={3} />}
             {cave && (
               <span className="fs-hud-stat" style={{ justifyItems: "start" }}>
                 <span>
@@ -86,7 +85,7 @@ export function ArcadeHUD({
         <div className="fs-hud-centre">
           <h2 className="fs-hud-title">{trial.title}</h2>
           <span className="fs-hud-objective">
-            {practice ? "PRACTICE · " : ""}
+            {practice ? "Practice · " : ""}
             {cave
               ? state.zone === "cave"
                 ? "The narrow passage"
@@ -95,7 +94,7 @@ export function ArcadeHUD({
                   : "Daylight ahead"
               : trial.kind}
           </span>
-          <div
+          {(cave || isBow(state)) && <div
             className="fs-hud-track"
             role="progressbar"
             aria-label={cave ? "Escape progress" : "Encounter progress"}
@@ -106,7 +105,7 @@ export function ArcadeHUD({
             <i style={{ width: `${Math.min(100, progress * 100)}%` }} />
             {cave && <b style={{ left: "40%" }} />}
             {cave && <b style={{ left: "78%" }} />}
-          </div>
+          </div>}
         </div>
 
         <div className="fs-hud-right">
@@ -134,20 +133,20 @@ export function ArcadeHUD({
             )}
             <div className="fs-hud-stat">
               <span>
-                <Trophy size={9} /> {difficultyNames[difficulty].toUpperCase()}
+                <Trophy size={9} /> {difficultyNames[difficulty]}
               </span>
               <strong>
                 {seconds === null
-                  ? "—"
+                  ? ""
                   : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`}
               </strong>
             </div>
-            <button className="fs-hud-pause" onClick={onPause} aria-label="Pause the encounter">
+            <button className="fs-hud-pause" onClick={onPause} aria-label="Pause (Esc)" title="Pause (Esc)">
               <Pause size={18} fill="currentColor" strokeWidth={1} />
             </button>
           </div>
-          {/* Only the runner publishes an inspector feed; elsewhere the switch would do nothing. */}
-          {cave && <InspectorModeSwitch mode={mode} onMode={onMode} />}
+          {/* The three encounters whose rival decides live publish an inspector feed; elsewhere the switch would do nothing. */}
+          {(cave || isBow(state) || state.id === "sirens") && <InspectorModeSwitch mode={mode} onMode={onMode} />}
         </div>
       </header>
 
@@ -165,8 +164,6 @@ export function ArcadeHUD({
           {notes.keys.map(key => (
             <kbd key={key}>{key}</kbd>
           ))}
-          <kbd>ESC PAUSE</kbd>
-          {cave && <kbd>F3 AI</kbd>}
         </div>
       </footer>
     </>

@@ -50,9 +50,9 @@ export function RivalDebrief({
   return (
     <section className="fs-debrief" aria-label={`What ${rival} learned`}>
       <span className="a-eyebrow">
-        <Sparkles size={12} aria-hidden="true" /> WHAT {rival.toUpperCase()} LEARNED
+        <Sparkles size={12} aria-hidden="true" /> What {rival} learned
       </span>
-      {status === "loading" && <p className="fs-debrief-wait" role="status">{rival} is thinking back over the encounter…</p>}
+      {status === "loading" && <p className="fs-debrief-wait" role="status">{rival} is thinking it over…</p>}
       {text && <blockquote>{text}</blockquote>}
       <div className="fs-debrief-grid">
         <dl>
@@ -78,7 +78,7 @@ export function RivalDebrief({
         )}
       </div>
       <p className="a-caption">
-        Every number here was measured by the game. {text ? "The words are the model's, checked against these numbers before they were shown." : "The rival's own account appears here when the model can give one that matches them."}
+        The game measured every number{text ? "; the model's words were checked against them." : "."}
       </p>
     </section>
   );

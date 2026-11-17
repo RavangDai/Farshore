@@ -16,7 +16,6 @@ import type { PlanId, TrialId } from "../arcade/arcade.ts";
 import type { CaveState } from "../encounters/cave-runner.ts";
 import { BOW, draughtAllowance, songBeat, type BowState, type SongState } from "../encounters/mythic.ts";
 import { laneRecords, noteName, perNoteBudgetMs, weakestLane } from "./sirens.ts";
-import { ATHENA_COUNSEL } from "./athena.ts";
 
 /** What each pre-round plan changes in the five encounters without live in-game decisions. */
 export const PLAN_EFFECTS: Partial<Record<TrialId, Partial<Record<PlanId, string>>>> = {
@@ -48,34 +47,34 @@ export const PLAN_EFFECTS: Partial<Record<TrialId, Partial<Record<PlanId, string
 };
 
 /**
- * A runtime holding the one decision a model makes in these encounters: the
- * plan it chose before the round. Built once per round, so the inspector shows
- * every encounter's AI, including the ones it does not steer live.
+ * A runtime holding the one decision the rival makes in these encounters: the
+ * tactic the game chose before the round from the player's last attempts.
+ * Built once per round, so the inspector shows every encounter's rival.
  */
 export function planRuntime(id: TrialId, character: string, planId: PlanId, label: string): AIRuntime {
-  const runtime = newRuntime(id, character, "Model-chosen plan, executed by the game's own rules");
+  const runtime = newRuntime(id, character, "Tactic chosen by the game from your last attempts");
   const effect = PLAN_EFFECTS[id]?.[planId] ?? "The rival follows the game's fixed rules.";
   commitDecision(runtime, 0, {
     algorithm: runtime.algorithm,
     state: "pursuing",
     observations: [{ key: "plan", label: "Rival plan", value: label }],
-    memory: [{ key: "recent", label: "What the model read", value: "your last two attempts at this encounter" }],
+    memory: [{ key: "recent", label: "What the game read", value: "your last two attempts at this encounter" }],
     candidates: [],
     selectedAction: label,
-    reason: `Your AI rival chose this plan from two before the round. ${effect} The game carries it out with its own rules, timings and scoring.`,
+    reason: `The game chose this tactic from two before the round: the sharper one after a win, the gentler one after two losses. ${effect} Its own rules, timings and scoring carry it out.`,
     summary: effect,
   });
   return runtime;
 }
 
-/** The compact feed for an encounter the model planned before the round. */
+/** The compact feed for an encounter whose tactic was set before the round. */
 export function planFeed(runtime: AIRuntime, difficulty: Difficulty, elapsed: number, live: AIMetric[]): InspectorFeed {
-  return { runtime, difficulty, elapsed, headline: runtime.decisions[0]?.selectedAction, metrics: [{ key: "when", label: "When the model decides", value: "once, before the round", detail: "the game's rules carry the plan out" }, ...live] };
+  return { runtime, difficulty, elapsed, headline: runtime.decisions[0]?.selectedAction, metrics: [{ key: "when", label: "When the tactic is set", value: "once, before the round", detail: "the game's rules carry it out" }, ...live] };
 }
 
 /**
- * Antinous in the hall. While the model weighs his next arrow, the menu it is
- * choosing from is shown live, with the numbers the game measured for each.
+ * Antinous in the hall: the shots his rules weighed for each arrow, with the
+ * numbers the game measured for each.
  */
 export function bowFeed(s: BowState): InspectorFeed {
   const pending = s.decision && !s.decision.choice && !s.decision.failed ? s.decision.menu : undefined;
@@ -85,7 +84,6 @@ export function bowFeed(s: BowState): InspectorFeed {
     { key: "draught", label: "Draught", value: s.wind ? `${s.wind > 0 ? "right" : "left"}, ${allowance.words}` : "still", detail: "the allowance into the wind, in hole widths" },
     { key: "score", label: "Contest", value: `You ${s.score} · Antinous ${s.rivalScore}`, detail: `arrow ${s.turn} of ${s.practice ? 1 : BOW.turns}; ties go to Antinous` },
     { key: "blocks", label: "Block shots that cost you", value: blocks ? `${s.ai.stats.attacksLanded} of ${blocks}` : "none yet", detail: "judged against the same arrow through an open axe" },
-    { key: "counsel", label: "Athena's counsel", value: `${s.counsel} of ${ATHENA_COUNSEL} asked`, detail: "counsel costs no medal" },
   ];
   const latest = s.ai.decisions.at(-1);
   const headline = pending ? `Choosing from ${pending.options.length} measured shots` : s.phase === "player" ? "Watching your shot" : latest ? latest.selectedAction : "Observing";
@@ -93,8 +91,8 @@ export function bowFeed(s: BowState): InspectorFeed {
 }
 
 /**
- * The Sirens. Between melodies, the menu of fair melodies the model is
- * choosing from is shown live; during a melody, the one it chose.
+ * The Sirens. Between melodies, the fair melodies their rules weigh; during a
+ * melody, the one they chose.
  */
 export function songFeed(s: SongState): InspectorFeed {
   const pending = s.decision && !s.decision.choice && !s.decision.failed ? s.decision.menu : undefined;

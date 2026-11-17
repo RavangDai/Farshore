@@ -344,8 +344,9 @@
   /* Stretch to the full height: the card grid sizes itself from this box, so
      a gallery only as tall as its content (farshore-detail.css sets
      align-self:start at 1100x700 and up) would collapse it. */
-  .fs-app.a-app .fs-trial-gallery { align-self: stretch; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(10px, 1.6vh, 18px) clamp(14px, 1.6vw, 22px); }
-  .fs-app.a-app .fs-gallery-rule { margin-bottom: clamp(4px, 0.8vh, 12px); }
+  /* Two rows: the card grid, then the footer. The grid is a size container, so
+     in an auto row it would collapse to nothing; it must own the 1fr row. */
+  .fs-app.a-app .fs-trial-gallery { align-self: stretch; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; padding: clamp(10px, 1.6vh, 18px) clamp(14px, 1.6vw, 22px); }
   .fs-app.a-app .fs-gallery-footer { padding-top: clamp(6px, 1.2vh, 16px); }
   .fs-app.a-app .fs-trial-grid {
     min-height: 0;

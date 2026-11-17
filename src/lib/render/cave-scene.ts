@@ -157,9 +157,11 @@ export class CaveScene {
     const now = options.still ? 0 : frame.now;
     const effects = options.effectStrength;
 
-    this.spawnEventEffects(s, options);
+    // Reduced motion spawns nothing; what is on screen still ages on real time,
+    // or dust and sparks would freeze on the path as dots.
+    if (!options.still) this.spawnEventEffects(s, options);
     if (effects > 0) this.spawnAmbient(s, frame, options);
-    this.particles.update(options.still ? 0 : frame.dt);
+    this.particles.update(frame.dt);
 
     const [shakeX, shakeY] = shakeOffset(s.shake, frame.now, options.shakeStrength);
     c.save();

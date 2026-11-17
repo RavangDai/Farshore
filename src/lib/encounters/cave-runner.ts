@@ -385,7 +385,7 @@ function planSections(s: CaveState, progress: number, previous: CaveZone) {
   }
   if (s.zone === previous || !s.decision || s.menuZone !== s.zone) return;
   closeSection(s);
-  const pending = s.decision, { option, chooser, reason, line } = settle(pending);
+  const pending = s.decision, { option, chooser, reason, line } = settle(pending, s.modelDecisions);
   s.doctrine = option.id as CaveDoctrine;
   const decision = commitDecision(s.ai, s.elapsed, {
     algorithm: DOCTRINE_ALGORITHMS[s.doctrine],

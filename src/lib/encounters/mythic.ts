@@ -206,7 +206,7 @@ function compose(s: SongState) {
   let spoken = "";
   const action = pending
     ? (() => {
-        const { option, chooser, reason, line } = settle(pending);
+        const { option, chooser, reason, line } = settle(pending, s.modelDecisions);
         spoken = line;
         return commitSirens(s.ai, s.model, evaluation, view, { optionId: option.id, chooser, ...(chooser.by === "model" ? { reason, summary: line || reason } : {}) });
       })()
@@ -414,7 +414,7 @@ function learnFromBlock(s: BowState) {
 function rivalShot(s: BowState) {
   const tier = tierOf(s.difficulty);
   const pending: PendingDecision = s.decision ?? { menu: bowMenu(rivalView(s, s.lastShot?.aim ?? s.aim), bowPhysics(s), `bow-${s.turn}`, s.elapsed), choice: null, failed: null };
-  const { option, chooser, reason, line } = settle(pending);
+  const { option, chooser, reason, line } = settle(pending, s.modelDecisions);
   const intent = intentOf(option.id);
   const aim: Aim = intendedAim(intent, s.wind, bowPhysics(s));
   if (intent.kind !== "boast") aim.tension = Math.round(88 + roll(s) * 12);

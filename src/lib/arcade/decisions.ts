@@ -99,13 +99,15 @@ const FAILURE_NOTES: Record<ChoiceFailure, string> = {
   invalid: "the model's reply could not be verified, so the game played its own top option",
   unreachable: "the model could not be reached, so the game played its own top option",
 };
+/** Why the rival played what it did when no model was asked: its own rules scored every option. */
+export const GAME_RULES_NOTE = "the rival's rules scored each option and played the best";
 
 /**
  * Settle a pending decision into the option to execute and the record of who
  * chose it. With no answer yet, the game's own top option plays and the record
  * says why: a decision is never silently attributed to the model.
  */
-export function settle(pending: PendingDecision): { option: DecisionOption; chooser: Chooser; reason: string; line: string } {
+export function settle(pending: PendingDecision, modelAsked = true): { option: DecisionOption; chooser: Chooser; reason: string; line: string } {
   const { menu, choice } = pending;
   const engine = menu.options.find(o => o.id === menu.enginePick) ?? menu.options[0];
   const picked = choice ? menu.options.find(o => o.id === choice.optionId) : undefined;
@@ -128,7 +130,8 @@ export function settle(pending: PendingDecision): { option: DecisionOption; choo
     option: engine,
     reason: `Game's pick: ${engine.label}, the highest-scored option.`,
     line: "",
-    chooser: { by: "game", enginePick: engine.label, agreed: true, note: FAILURE_NOTES[pending.failed ?? "timeout"] },
+    // In play the rival runs on the game's rules alone, so its pick needs no excuse.
+    chooser: { by: "game", enginePick: engine.label, agreed: true, note: modelAsked ? FAILURE_NOTES[pending.failed ?? "timeout"] : GAME_RULES_NOTE },
   };
 }
 

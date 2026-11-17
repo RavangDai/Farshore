@@ -87,7 +87,13 @@ export function newAdventure(id: AdventureId, difficulty: Difficulty, plan: Oppo
   if (id === "aeolus") return { ...b, id, perfectPasses: 0, y: 200, vy: 0, gates: [], spawn: 1200, wave: 0, blessings: 0, gust: 0, gustClock: 0, liftHistory: [], lastCenter: 200, feedback: "Tap Lift in short bursts. Sail through the clear water between the rocks.", rivalLine: "Aeolus sends a gentle breeze. Read the next opening." };
   return { ...b, id: "calypso", duration: practice ? 60000 : 150000, x: 3.5, row: 0, progress: 0, rows: newRows(b), moveClock: 0, crossing: 1, stormClock: 5000, lightning: null, wood: 0, gatheredRows: [], feedback: "Hop onto a timber. Cross seven currents, then rest on the far shore.", rivalLine: "The current carries every timber. Choose your landing before you jump." };
 }
-function checkLotus(s: LotusState) {
+/**
+ * Settles what Odysseus's tile means right now: relics, a sailor to escort,
+ * moly, a delivery at the ship, or a guardian on the same tile (a catch). The
+ * Lotus Hunt calls it after a human-driven hunter steps; the garden's own
+ * moves and guard steps call it themselves.
+ */
+export function lotusCheckInPlace(s: LotusState) {
   const relic = s.relics.findIndex(p => same(p, s.player));
   if (relic >= 0) { s.relics.splice(relic, 1); s.relicsFound++; reward(s, 125); s.feedback = `Laurel relic ${s.relicsFound}/3 recovered. +125 points. The crew still needs you.`; }
   const sailor = s.sailors.findIndex(p => same(p, s.player));
@@ -110,20 +116,26 @@ export function lotusMoveInPlace(s: LotusState, dx: number, dy: number): boolean
   if (s.done || s.moveClock > 0 || Math.abs(dx) + Math.abs(dy) !== 1) return false;
   const point = { x: s.player.x + dx, y: s.player.y + dy };
   if (!walkable(point, s.layout.maze)) return false;
-  s.previous = s.player; s.player = point; s.moveClock = 170; checkLotus(s);
+  s.previous = s.player; s.player = point; s.moveClock = 170; lotusCheckInPlace(s);
   return true;
 }
-/** Advances the garden by `dt` milliseconds in place: timers, the guardians' patrol and pursuit, and the time limit. */
-export function lotusTickInPlace(s: LotusState, dt: number) {
+/**
+ * Advances the garden by `dt` milliseconds in place: timers, the guardians'
+ * patrol and pursuit, and the time limit. Guardian indices in `held` belong to
+ * someone else (the Lotus Hunt's human-driven hunter): the guard step leaves
+ * them where they stand and keeps their last-step direction.
+ */
+export function lotusTickInPlace(s: LotusState, dt: number, held?: ReadonlySet<number>) {
   if (s.done) return;
   const t = tier(s), maze = s.layout.maze;
   s.elapsed += dt; s.invulnerable = Math.max(0, s.invulnerable - dt);
   s.moveClock = Math.max(0, s.moveClock - dt); s.protection = Math.max(0, s.protection - dt); s.guardClock += dt;
   if (s.guardClock >= [1050, 780, 600][t]) {
     s.guardClock = 0; s.patrol++;
-    s.lastGuardians = s.guardians.map(p => ({ ...p }));
+    s.lastGuardians = s.guardians.map((p, i) => (held?.has(i) && s.lastGuardians?.[i]) || { ...p });
     const waypoints = s.layout.waypoints;
     s.guardians = s.guardians.map((guard, i) => {
+      if (held?.has(i)) return guard;
       const detected = Math.abs(guard.x - s.player.x) + Math.abs(guard.y - s.player.y) <= 7;
       let target = waypoints[(Math.floor(s.patrol / 9) + i * 2) % waypoints.length];
       // The model's plan shapes the second guardian from Medium up: the
@@ -150,7 +162,7 @@ export function lotusTickInPlace(s: LotusState, dt: number) {
       if (i === 1) { const held = s.camp ?? 0; s.camp = held >= 4 ? -6 : held < 0 ? held + 1 : path.length === 0 && t >= 1 && detected ? held + 1 : 0; }
       return path[0] || guard;
     });
-    checkLotus(s);
+    lotusCheckInPlace(s);
   }
   if (!s.done && s.elapsed >= s.duration) end(s, false, "The storm closes in. Try a shorter route and keep moving.");
 }

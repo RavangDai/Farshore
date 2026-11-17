@@ -112,8 +112,10 @@ export class HallOverlay {
   draw(c: CanvasRenderingContext2D, s: BowState, cam: HallCamera, frame: StageFrame, options: HallOverlayOptions) {
     const project = projector(cam);
     const settled = s.phase === "player" ? clamp01((s.timer - 500) / 400) : 0;
-    this.spawn(s, project);
-    this.sparks.update(options.still ? 0 : frame.dt);
+    // Reduced motion means no rings or sparks at all. Whatever is on screen
+    // still ages on real time: frozen particles would hang in the hall all round.
+    if (!options.still) this.spawn(s, project);
+    this.sparks.update(frame.dt);
 
     this.vignette(c);
     this.numerals(c, s, project, clamp01((cam.eye.x - 0.6) / 0.8));

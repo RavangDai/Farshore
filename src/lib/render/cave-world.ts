@@ -1225,8 +1225,10 @@ export class CaveWorld {
     c.clearRect(0, 0, w, h);
     const unit = Math.min(w / 1600, h / 900);
 
-    this.spawnEffects(s, options, travelled, collapse, frame.dt);
-    this.particles.update(options.still ? 0 : frame.dt);
+    // Reduced motion spawns nothing; what is on screen still ages on real time,
+    // or dust and sparks would freeze on the path as dots.
+    if (!options.still) this.spawnEffects(s, options, travelled, collapse, frame.dt);
+    this.particles.update(frame.dt);
 
     if (options.effectStrength > 0 && !options.still) this.drawSpeedLines(c, s, now, unit);
     this.drawPrompts(c, s, unit);

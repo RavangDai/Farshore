@@ -176,3 +176,16 @@
 .fs-app.a-app[data-skin="pixel"] .fs-result-frieze > div > span { padding: 4px 18px 5px; font: 700 14px/1.3 var(--fs-font-ui); letter-spacing: 0.08em; border: 0; border-radius: 0; box-shadow: 0 0 0 var(--px) var(--px-ink), inset var(--px) var(--px) 0 var(--px-gold-hi), inset calc(var(--px) * -1) calc(var(--px) * -1) 0 var(--px-bronze-1); background: var(--px-gold); color: var(--px-ink); }
 .fs-app.a-app[data-skin="pixel"] .fs-result-frieze.defeat > div > span { background: var(--px-red); color: var(--px-cream); box-shadow: 0 0 0 var(--px) var(--px-ink); }
 .fs-app.a-app[data-skin="pixel"] .fs-result-stars svg { width: 30px; height: 30px; }
+/* Tables and clocks that named a system monospace: the AI's instrument face, sized for VT323. */
+.fs-app.a-app[data-skin="pixel"] .fs-oracle-table { font: 16px/1.2 var(--fs-font-mono); }
+.fs-app.a-app[data-skin="pixel"] .fs-race-clock strong { font: 400 clamp(24px, 3vw, 34px)/1 var(--fs-font-mono); }
+.fs-app.a-app[data-skin="pixel"] .fs-race-live { font: 16px/1.2 var(--fs-font-mono); }
+
+/* Phones: Press Start 2P is a full em per letter, so the wordmark steps down to fit eight letters. */
+@media (max-width: 760px) {
+  .fs-app.a-app[data-skin="pixel"] .od-wordmark { font-size: 32px; }
+  .fs-app.a-app[data-skin="pixel"] .od-splash-content .od-wordmark { font-size: 40px; }
+}
+@media (max-width: 360px) {
+  .fs-app.a-app[data-skin="pixel"] .od-splash-content .od-wordmark { font-size: 32px; }
+}

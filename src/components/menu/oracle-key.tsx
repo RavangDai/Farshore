@@ -18,6 +18,8 @@ type Props = {
   trialTitle: string;
   state: OracleState;
   onSolved: () => void;
+  /** Every answer, right or wrong, for the round report. */
+  onAnswer?: (item: OracleQuestion, picked: number) => void;
   onEnter: () => void;
   onAgain: () => void;
   onClose: (answeredWrong: boolean) => void;
@@ -87,7 +89,7 @@ function Inspector({ item }: { item: OracleQuestion }) {
   );
 }
 
-export function OracleKey({ trialTitle, state, onSolved, onEnter, onAgain, onClose }: Props) {
+export function OracleKey({ trialTitle, state, onSolved, onAnswer, onEnter, onAgain, onClose }: Props) {
   const [picked, setPicked] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const root = useRef<HTMLElement>(null);
@@ -108,6 +110,7 @@ export function OracleKey({ trialTitle, state, onSolved, onEnter, onAgain, onClo
   function pick(i: number) {
     if (!item || picked !== null) return;
     setPicked(i);
+    onAnswer?.(item, i);
     if (i === item.answer) onSolved();
   }
   useEffect(() => {

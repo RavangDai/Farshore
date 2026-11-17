@@ -118,12 +118,12 @@ function ChooserLine({ decision }: { decision: AIDecision }) {
   );
 }
 
-/** The menu a model is weighing right now, with the numbers the game measured for each option. */
+/** The options the rival is weighing right now, with the numbers the game measured for each. */
 function PendingMenu({ menu, compact = false }: { menu: DecisionMenu; compact?: boolean }) {
   return (
     <div className="ai-pending" aria-live="polite">
       <span className="ai-pending-head">
-        <Sparkles size={12} aria-hidden="true" /> {menu.point}: the model is choosing
+        <Sparkles size={12} aria-hidden="true" /> {menu.point}: weighing {menu.options.length} options
       </span>
       <ul>
         {menu.options.map(option => (
@@ -135,7 +135,7 @@ function PendingMenu({ menu, compact = false }: { menu: DecisionMenu; compact?: 
           </li>
         ))}
       </ul>
-      {!compact && <p className="ai-pending-note">Every option was checked for fairness and measured by the game. The model only sees these numbers, not the game&rsquo;s own scores.</p>}
+      {!compact && <p className="ai-pending-note">Every option was checked for fairness and measured by the game; the rival&rsquo;s rules play the best-scored one.</p>}
     </div>
   );
 }
@@ -401,7 +401,8 @@ export function AILab({ feed, onCollapse }: { feed: InspectorFeed; onCollapse: (
     },
   ];
   const agreement = modelAgreement(runtime);
-  if (runtime.stats.modelPicks + runtime.stats.gamePicks > 0) {
+  // Only a round where a model actually picked has an agreement to report.
+  if (runtime.stats.modelPicks > 0) {
     coreMetrics.push({
       key: "agreement",
       label: "Model–game agreement",

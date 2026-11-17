@@ -39,7 +39,7 @@ const DIFFICULTIES = ["easy", "normal", "hard"];
 const FAR = 40;
 const NEAR = 20;
 
-const cell = (p: Point) => p.y * LOTUS_WIDTH + p.x;
+export const cell = (p: Point) => p.y * LOTUS_WIDTH + p.x;
 const open = (maze: string[], p: Point) => maze[p.y]?.[p.x] === ".";
 
 /** Path distances from the ship never change within a garden, so they are kept per garden. */
@@ -194,7 +194,7 @@ function guarded(s: LotusState): Set<number> {
  * nearest waiting sailor) through the garden with every guarded tile treated
  * as a hedge, except the one Odysseus stands on. -1 where no safe route exists.
  */
-function safeDistances(s: LotusState): Int16Array {
+export function safeDistances(s: LotusState): Int16Array {
   const watched = guarded(s), here = cell(s.player), maze = s.layout.maze;
   const passable = (p: Point) => open(maze, p) && (!watched.has(cell(p)) || cell(p) === here);
   const dist = new Int16Array(LOTUS_WIDTH * LOTUS_HEIGHT).fill(-1);

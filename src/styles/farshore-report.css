@@ -1,0 +1,111 @@
+/* The round report on the results screen, and the briefing's rival panel.
+   Every rule is prefixed .fs-app.a-app like the other arcade sheets; colours
+   read the pixel palette with the classic look's values as fallbacks. */
+
+/* ---------------------------------------------------------------- report -- */
+.fs-app.a-app .fs-report {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+  text-align: left;
+}
+.fs-app.a-app .fs-report > .fs-recap { flex: none; max-width: none; margin: 0; position: relative; padding-right: 36px; }
+.fs-app.a-app .fs-report > .fs-recap p { font-size: 15px; line-height: 1.45; }
+.fs-app.a-app .fs-report > .fs-recap .a-text-btn { position: absolute; top: 8px; right: 8px; padding: 4px; }
+
+.fs-app.a-app .fs-report-tabs { flex: none; display: flex; gap: 6px; flex-wrap: wrap; }
+.fs-app.a-app .fs-report-tabs button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; min-height: 32px;
+  font: 600 13px/1.1 var(--fs-font-ui);
+  color: var(--px-mist, #a9bfcc);
+  background: var(--px-deep, #0b2033);
+  border: 1px solid var(--px-steel, #5d7a8c);
+  border-radius: calc(var(--fs-round, 1) * 3px);
+  cursor: pointer;
+}
+.fs-app.a-app .fs-report-tabs button:hover { color: var(--px-cream, #f6f0e3); }
+.fs-app.a-app .fs-report-tabs button[aria-selected="true"] { color: var(--px-ink, #04080f); background: var(--px-gold, #e9b85c); border-color: var(--px-gold-hi, #ffe3a1); }
+.fs-app.a-app .fs-report-tabs button:focus-visible { outline: 2px solid var(--px-ai, #32d4f5); outline-offset: 2px; }
+
+.fs-app.a-app .fs-report-panel {
+  flex: 1 1 auto;
+  min-height: 120px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px 12px;
+  background: rgba(4, 8, 15, 0.45);
+  border: 1px solid rgba(93, 122, 140, 0.55);
+  border-radius: calc(var(--fs-round, 1) * 3px);
+}
+.fs-app.a-app .fs-report-panel:focus-visible { outline: 2px solid var(--px-ai, #32d4f5); outline-offset: 2px; }
+.fs-app.a-app .fs-report-empty, .fs-app.a-app .fs-report-note { margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--px-mist, #a9bfcc); }
+
+/* Moments: a time, what happened, and what was said about it. */
+.fs-app.a-app .fs-report-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.fs-app.a-app .fs-report-timeline li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: start; padding-left: 8px; border-left: 3px solid var(--px-steel, #5d7a8c); }
+.fs-app.a-app .fs-report-timeline li:is([data-kind="score"], [data-kind="streak"], [data-kind="progress"], [data-kind="win"]) { border-left-color: var(--px-gold, #e9b85c); }
+.fs-app.a-app .fs-report-timeline li:is([data-kind="hit"], [data-kind="miss"], [data-kind="danger"], [data-kind="loss"]) { border-left-color: var(--px-red, #f4604f); }
+.fs-app.a-app .fs-report-timeline li[data-kind="rival"] { border-left-color: #c58cff; }
+.fs-app.a-app .fs-report-timeline time { font: 16px/1.2 var(--fs-font-mono, monospace); color: var(--px-mist, #a9bfcc); }
+.fs-app.a-app .fs-report-timeline div { display: grid; gap: 2px; font-size: 13px; line-height: 1.4; }
+.fs-app.a-app .fs-report-timeline b { font: 600 11px/1.3 var(--fs-font-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--px-gold, #e9b85c); }
+.fs-app.a-app .fs-report-timeline span { color: var(--px-sand, #d8cdb4); }
+.fs-app.a-app .fs-report-timeline q { quotes: none; color: var(--px-cream, #f6f0e3); }
+.fs-app.a-app .fs-report-timeline q i { font-style: normal; color: var(--px-gold-hi, #ffe3a1); }
+.fs-app.a-app .fs-report-timeline q[data-speaker="rival"] i { color: #ff9c8e; }
+
+/* How it was scored. */
+.fs-app.a-app .fs-report-stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.fs-app.a-app .fs-report-stats div { padding: 6px 8px; background: rgba(18, 48, 73, 0.6); border-radius: calc(var(--fs-round, 1) * 2px); }
+.fs-app.a-app .fs-report-stats dt { font: 600 11px/1.3 var(--fs-font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--px-mist, #a9bfcc); }
+.fs-app.a-app .fs-report-stats dd { margin: 2px 0 0; font-size: 14px; line-height: 1.35; color: var(--px-cream, #f6f0e3); overflow-wrap: anywhere; }
+.fs-app.a-app .fs-report-rule { margin: 10px 0 0; font-size: 13px; line-height: 1.45; color: var(--px-sand, #d8cdb4); }
+.fs-app.a-app .fs-report-rule b { color: var(--px-gold, #e9b85c); }
+
+/* How the AI helped. */
+.fs-app.a-app .fs-report-ai { display: grid; gap: 10px; }
+.fs-app.a-app .fs-report-ai article { padding: 8px 10px; background: rgba(18, 48, 73, 0.45); border-left: 3px solid var(--px-ai, #32d4f5); }
+.fs-app.a-app .fs-report-ai h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 14px; color: var(--px-cream, #f6f0e3); text-shadow: none; }
+.fs-app.a-app .fs-report-ai p { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--px-sand, #d8cdb4); }
+.fs-app.a-app .fs-report-ai p b { color: var(--px-cream, #f6f0e3); }
+.fs-app.a-app .fs-report-oracle + .fs-report-oracle { margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(93, 122, 140, 0.6); }
+.fs-app.a-app .fs-report-oracle .fs-report-q { color: var(--px-cream, #f6f0e3); }
+.fs-app.a-app .fs-report-oracle p svg { vertical-align: -2px; }
+.fs-app.a-app .fs-report-oracle[data-correct="true"] p svg { color: var(--px-green, #9fe6b4); }
+.fs-app.a-app .fs-report-oracle[data-correct="false"] p svg { color: var(--px-red, #f4604f); }
+.fs-app.a-app .fs-report-oracle figure { margin: 6px 0 0; }
+.fs-app.a-app .fs-report-oracle blockquote { margin: 0; padding: 4px 8px; font-size: 13px; line-height: 1.45; color: var(--px-cream, #f6f0e3); background: rgba(4, 8, 15, 0.4); border-left: 2px solid var(--px-gold, #e9b85c); }
+.fs-app.a-app .fs-report-oracle figcaption { display: flex; align-items: center; gap: 4px; margin-top: 3px; font-size: 12px; color: var(--px-mist, #a9bfcc); }
+.fs-app.a-app .fs-report-oracle small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.4; color: var(--px-mist, #a9bfcc); }
+
+/* --------------------------------------------------- briefing rival panel -- */
+.fs-app.a-app .fs-rival-panel .fs-rival-why { margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: var(--px-mist, #a9bfcc); }
+.fs-app.a-app .fs-rival-panel .fs-rival-writing { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; font-size: 13px; color: var(--px-mist, #a9bfcc); }
+
+/* ------------------------------------------------------------------ fit -- */
+/* With a report beside it, the result fills the screen and only the report's panel scrolls. */
+@media (min-width: 761px) and (min-height: 560px) {
+  /* The report takes the whole right column, down to the bottom edge; the
+     verdict, the numbers and the way on stay together on the left. */
+  .fs-app.a-app .a-result.fs-rich-result:has(.fs-report) {
+    height: 100%;
+    overflow: hidden;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    grid-template-rows: auto auto auto auto auto auto auto auto minmax(0, 1fr);
+    grid-template-areas: "frieze frieze" "eyebrow side" "title side" "text side" "stats side" "seals side" "caption side" "actions side" "passage side";
+  }
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .od-accessibility-passage { align-self: start; }
+  /* The seals repeat what "How it was scored" lists; the report keeps them. */
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .fs-performance-seals { display: none; }
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .a-caption { margin: 8px 0 0; }
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .od-accessibility-passage { margin-top: 6px; }
+  /* One row of compact buttons (two when "Next trial" joins them). */
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .a-actions { align-self: start; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .a-actions > .a-btn { width: 100%; min-width: 0; min-height: 44px; margin: 0; }
+  .fs-app.a-app .fs-rich-result:has(.fs-report) > .a-actions > .a-btn:not(.a-primary) small { display: none; }
+  .fs-app.a-app .fs-rich-result > .fs-result-side:has(.fs-report) { overflow: hidden; display: flex; flex-direction: column; padding: 6px 2px 10px; }
+}
+.fs-app.a-app .fs-report-oracle p svg { display: inline; }

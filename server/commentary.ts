@@ -17,6 +17,8 @@ const input = z.object({
     secondsLeft: z.number().int().min(0).max(3600).nullable(),
     progress: z.number().int().min(0).max(100),
     status: z.string().max(160),
+    event: z.string().max(200).optional(),
+    rivalScore: count.nullable().optional(),
   }).strict(),
   recent: z.array(z.string().max(200)).max(4),
 }).strict();
@@ -24,15 +26,31 @@ const output = z.object({ line: z.string().min(2).max(220) }).strict();
 const schema = { type: "object", properties: { line: { type: "string", minLength: 2, maxLength: 160 } }, required: ["line"], additionalProperties: false };
 
 const momentNotes: Record<CommentaryRequest["moment"], string> = {
-  start: "The encounter has just begun. Set the scene and the stakes.",
-  score: "Odysseus just earned points.",
-  streak: "Odysseus is on a streak of successes.",
+  start: "The encounter is about to begin. Set the scene and the stakes.",
+  score: "Odysseus just did something well.",
+  streak: "Odysseus is on a run of successes.",
   hit: "Odysseus was just struck or failed to dodge.",
-  miss: "Odysseus just missed or fumbled an action.",
+  miss: "Odysseus just missed or fumbled.",
   danger: "The rival is closing in. Tension is high.",
-  progress: "Odysseus has passed a milestone in this encounter.",
-  win: "Odysseus has won this encounter.",
-  loss: "Odysseus has lost this attempt.",
+  progress: "Odysseus has passed a milestone.",
+  rival: "The rival has just made its own play.",
+  win: "Odysseus has won this encounter. Sum up how.",
+  loss: "Odysseus has lost this attempt. Sum up what beat him.",
+};
+
+/**
+ * One line of the tone each voice should strike in each encounter. Small
+ * models copy a register far better than they follow a description of one.
+ */
+const examples: Record<TrialId, { bard: string; rival: string }> = {
+  lotus: { bard: "Through the sleepy hedges he carries a dazed oarsman home, the lotus scent at his heels.", rival: "Rest a while, sailor. The flowers remember nothing, and neither will you." },
+  cyclops: { bard: "Stone bursts where he stood a heartbeat before, and Nobody runs on toward the light.", rival: "I smell you, Nobody! The next boulder finds your bones." },
+  aeolus: { bard: "The ship rides the gust clean through the gate, sails full and singing.", rival: "Catch us if you can, little captain. We were the bag your crew opened." },
+  circe: { bard: "Moly glints in the cauldron and three potions vanish in a single breath.", rival: "A pretty chain, Odysseus. My swine have done better." },
+  sirens: { bard: "Bound to the mast, he answers their melody note for note and the oars keep time.", rival: "So close, sweet captain. Stop rowing and we will tell you everything." },
+  scylla: { bard: "The shield rings as a snapping head glances away from the hull.", rival: "Six mouths, one whirlpool, and only one of you." },
+  calypso: { bard: "Timber to timber he leaps, the storm roaring at his back.", rival: "The sea is mine, and I will take that raft plank by plank." },
+  bow: { bard: "The arrow hisses through the iron heads, and the hall falls silent.", rival: "A lucky beggar. Watch how a true lord draws this bow." },
 };
 
 /**
@@ -42,19 +60,28 @@ const momentNotes: Record<CommentaryRequest["moment"], string> = {
  * line in about three seconds and one in about thirteen.
  */
 export function commentaryPrompt(data: CommentaryRequest) {
-  const trial = trialFor(data.trialId as TrialId);
-  const system = `You voice live commentary for FARSHORE, an arcade game based on Homer's Odyssey. Encounter: ${trial.title}.
+  const trial = trialFor(data.trialId as TrialId), tone = examples[data.trialId as TrialId];
+  const system = `You voice live commentary for FARSHORE, an arcade game based on Homer's Odyssey.
+Encounter: ${trial.title}. ${trial.story}
+Odysseus' task: ${trial.objective}
 There are two voices.
-BARD: a Homeric narrator singing the moment live. Warm, vivid, present tense, third person, at most one epithet such as 'wily Odysseus'.
+BARD: a Homeric narrator singing the moment live. Warm, vivid, present tense, third person.
 RIVAL: ${personas[data.trialId as TrialId]}. Speaks in first person directly to Odysseus, in character, taunting or scheming.
-Each request names the voice, the moment and the facts. Write exactly one spoken sentence of at most 18 words, in that voice, reacting to that moment.
+Each request names the voice, the moment, what just happened and the facts.
+Write exactly one spoken sentence of 6 to 18 words, in that voice, about what just happened.
+Name the concrete thing that happened (the sailor, the boulder, the gate, the melody, the axes) instead of general praise or threats.
+Vary your openings and images. Never start like a recent line, and use an epithet such as 'wily Odysseus' at most rarely.
 Use only the facts given. Never invent numbers, outcomes or rules. Do not explain controls.
-No emojis, hashtags, stage directions, quotation marks or lists. Do not repeat a recent line.
+No emojis, hashtags, stage directions, quotation marks or lists.
+Tone, for this encounter:
+BARD: ${tone.bard}
+RIVAL: ${tone.rival}
 Return JSON with a single field: line.`;
   // Plain lines rather than JSON: fewer tokens for a CPU to read per request.
   const f = data.facts;
   const facts = [
     `score ${f.score}`,
+    f.rivalScore === null || f.rivalScore === undefined ? null : `rival score ${f.rivalScore}`,
     f.livesLeft === null ? null : `lives ${f.livesLeft} of 3`,
     f.secondsLeft === null ? null : `${f.secondsLeft} s left`,
     `${f.progress}% through`,
@@ -66,6 +93,7 @@ Return JSON with a single field: line.`;
   const user = [
     `Voice: ${data.speaker === "bard" ? "BARD" : "RIVAL"}`,
     `Moment: ${momentNotes[data.moment]}`,
+    f.event ? `What happened: ${f.event}` : null,
     `Difficulty: ${difficultyNames[data.difficulty]}`,
     `Facts: ${facts}`,
     data.recent.length ? `Recent lines: ${data.recent.map(line => JSON.stringify(line)).join(" ")}` : null,

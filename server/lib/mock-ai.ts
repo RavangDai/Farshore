@@ -131,10 +131,13 @@ const lines = {
 
 /** Live commentary: a short canned line, or an error in the failing modes. */
 export async function mockCommentary(request: Request, mode: MockMode) {
-  const body = await request.json().catch(() => null) as { speaker?: "bard" | "rival" } | null;
+  const body = await request.json().catch(() => null) as { speaker?: "bard" | "rival"; facts?: { event?: unknown } } | null;
   const speaker = body?.speaker === "rival" ? "rival" : "bard";
   if (mode === "offline" || mode === "error") return Response.json({ error: "No model is connected." }, { status: 503 });
   await new Promise(resolve => setTimeout(resolve, mode === "slow" ? 4000 : 400));
+  // In test mode the line repeats the event it was handed, so the grounding can be seen.
+  const event = typeof body?.facts?.event === "string" ? body.facts.event.trim().slice(0, 120) : "";
   const pool = lines[speaker];
-  return Response.json({ line: pool[Math.floor(Math.random() * pool.length)], speaker }, { headers: { "Cache-Control": "no-store" } });
+  const line = event ? `${speaker === "bard" ? "The bard sings:" : "Mark this:"} ${event}` : pool[Math.floor(Math.random() * pool.length)];
+  return Response.json({ line, speaker }, { headers: { "Cache-Control": "no-store" } });
 }

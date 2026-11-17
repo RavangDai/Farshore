@@ -34,6 +34,7 @@ import { AIInspector, nextMode, type InspectorMode } from "../ai/ai-inspector";
 import { PLAN_EFFECTS, bowFeed, caveFeed, planFeed, planRuntime, songFeed } from "../../lib/ai/feeds";
 import { CharacterPortrait, TrialArtwork } from "../farshore-art";
 import { CommentarySubtitle, EncounterCodex } from "./encounter-codex";
+import { emptyLog, logEvent, logLine, type RoundLog } from "../../lib/arcade/report";
 
 const INSPECTOR_KEY = "farshore-ai-inspector-mode";
 
@@ -70,7 +71,8 @@ type Props = {
    */
   labOverlay?: { showPrediction: boolean; showHistory: boolean };
   onSettings: () => void;
-  onFinish: (round: GameState) => void;
+  /** The finished round, with what happened in it and what was said, for the results screen. */
+  onFinish: (round: GameState, log: RoundLog) => void;
   onLeave: () => void;
   /** What the round sounds like: cues, continuous loops and the scene, from the engine's own state. */
   onAudio?: (frame: AudioFrame) => void;
@@ -129,6 +131,12 @@ export function ArcadeRound({
   const director = useRef<CommentaryDirector | null>(null);
   const decider = useRef<DecisionDirector | null>(null);
   const spoken = useRef(-100);
+  // The round's story for the results screen: every event, and every line said about one.
+  const report = useRef<RoundLog>(emptyLog());
+  const say = (line: CommentaryLine) => {
+    report.current = logLine(report.current, line);
+    setLog(old => [...old, line].slice(-8));
+  };
 
   const perspective = isCave(round) || isBow(round);
   const trial = originalCave
@@ -162,7 +170,7 @@ export function ArcadeRound({
       trialId: id,
       difficulty,
       onLine: line => {
-        setLog(old => [...old, line].slice(-8));
+        say(line);
         callbacks.current.onSpeak?.(line.text, line.speaker === "bard" ? "bard" : id);
       },
     });
@@ -187,7 +195,7 @@ export function ArcadeRound({
         if (action.type === "choose" && action.choice.line) {
           const text = action.choice.line;
           director.current?.remember(text);
-          setLog(old => [...old, { id: --spoken.current, speaker: "rival" as const, text, moment: "danger" as const }].slice(-8));
+          say({ id: --spoken.current, speaker: "rival", text, moment: "rival", at: Math.round(current.current.elapsed) });
           // The Sirens' verse is shown, never spoken: the ear belongs to the melody.
           if (id !== "sirens") callbacks.current.onSpeak?.(text, id);
         }
@@ -204,7 +212,11 @@ export function ArcadeRound({
 
   // The rival's taunt opens the encounter, once, over the title card.
   useEffect(() => {
-    if (taunt) callbacks.current.onSpeak?.(taunt, id);
+    // Development mounts twice; the taunt is still one line of the round.
+    if (taunt && !report.current.lines.some(l => l.id === -2)) {
+      report.current = logLine(report.current, { id: -2, speaker: "rival", text: taunt, moment: "start", at: 0 });
+      callbacks.current.onSpeak?.(taunt, id);
+    }
     return () => callbacks.current.onSilence?.();
   }, []);
 
@@ -218,7 +230,7 @@ export function ArcadeRound({
       if (!text) { director.current?.offer(moment("start"), current.current, statusOf(current.current)); return; }
       if (finished.current || performance.now() - begun > 12000) return;
       director.current?.remember(text);
-      setLog(old => [...old, { id: -1, speaker: "bard" as const, text, moment: "start" as const }].slice(-8));
+      say({ id: -1, speaker: "bard", text, moment: "start", at: 0 });
       callbacks.current.onSpeak?.(text, "bard");
     });
   }
@@ -233,10 +245,11 @@ export function ArcadeRound({
     // engine. The final word on a round belongs to the results screen.
     callbacks.current.onAudio?.(audioFrame(old, next));
     const m = detectMoment(old, next);
+    if (m) report.current = logEvent(report.current, { at: Math.round(next.elapsed), kind: m.kind, detail: m.detail ?? "" });
     if (m && m.priority < 3 && phaseRef.current === "active") director.current?.offer(m, next, statusOf(next));
     if (next.done && !finished.current) {
       finished.current = true;
-      callbacks.current.onFinish(next);
+      callbacks.current.onFinish(next, report.current);
     }
   }
 
@@ -266,6 +279,7 @@ export function ArcadeRound({
     held.current.clear();
     setRound(next);
     setLog([]);
+    report.current = emptyLog();
     resume();
   }
   function resume() {
@@ -484,7 +498,7 @@ export function ArcadeRound({
       : modelPrepared
         ? decisions && (id === "bow" || id === "sirens" || id === "cyclops")
           ? "Your rival picks each move live, from options the game has checked. F3 shows its reasoning."
-          : `Your rival chose this strategy before the round.${effect ? ` ${effect}` : ""}`
+          : `The game chose this tactic from your last attempts.${effect ? ` ${effect}` : ""}`
         : "The rival reacts as you play.";
 
   const veil =

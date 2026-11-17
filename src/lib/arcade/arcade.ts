@@ -58,6 +58,30 @@ export function planDescription(id: TrialId, plan: OpponentPlan) {
   return `${planLabel(id, plan)}. ${plan.source === "standard" ? trialFor(id).standard : trialFor(id).adaptive}`;
 }
 export function adaptivePlan(id: TrialId): OpponentPlan { return { ...standardPlan(id), planId: trialFor(id).plans[1], source: "ai" }; }
+
+/**
+ * The rival's tactic for the next round, chosen by the game from the player's
+ * last two attempts: the gentler of the two adaptive tactics after two losses
+ * in a row, the sharper one otherwise. The Sirens lean on a lane once you have
+ * missed notes in it. No model is involved; the same history always gives the
+ * same tactic, and `reason` says why in plain words.
+ */
+export function gamePlan(id: TrialId, recent: AttemptSummary[]): { plan: OpponentPlan; reason: string } {
+  const t = trialFor(id), [, gentle, sharp] = t.plans;
+  const lanes = [0, 1, 2].map(i => recent.reduce((sum, a) => sum + a.laneMs[i], 0)), most = Math.max(...lanes);
+  const early = recent.reduce((n, a) => n + a.early, 0), late = recent.reduce((n, a) => n + a.late, 0);
+  const missed = [0, 1, 2, 3].map(i => recent.reduce((n, a) => n + (a.laneMisses?.[i] ?? 0), 0)), worst = Math.max(...missed);
+  const focus: Focus = id === "cyclops" ? (most > 0 ? (["left", "center", "right"] as const)[lanes.indexOf(most)] : "center") : early > late ? "early" : late > early ? "late" : "balanced";
+  const losses = recent.length === 2 && recent.every(a => !a.won);
+  if (id === "sirens") {
+    const lane = ["red", "blue", "green", "gold"][missed.indexOf(worst)];
+    return worst > 0
+      ? { plan: { planId: gentle, focus, source: "ai" }, reason: `You missed most notes in the ${lane} lane, so the Sirens lean their melodies on it.` }
+      : { plan: { planId: sharp, focus, source: "ai" }, reason: recent.length ? "You missed no lane more than another, so the Sirens sing their trick-note echo." : "A first meeting: the Sirens open with their trick-note echo." };
+  }
+  if (losses) return { plan: { planId: gentle, focus, source: "ai" }, reason: `Two losses in a row, so ${t.character} plays the gentler tactic.` };
+  return { plan: { planId: sharp, focus, source: "ai" }, reason: !recent.length ? `A first meeting: ${t.character} opens with the sharper tactic.` : `You ${recent.at(-1)?.won ? "won your last attempt" : "have not lost twice in a row"}, so ${t.character} plays the sharper tactic.` };
+}
 export type AttemptSummary = { won: boolean; source: OpponentSource; hits: number; successes: number; early: number; late: number; misses: number; laneMs: [number, number, number]; laneMisses?: [number, number, number, number]; score?: number; timeMs?: number; difficulty?: Difficulty };
 export type Medal = "gold" | "silver" | "bronze";
 export type BestRun = { score: number; timeMs: number; medal: Medal };

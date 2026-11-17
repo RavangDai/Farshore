@@ -1,42 +1,60 @@
 # FARSHORE: how the AI works
 
-This document explains every place FARSHORE uses AI, what a pretrained model decides and what it never decides, and how a player (or a professor) can see each decision being made. It describes the code as it stands; where something is not built, it says so.
+This document explains every place FARSHORE uses AI, what a pretrained model does and what it never does, and how a player (or a professor) can see it. It describes the code as it stands; where something is not built, or built but switched off, it says so.
 
 ## In one minute
 
-**The model is the strategist; the game is the referee.**
+**A pretrained language model does two jobs: it asks the Oracle's question, and it voices the commentary. The game does everything else.**
 
-In three encounters (Cyclops' Cave, Sirens' Passage and the Palace of Ithaca) a pretrained language model makes the rival's decisions during play:
+1. **The Oracle's Key (retrieval-augmented generation).** Before a campaign round, the model writes a four-option question from a passage of Homer's *Odyssey* that the game retrieved. The server checks it against a verbatim quote before the player sees it. Answering it opens the trial.
+2. **Live commentary.** During play the game spots each moment that matters (a sailor brought home, a boulder dodged, Antinous threading ten axes) and hands the model what happened, in the engine's own words, with the score. The model writes one spoken line as the bard or as the rival. Kokoro-82M speaks it.
 
-1. The game lays out a menu of 2 to 5 options it has already checked are fair, each with the real numbers that describe it.
-2. The model picks one and gives a short reason in character.
-3. The game carries the pick out with its own physics, randomness and scoring.
+Around those two jobs, the model also writes the rival's opening taunt and the closing recap on the results screen. Both are commentary lines written from the game's facts.
 
-The inspector shows the model's pick beside the game's own best option. In Ithaca, Athena turns the same idea toward the player: she answers questions about the shot using only the game's real measurements, and shows which ones she used.
+The rivals themselves play by the game's rules:
 
-The other five encounters use the model once per round, to choose the rival's plan before play. All eight have live commentary and voices.
+- **Before the round,** the game chooses the rival's tactic from the player's last two attempts. It picks the gentler tactic after two losses in a row and the sharper one otherwise. The Sirens lean on the lane the player misses most. The briefing says which tactic was chosen and why.
+- **During play,** Antinous, the Sirens and Polyphemus weigh a menu of fair, measured options and play the best-scored one.
 
 The model can't cheat or invent facts:
 
-- It can only answer with an id from the menu (a JSON schema enforces this while it writes).
-- Every number in its reason is checked against the numbers it was given.
-- The game decides every outcome.
+- It never sets a score, a hit, a rule or a medal.
+- Its commentary is written only from facts the game hands it, and it is told never to invent numbers.
+- The Oracle's question must quote its source passage word for word, or it is thrown away.
+
+**Show how it was done.** After every round, the results screen has a report with three tabs:
+
+- **Moments** lists each event in order, beside the line the bard or the rival said about it.
+- **How it was scored** gives the numbers that decided the round and the medal rule.
+- **How the AI helped** shows the Oracle's question, the player's answer, the quoted evidence and the model that wrote it. It also gives how many commentary lines were spoken and how fast, and confirms the rival's tactic came from the game, not a model.
 
 ## The AI in the game, layer by layer
 
-| Layer | Kind | When | Decides | Code |
+| Layer | Kind | When | Does | Code |
 |---|---|---|---|---|
-| Rival plan | Pretrained LLM | Once, at the briefing | One of two plans and an opening taunt | `server/arcade.ts`, `src/lib/arcade/arcade.ts` |
-| In-game decisions | Pretrained LLM | During play, at decision points (3 encounters) | One option from the game's checked menu, a reason, a spoken line | `server/decide.ts`, `src/lib/arcade/decisions.ts`, `src/lib/ai/{antinous,sirens,polyphemus}.ts` |
-| Athena's counsel | Pretrained LLM | When the player asks (Ithaca) | An answer drawn only from the hall's facts, and which facts it used | `server/athena.ts`, `src/lib/ai/athena.ts` |
-| Rival's debrief | Pretrained LLM | After the round (3 encounters) | The rival's account of the round, from the game's measurements | `server/decide.ts` (`kind: "debrief"`), `src/lib/arcade/debrief.ts` |
-| Commentary | Pretrained LLM | During play | One spoken sentence from the bard or the rival | `server/commentary.ts`, `src/lib/arcade/commentary.ts` |
-| Voice | Pretrained TTS (Kokoro-82M; browser speech as fallback) | During play | How each line sounds | `server/voice.ts`, `src/lib/arcade/rivals.ts` |
-| Opponent mechanics | Hand-written algorithms | Every tick | Physics, timing, aim error, fairness vetoes, scoring | `src/lib/encounters/*.ts`, `src/lib/ai/*.ts` |
+| The Oracle's Key | Pretrained LLM + retrieval (BM25 and EmbeddingGemma) | Before a campaign round | A four-option question from a retrieved passage, checked against a verbatim quote | `server/oracle/`, `src/components/menu/oracle-key.tsx` |
+| Commentary | Pretrained LLM | The briefing taunt, during play, the closing recap | One spoken sentence from the bard or the rival, about the event it is handed | `server/commentary.ts`, `src/lib/arcade/commentary.ts` |
+| Voice | Pretrained TTS (Kokoro-82M; browser speech as fallback) | Whenever a line is spoken | How each line sounds | `server/voice.ts`, `src/lib/arcade/rivals.ts` |
+| Rival tactic | Game rules | At the briefing | One of two adaptive tactics, from the last two attempts | `gamePlan` in `src/lib/arcade/arcade.ts` |
+| Opponent mechanics | Hand-written algorithms | Every tick | Option menus scored by the engine, physics, timing, aim error, fairness vetoes, scoring | `src/lib/encounters/*.ts`, `src/lib/ai/*.ts` |
+| Round report | Game records | After the round | The events, the lines said about them, the stats and the AI's part | `src/lib/arcade/report.ts`, `src/components/play/round-report.tsx` |
+| Lotus rescue race | Trained PPO policy (ONNX) | The exhibition race | The rival's moves on its own board | `src/lib/ai/lotus-onnx.ts` |
 
-Every encounter needs a reachable model to start (`GET /api/arcade`); there is no model-free play.
+Every encounter needs a reachable model to start (`GET /api/arcade`), because the Oracle and the commentary need it; there is no model-free play.
+
+**Built but switched off in play (2026-11-14).** Earlier versions had the model choose each rival's plan at the briefing (`POST /api/arcade`), pick in-game moves from the engine's menus (`/api/decide`, `DecisionDirector`), write the rival's debrief, and answer questions as Athena (`/api/athena`). That code and its tests remain, and `scripts/ai-eval.mjs` still measures it, but the game no longer calls it. The sections below on menus, the cave's doctrines, Ithaca's options and Athena describe that machinery. The menus and doctrines still drive the rivals, settled by the engine's own scores.
+
+## How a commentary line is made
+
+1. **Detect.** `detectMoment` compares the engine's state before and after each step and names the most important change: a finish, a hit, the encounter's own milestone (a rescue, a sheep, a new cave section, an arrow's axe count, the rival's shot or chain), a miss, a streak, a progress mark.
+2. **Describe.** The moment carries what happened, usually the engine's own feedback sentence ("2 of 3 sailors safe aboard."), or a sentence built from its numbers ("Odysseus' arrow 3 threads 9 of 12 axes. Odysseus 21, Antinous 24.").
+3. **Pace.** `CommentaryDirector` keeps one request in flight and a gap between lines. The most important pending moment wins, and a line that would arrive too late to match the action is dropped.
+4. **Write.** The system prompt is fixed per encounter, so a local model keeps it cached. It sets out the setting, the task, both voices and one example line of each voice's tone. The request names the voice, the moment, *what happened*, and the facts. The model answers in a JSON schema with one field, `line`.
+5. **Record.** Each line keeps the game time of its moment and its latency, and the results screen's Moments tab shows it beside its event.
 
 ## Encounter by encounter
+
+*The table below describes the model-decision design that is now switched off. In play, the rival's own rules settle every "what the model decides" cell, from the same menus.*
 
 | Encounter | What the model decides | When | What the game still decides |
 |---|---|---|---|
@@ -126,6 +144,8 @@ The moment a block shot is chosen, the hall announces the axe ("Antinous eyes ax
 
 ## Athena's counsel (Ithaca)
 
+*Switched off in play since 2026-11-14: the model's jobs are the Oracle and the commentary.*
+
 **Ask Athena** opens a panel during the player's turn. The player can type, pick a suggested question, or speak (browser speech recognition). There are three questions per contest, with no medal cost; only answered questions count.
 
 `athenaFacts` gathers what Athena may use:
@@ -187,6 +207,8 @@ MiniLM made keyword search worse; EmbeddingGemma with its task prompts makes it 
 **Test mode.** With the mock AI service, retrieval is real but no model is asked: the question blanks one word of a line from the top passage and passes the same checks. `tests/oracle.test.mjs` covers the corpus, BM25, hybrid ranking, the keyword fallback, every check, the shuffle, retries and typed errors, using a stub embedder and a stand-in model. They also cover the embedding service: the default address, each model's prompts and weights, batching with the key, and the fallback when the service stops mid-session.
 
 ## The debrief
+
+*Switched off in play: the results screen now shows the round report (above). Its "How it was scored" tab includes the same measurements.*
 
 After Cyclops, Sirens or Ithaca, the results screen shows **What the rival learned**:
 

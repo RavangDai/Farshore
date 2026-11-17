@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { ArcadeRound } from "./components/play/arcade-round";
-import { RivalDebrief } from "./components/play/rival-debrief";
-import { ARCADE_PREFS, ARCADE_SAVE, adaptivePlan, assistTrial, challengeObjective, clearedCount, difficultyNames, medalFor, finishAttempt, newArcade, planLabel, readArcade, trialFor, trials, unlocked, validPlan, standardPlan, type ArcadeSave, type Difficulty, type OpponentPlan, type TrialId } from "./lib/arcade/arcade";
+import { RoundReport } from "./components/play/round-report";
+import { ARCADE_PREFS, ARCADE_SAVE, adaptivePlan, assistTrial, gamePlan, planDescription, challengeObjective, clearedCount, difficultyNames, medalFor, finishAttempt, newArcade, planLabel, readArcade, trialFor, trials, unlocked, standardPlan, type ArcadeSave, type Difficulty, type OpponentPlan, type TrialId } from "./lib/arcade/arcade";
 import { createGame, gameSummary, type GameState } from "./lib/arcade/arcade-runtime";
 import { OdysseyPreferences } from "./components/menu/odyssey-preferences";
 import { TrialGlyph } from "./components/menu/odyssey-map";
-import { ArrowRight, ArrowLeft, Play, Map, BookOpen, Settings, Info, Compass, Trophy, Volume2, VolumeX, Sparkles, RotateCcw, FlaskConical, BrainCircuit, Swords, GraduationCap, Mic, MicOff, RefreshCw, Feather, SlidersHorizontal, Loader2, Undo2, CircleUser, Users } from "lucide-react";
+import { ArrowRight, ArrowLeft, Play, Map, BookOpen, Settings, Info, Compass, Trophy, Volume2, VolumeX, Sparkles, RotateCcw, FlaskConical, BrainCircuit, Swords, GraduationCap, Mic, MicOff, RefreshCw, Feather, SlidersHorizontal, Loader2, CircleUser, Users } from "lucide-react";
 import { VoyageAudio } from "./lib/audio/voyage-audio";
 import { encounterSounds } from "./lib/audio/cues";
 import "./styles/arcade.css";
@@ -21,6 +21,7 @@ import "./styles/farshore-viewport.css";
 import "./styles/farshore-crossing.css";
 import "./styles/farshore-race.css";
 import "./styles/farshore-oracle.css";
+import "./styles/farshore-report.css";
 import "./styles/farshore-pixel.css";
 import "./styles/farshore-pixel-motion.css";
 import { TrialSelection } from "./components/menu/trial-selection";
@@ -36,7 +37,7 @@ import { AILabMode, labRunFrom, type LabRun, type LabSettings } from "./componen
 import { aiRuntimeOf } from "./lib/arcade/arcade-runtime";
 import { defaultPreferences, preferencesSchema, type AccountChip, type OnlineGame, type OnlinePreferences } from "./lib/online/online";
 import { factsFor, requestLine } from "./lib/arcade/commentary";
-import { debriefRequest } from "./lib/arcade/debrief";
+import { emptyLog, roundHighlights, type OracleAttempt, type RoundLog } from "./lib/arcade/report";
 import { voices, type Speaker, type VoiceId } from "./lib/arcade/rivals";
 import { VOICE_PREFS, VoiceBox, readVoicePrefs, type VoiceLoad, type VoicePrefs, type VoiceStatus } from "./lib/speech/voice";
 import { prologue, prologueSpeech } from "./lib/story/prologue";
@@ -47,10 +48,11 @@ type Screen = "splash" | "howto" | "credits" | "title" | "intro" | "map" | "cros
 /** The voyage crossing between encounters. A preview returns to `back` instead of opening the briefing. */
 type Crossing = { from: TrialId; to: TrialId; preview?: boolean; back?: Screen };
 type Prefs = OnlinePreferences;
-type AiState = "idle" | "loading" | "ready" | "error" | "uncertain" | "cancelled";
+/** The rival's opening taunt, the one line written before the round. Its tactic is the game's own choice. */
+type AiState = "idle" | "loading" | "ready";
 /** Every encounter is played against a model-planned rival; this is the gate. */
 type Rival = { status: "checking" | "online" | "offline"; message: string; model: string | null; commentary: string | null; oracle?: string | null; embedder?: string | null };
-type Run = { plan: OpponentPlan; practice: boolean; key: number; modelPrepared: boolean; taunt?: string; opening?: Promise<string>; originalCave?: boolean; demo?: boolean; lab?: boolean; seed?: number; race?: { layout: LotusLayout } };
+type Run = { plan: OpponentPlan; practice: boolean; key: number; modelPrepared: boolean; taunt?: string; tacticReason?: string; opening?: Promise<string>; originalCave?: boolean; demo?: boolean; lab?: boolean; seed?: number; race?: { layout: LotusLayout } };
 function loadPrefs(): Prefs {
   const defaults: Prefs = { ...defaultPreferences(), still: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false };
   try { const v = JSON.parse(localStorage.getItem(ARCADE_PREFS) || "null"); if (v) { const parsed = preferencesSchema.safeParse({ ...defaults, ...v, revision: 2, difficulty: v.revision === 2 ? v.difficulty : "normal" }); if (parsed.success) return parsed.data; } } catch { /* Storage is optional. */ }
@@ -70,6 +72,9 @@ const voiceNotes: Record<VoiceStatus, string> = {
 };
 
 /** Counts a result number up from zero once, unless motion is reduced. */
+/** The facts of a round that has not started, for the lines written before it. */
+const openingFacts = (objective: string) => ({ score: 0, hits: 0, misses: 0, streak: 0, livesLeft: null, secondsLeft: null, progress: 0, status: objective.slice(0, 160) });
+
 function CountUp({ value, still, format = (n: number) => n.toLocaleString() }: { value: number; still: boolean; format?: (n: number) => string }) {
   const [shown, setShown] = useState(still ? value : 0);
   useEffect(() => {
@@ -96,13 +101,15 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const [selected, setSelected] = useState<TrialId>("lotus"), [intro, setIntro] = useState(0);
   const [settings, setSettings] = useState(false), [restart, setRestart] = useState(false), [assistance, setAssistance] = useState(false);
   const [storageError, setStorageError] = useState(""), [audioError, setAudioError] = useState("");
-  const [aiState, setAiState] = useState<AiState>("idle"), [aiError, setAiError] = useState(""), [aiPlan, setAiPlan] = useState<OpponentPlan | null>(null), [aiTaunt, setAiTaunt] = useState("");
-  // The strategy the player asked to replace, so "Ask for another strategy" can be undone.
-  const [previousPlan, setPreviousPlan] = useState<{ plan: OpponentPlan; taunt: string } | null>(null);
-  const [rival, setRival] = useState<Rival>({ status: "checking", message: "Looking for your AI rival...", model: null, commentary: null }), [elapsed, setElapsed] = useState(0);
+  const [aiState, setAiState] = useState<AiState>("idle"), [aiTaunt, setAiTaunt] = useState("");
+  const [rival, setRival] = useState<Rival>({ status: "checking", message: "Looking for your AI rival...", model: null, commentary: null });
   const [voicePrefs, setVoicePrefs] = useState<VoicePrefs>(readVoicePrefs), [speaking, setSpeaking] = useState(false), [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("checking"), [voiceLoad, setVoiceLoad] = useState<VoiceLoad>({ progress: 0, sizeMb: null });
   const [recap, setRecap] = useState<{ speaker: Speaker; text: string } | "pending" | null>(null);
   const [run, setRun] = useState<Run | null>(null), [result, setResult] = useState<GameState | null>(null);
+  /** What happened in the finished round and what was said about it, for the round report. */
+  const [roundLog, setRoundLog] = useState<RoundLog>(emptyLog);
+  /** The Oracle's questions answered in this briefing, by trial, for the round report. */
+  const [oracleLog, setOracleLog] = useState<Partial<Record<TrialId, OracleAttempt[]>>>({});
   const [crossing, setCrossing] = useState<Crossing | null>(null);
   /** The garden for the Lotus-Eaters rescue race: a named one, or a fresh validated one. */
   const [raceGarden, setRaceGarden] = useState<string>("classic");
@@ -126,14 +133,13 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const nextTrial = trials.find(t => save.records[t.id].cleared === "pending");
   const medals = trials.reduce((n, t) => n + Object.keys(save.records[t.id].bests).length, 0);
   const rivalOnline = rival.status === "online";
-  const canStart = rivalOnline && aiState === "ready" && !!aiPlan;
-  /** Title and note for the disabled start button, matching the rival panel's state. */
-  const startHold: [string, string] = !rivalOnline ? ["Connect an AI rival", "Open Settings to connect one"]
-    : aiState === "error" ? ["The rival is not ready", "Try a new strategy"]
-    : aiState === "uncertain" ? ["No strategy yet", "Try a new strategy"]
-    : aiState === "cancelled" ? ["No strategy yet", "Prepare the rival"]
-    : ["Your rival is preparing", "Choosing a strategy"];
-  const lockedReason = rivalOnline ? "" : rival.status === "checking" ? "Looking for your AI rival…" : "Open Settings to connect an AI model.";
+  // The rival's tactic is the game's own choice from the last two attempts: instant, and the same for the same history.
+  const tactic = gamePlan(selected, save.records[selected].recent);
+  // The model asks the Oracle's question and voices the commentary, so a round needs it to start.
+  const canStart = rivalOnline;
+  /** Title and note for the disabled start button. */
+  const startHold: [string, string] = rival.status === "checking" ? ["Looking for the AI", "One moment"] : ["Connect an AI model", "Open Settings to connect one"];
+  const lockedReason = rivalOnline ? "" : rival.status === "checking" ? "Looking for the AI model…" : "Open Settings to connect an AI model.";
 
   useEffect(() => { const service = new VoyageAudio(); audio.current = service; return () => { service.dispose(); audio.current = null; request.current?.abort(); }; }, []);
   useEffect(() => {
@@ -157,11 +163,6 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     };
   }, [prefs.difficulty]);
   useEffect(() => { audio.current?.update({ enabled: prefs.sound, music: prefs.music, effects: prefs.effects, ducked: speaking, quiet: settings, mood: screen === "ending" ? "home" : screen === "play" ? selected === "bow" ? "home" : "danger" : "voyage" }); }, [prefs.sound, prefs.music, prefs.effects, screen, selected, settings, speaking]);
-  useEffect(() => {
-    if (aiState !== "loading") return;
-    const start = Date.now(), interval = window.setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
-    return () => clearInterval(interval);
-  }, [aiState]);
   useEffect(() => { void checkModel(); }, []);
   // Starting a model service is noticed without a reload.
   useEffect(() => {
@@ -173,9 +174,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   // there, the rival starts studying while the ship is still at sea.
   const sailingToBrief = screen === "crossing" && !!crossing && !crossing.preview;
   useEffect(() => { if ((screen === "brief" || sailingToBrief) && rivalOnline && aiState === "idle") void prepare(); }, [screen, sailingToBrief, rivalOnline, aiState, selected, prefs.difficulty]);
-  // A kept strategy belongs to one trial and difficulty, inside one briefing.
-  useEffect(() => setPreviousPlan(null), [screen, selected, prefs.difficulty]);
-  useEffect(() => { setOracleKeys([]); }, [selected]);
+  useEffect(() => { setOracleKeys([]); setOracleLog({}); }, [selected]);
   useEffect(() => { if (screen === "map" || screen === "title") setOracleKeys([]); }, [screen]);
   useEffect(() => {
     if (screen !== "brief" || !oracleOn || !rivalOnline || oracleKeys.includes(selected)) return;
@@ -211,15 +210,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const speak = useCallback((text: string, id: VoiceId) => { if (voicePrefsRef.current.voice) voice.current?.say(text, id); }, []);
   const silence = useCallback(() => voice.current?.stop(), []);
   /** Stops any request in flight. "idle" lets the briefing prepare again automatically; "cancelled" waits for the player. */
-  function cancelAi(next: AiState = "idle") { generation.current++; request.current?.abort(); request.current = null; setAiState(next); setAiPlan(null); setAiTaunt(""); setAiError(""); }
-  /** Asks the model for a different strategy, keeping the current one so the player can go back to it. */
-  function regenerate() { if (aiState === "ready" && aiPlan) setPreviousPlan({ plan: aiPlan, taunt: aiTaunt }); void prepare(); }
-  /** Undo: restores the kept strategy. A ready strategy it replaces becomes the one kept. */
-  function restorePrevious() {
-    if (!previousPlan) return;
-    const replaced = aiState === "ready" && aiPlan ? { plan: aiPlan, taunt: aiTaunt } : null;
-    cancelAi(); setAiPlan(previousPlan.plan); setAiTaunt(previousPlan.taunt); setAiState("ready"); setPreviousPlan(replaced);
-  }
+  /** Drops the taunt being written; "idle" lets the next briefing ask again. */
+  function cancelAi() { generation.current++; request.current?.abort(); request.current = null; setAiState("idle"); setAiTaunt(""); }
   async function checkModel(quiet = false) {
     if (!quiet) setRival(old => ({ ...old, status: "checking", message: "Looking for your AI rival…" }));
     try {
@@ -227,21 +219,23 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       setRival({ status: v.aiAvailable ? "online" : "offline", message: typeof v.message === "string" ? v.message : "The AI rival could not be checked.", model: typeof v.model === "string" ? v.model : null, commentary: typeof v.commentary === "string" ? v.commentary : null, oracle: typeof v.oracle === "string" ? v.oracle : null, embedder: typeof v.embedder === "string" ? v.embedder : null });
     } catch { setRival({ status: "offline", message: "The game could not reach an AI model. Start your model service, then check again.", model: null, commentary: null }); }
   }
+  /**
+   * The rival's opening taunt. The game has already chosen its tactic; the
+   * model is handed that tactic and writes the line the rival opens with.
+   * Without live commentary, or when the model does not answer, the rival
+   * speaks its own written quote.
+   */
   async function prepare() {
     cancelAi(); const controller = new AbortController(), token = generation.current; request.current = controller;
-    setAiState("loading"); setElapsed(0);
-    try {
-      const response = await fetch("/api/arcade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trialId: selected, difficulty: prefs.difficulty, recent: save.records[selected].recent }), signal: AbortSignal.any([controller.signal, AbortSignal.timeout(95000)]) });
-      const body = await response.json();
-      if (token !== generation.current || controller.signal.aborted) return;
-      if (!response.ok) { setAiError(typeof body.error === "string" ? body.error : "The rival could not be prepared."); setAiState(body.code === "invalid_plan" ? "uncertain" : "error"); return; }
-      if (!validPlan(selected, body.plan) || body.plan.source !== "ai") { setAiError("That strategy could not be used. Try a new one."); setAiState("uncertain"); return; }
-      setAiPlan(body.plan); setAiTaunt(typeof body.taunt === "string" ? body.taunt : ""); setAiState("ready"); audio.current?.cue("reply");
-      prefetchOpening(selected, prefs.difficulty);
-    } catch {
-      if (token !== generation.current || controller.signal.aborted) return;
-      setAiError("Your rival took too long to answer. The model may still be loading; try again in a moment."); setAiState("error");
-    } finally { if (token === generation.current) request.current = null; }
+    const id = selected, difficulty = prefs.difficulty, t = trialFor(id), { plan } = gamePlan(id, save.records[id].recent);
+    setAiState("loading");
+    const line = voicePrefsRef.current.commentary
+      ? await requestLine({ trialId: id, difficulty, moment: "start", speaker: "rival", facts: { ...openingFacts(t.objective), event: `${t.character} prepares the ${planDescription(id, plan)}`.slice(0, 200) }, recent: [] }, controller.signal).catch(() => "")
+      : "";
+    if (token !== generation.current || controller.signal.aborted) return;
+    request.current = null;
+    setAiTaunt(line || t.quote); setAiState("ready"); audio.current?.cue("reply");
+    prefetchOpening(id, difficulty);
   }
   /**
    * The bard's opening line is written while the player reads the briefing. On
@@ -252,7 +246,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     opening.current = null;
     if (!voicePrefsRef.current.commentary) return;
     const t = trialFor(id);
-    opening.current = requestLine({ trialId: id, difficulty, moment: "start", speaker: "bard", facts: { score: 0, hits: 0, misses: 0, streak: 0, livesLeft: null, secondsLeft: null, progress: 0, status: t.objective.slice(0, 160) }, recent: [] })
+    opening.current = requestLine({ trialId: id, difficulty, moment: "start", speaker: "bard", facts: { ...openingFacts(t.objective), event: `Odysseus steps up to face ${t.character}.` }, recent: [] })
       .then(line => { if (line && voicePrefsRef.current.voice) voice.current?.prime(line, "bard"); return line; })
       .catch(() => "");
   }
@@ -277,9 +271,9 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   }
   /** After a wrong answer, the next visit to the Oracle brings a new question. */
   function closeOracle(answeredWrong: boolean) { setOracleOpen(false); if (answeredWrong) consultOracle(selected); }
-  function launch(practice = false, originalCave = false, reuse?: Pick<Run, "plan" | "taunt">) {
-    const plan = reuse?.plan ?? (aiState === "ready" ? aiPlan : null);
-    if (!plan || !rivalOnline) return;
+  function launch(practice = false, originalCave = false, reuse?: Pick<Run, "plan" | "taunt" | "tacticReason">) {
+    const plan = reuse?.plan ?? tactic.plan;
+    if (!rivalOnline) return;
     // A campaign start from the briefing needs the Oracle's key first. Practice, retries and the cave tactics do not.
     if (!practice && !originalCave && !reuse && oracleOn && !oracleKeysRef.current.includes(selected)) {
       if (oracle.trial !== selected || oracle.status === "error") consultOracle(selected);
@@ -287,22 +281,23 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       return;
     }
     setOracleOpen(false);
-    const taunt = reuse ? reuse.taunt : aiTaunt;
+    const taunt = reuse ? reuse.taunt : aiState === "ready" ? aiTaunt : trial.quote;
     wakeAudio(); cancelAi(); setRecap(null);
     const openingLine = opening.current ?? undefined; opening.current = null;
-    setRun({ plan, practice, modelPrepared: true, originalCave, taunt, opening: openingLine, key: ++runKey.current }); setScreen("play"); audio.current?.cue("sail");
+    setRun({ plan, practice, modelPrepared: true, originalCave, taunt, tacticReason: reuse ? reuse.tacticReason : tactic.reason, opening: openingLine, key: ++runKey.current }); setScreen("play"); audio.current?.cue("sail");
   }
   function requestRecap(round: GameState) {
     const token = ++recapToken.current;
-    if (!rivalOnline || !voicePrefsRef.current.commentary || debriefRequest(round)) { setRecap(null); return; }
+    if (!rivalOnline || !voicePrefsRef.current.commentary) { setRecap(null); return; }
     const speaker: Speaker = round.won ? "bard" : "rival";
     setRecap("pending");
-    void requestLine({ trialId: round.id as TrialId, difficulty: round.difficulty, moment: round.won ? "win" : "loss", speaker, facts: factsFor(round, ""), recent: [] })
+    void requestLine({ trialId: round.id as TrialId, difficulty: round.difficulty, moment: round.won ? "win" : "loss", speaker, facts: factsFor(round, "", roundHighlights(round)), recent: [] })
       .then(text => { if (token !== recapToken.current) return; if (!text) { setRecap(null); return; } setRecap({ speaker, text }); speak(text, speaker === "bard" ? "bard" : round.id as TrialId); })
       .catch(() => { if (token === recapToken.current) setRecap(null); });
   }
-  function finish(round: GameState) {
+  function finish(round: GameState, log: RoundLog = emptyLog()) {
     if (!round.done || round.id !== selected) return;
+    setRoundLog(log);
     // The round's own final frame already sounded the victory or defeat.
     audio.current?.setLoops({});
     requestRecap(round);
@@ -386,7 +381,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   function launchRace() {
     wakeAudio();
     const layout = raceGarden === "fresh" ? freshLayout() : RACE_LAYOUTS.find(l => l.id === raceGarden) ?? RACE_LAYOUTS[0];
-    const plan = aiState === "ready" && aiPlan ? aiPlan : standardPlan("lotus");
+    const plan = selected === "lotus" ? tactic.plan : standardPlan("lotus");
     setRun({ plan, practice: true, modelPrepared: false, key: ++runKey.current, race: { layout } });
     setScreen("play");
   }
@@ -407,51 +402,27 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       } else if (e.key === "Escape" && screen !== "play" && screen !== "title" && screen !== "crossing") navigate("title");
     }
     window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
-  }, [screen, settings, restart, assistance, canStart, aiPlan, aiTaunt, rivalOnline]);
+  }, [screen, settings, restart, assistance, canStart, save, selected, aiState, aiTaunt, rivalOnline]);
   const blocked = settings || restart || assistance || oracleOpen;
   const best = save.records[selected].bests[prefs.difficulty];
-  const attempts = save.records[selected].recent.length;
   const rivalChip = <div className="fs-rival-chip" data-status={rival.status} role="status">
     <BrainCircuit size={15}/>
-    <span><b>{rivalOnline ? "AI rival online" : rival.status === "checking" ? "Finding AI rival" : "AI rival offline"}</b></span>
+    <span><b>{rivalOnline ? "AI online" : rival.status === "checking" ? "Finding the AI" : "AI offline"}</b></span>
     {rival.status === "offline" && <button onClick={() => setSettings(true)}>Settings</button>}
   </div>;
   const voiceToggle = <button className="od-sound fs-voice-toggle" aria-pressed={voicePrefs.voice} onClick={() => setVoicePrefs(v => ({ ...v, voice: !v.voice }))} aria-label={voicePrefs.voice ? "Mute the commentary voice" : "Enable the commentary voice"}>{voicePrefs.voice ? <Mic size={17}/> : <MicOff size={17}/>} Voice</button>;
   /** The account and save status. It opens the same account dialog the site bar used to. */
   const accountChip = account && <button className="fs-account-chip" data-status={account.status} onClick={account.open}><CircleUser size={16}/><span><b>{account.name ?? "Sign in"}</b><small>{account.label}</small></span></button>;
-  const recapLine = recap === "pending" ? <p className="fs-recap fs-recap-pending"><Loader2 size={15}/> The bard is composing…</p> : recap ? <blockquote className="fs-recap" data-speaker={recap.speaker}><span>{recap.speaker === "bard" ? voices.bard.name : voices[selected].name}</span><p>{recap.text}</p></blockquote> : null;
 
   const rivalPanel = !rivalOnline ? <div className="fs-rival-panel" data-state="offline" aria-live="polite">
-    <div className="fs-rival-panel-head"><BrainCircuit size={18}/><div><strong>{rival.status === "checking" ? "Looking for your AI rival" : "No AI rival connected"}</strong><small>{rival.status === "checking" ? "One moment…" : "Every trial is played against a model. Settings shows how to connect one."}</small></div></div>
+    <div className="fs-rival-panel-head"><BrainCircuit size={18}/><div><strong>{rival.status === "checking" ? "Looking for the AI model" : "No AI model connected"}</strong><small>{rival.status === "checking" ? "One moment…" : "It asks the Oracle's question and voices the commentary. Settings shows how to connect one."}</small></div></div>
     {rival.status === "offline" && <div className="fs-rival-actions"><button className="a-btn a-small" onClick={() => setSettings(true)}><Settings size={15}/> Open settings</button><button className="a-btn a-small a-ghost" onClick={() => void checkModel()}><RefreshCw size={15}/> Check again</button></div>}
-  </div> : aiState === "loading" || aiState === "idle" ? <div className="fs-rival-panel" data-state="loading" aria-live="polite">
-    <div className="fs-rival-panel-head"><Loader2 size={18} className="fs-spin"/><div><strong>{trial.character} is studying you</strong><small>{attempts ? `Reading your last ${attempts === 1 ? "attempt" : `${attempts} attempts`}` : "First meeting"} · {elapsed}s</small></div></div>
-    <span className="fs-rival-progress" aria-hidden="true"><i/></span>
-    <div className="fs-rival-actions">
-      <button className="a-text-btn" onClick={() => cancelAi("cancelled")}>Cancel preparation</button>
-      {previousPlan && <button className="a-text-btn" onClick={restorePrevious}><Undo2 size={13}/> Keep previous strategy</button>}
-    </div>
-  </div> : aiState === "ready" && aiPlan ? <div className="fs-rival-panel" data-state="ready" aria-live="polite">
-    <div className="fs-rival-panel-head"><Portrait tile={trial.portrait} label={trial.character}/><div><strong>{planLabel(selected, aiPlan)}</strong><small>{trial.character}{trial.character.endsWith("s") ? "’" : "’s"} strategy</small></div></div>
-    <p>{aiPlan.source === "standard" ? trial.standard : trial.adaptive}</p>
-    {aiTaunt && <blockquote className="fs-rival-taunt">{skin ? <Typewriter as="p" text={aiTaunt} still={sceneStill}/> : <p>{aiTaunt}</p>}<button className="a-text-btn" onClick={() => speak(aiTaunt, selected)} aria-label={`Hear ${trial.character}`}><Volume2 size={14}/> Hear it</button></blockquote>}
-    <div className="fs-rival-actions">
-      <button className="a-text-btn" onClick={regenerate}><RefreshCw size={13}/> New strategy</button>
-      {previousPlan && <button className="a-text-btn" onClick={restorePrevious}><Undo2 size={13}/> Keep previous strategy</button>}
-    </div>
-  </div> : aiState === "uncertain" ? <div className="fs-rival-panel" data-state="uncertain" aria-live="polite">
-    <div className="fs-rival-panel-head"><BrainCircuit size={18}/><div><strong>The rival&apos;s plan was set aside</strong><small role="status">{aiError}</small></div></div>
-    <p>The game checks every strategy before play. This one did not pass, so it was not used.</p>
-    <button className="a-btn a-small" onClick={() => void prepare()}><RefreshCw size={15}/> New strategy</button>
-    {previousPlan && <button className="a-btn a-small" onClick={restorePrevious}><Undo2 size={15}/> Keep previous strategy</button>}
-  </div> : aiState === "cancelled" ? <div className="fs-rival-panel" data-state="cancelled" aria-live="polite">
-    <div className="fs-rival-panel-head"><BrainCircuit size={18}/><div><strong>No strategy yet</strong><small role="status">Preparation was cancelled.</small></div></div>
-    <button className="a-btn a-small" onClick={() => void prepare()}><RefreshCw size={15}/> Prepare the rival</button>
-    {previousPlan && <button className="a-btn a-small" onClick={restorePrevious}><Undo2 size={15}/> Keep previous strategy</button>}
-  </div> : <div className="fs-rival-panel" data-state="error" aria-live="polite">
-    <div className="fs-rival-panel-head"><BrainCircuit size={18}/><div><strong>The rival is not ready</strong><small role="alert">{aiError}</small></div></div>
-    <button className="a-btn a-small" onClick={() => void prepare()}><RefreshCw size={15}/> New strategy</button>
-    {previousPlan && <button className="a-btn a-small" onClick={restorePrevious}><Undo2 size={15}/> Keep previous strategy</button>}
+  </div> : <div className="fs-rival-panel" data-state="ready" aria-live="polite">
+    <div className="fs-rival-panel-head"><Portrait tile={trial.portrait} label={trial.character}/><div><strong>{planLabel(selected, tactic.plan)}</strong><small>{trial.character}{trial.character.endsWith("s") ? "’" : "’s"} tactic · chosen by the game</small></div></div>
+    <p>{trial.adaptive}</p>
+    <p className="fs-rival-why">{tactic.reason}</p>
+    {aiState === "ready" && aiTaunt ? <blockquote className="fs-rival-taunt">{skin ? <Typewriter as="p" text={aiTaunt} still={sceneStill}/> : <p>{aiTaunt}</p>}<button className="a-text-btn" onClick={() => speak(aiTaunt, selected)} aria-label={`Hear ${trial.character}`}><Volume2 size={14}/> Hear it</button></blockquote>
+      : <p className="fs-rival-writing"><Loader2 size={14} className="fs-spin"/> {trial.character} {trial.character.endsWith("s") ? "are" : "is"} choosing words…</p>}
   </div>;
 
   return <div className={"a-app od-app fs-app" + (sceneStill ? " a-still" : "") + (prefs.contrast ? " od-contrast" : "")} data-screen={screen} data-skin={skin}>
@@ -499,7 +470,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     </main> : screen === "crossing" && crossing ? <VoyageCrossing
       key={`${crossing.from}>${crossing.to}`}
       save={save} from={crossing.from} to={crossing.to} preview={crossing.preview}
-      rival={!rivalOnline ? "waiting" : aiState === "ready" ? "ready" : aiState === "loading" || aiState === "idle" ? "studying" : "waiting"}
+      rival={!rivalOnline ? "waiting" : aiState === "ready" ? "ready" : "studying"}
       headingRef={heading}
       onSound={(name, gain, pan) => audio.current?.play([{ sound: name, gain, pan }])}
       onSpeak={text => speak(text, "bard")}
@@ -511,7 +482,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
         {screen === "map" && <TrialSelection save={save} selected={selected} difficulty={prefs.difficulty} still={sceneStill} onSelect={setSelected} onOpen={openTrial} onDifficulty={setDifficulty} onBegin={newVoyage}/>}
         {screen === "brief" && <section className="a-brief"><div className="a-brief-scene"><TrialArtwork id={selected} className="fs-brief-art"/>{skin && <PixelAmbience preset={AMBIENCE[selected]} still={sceneStill} strength={prefs.visuals} seed={selected.length}/>}<div className="a-brief-shade"/><div className="a-character-intro"><div className="od-brief-icon"><TrialGlyph id={selected} size={42}/></div><div><span className="a-eyebrow">Trial {trials.findIndex(t => t.id === selected) + 1} of 8 · {trial.kind}</span><h1>{trial.title}</h1>{skin ? <Typewriter as="p" key={selected} text={trial.story} still={sceneStill} delay={500} cps={60}/> : <p>{trial.story}</p>}</div></div></div><div className="a-brief-body"><div className="a-brief-instructions"><span className="a-eyebrow">Objective</span><h2>{challengeObjective(selected, prefs.difficulty)}</h2><div className="od-control-guide"><BookOpen size={21}/><div><strong>Controls</strong><p>{trial.controls}</p></div></div><details className="a-source"><summary>In Homer&apos;s Odyssey</summary>{trial.homer !== trial.story && <p><strong>Book {trial.book}:</strong> {trial.homer}</p>}<p>{trial.adaptation}</p><a href={`https://www.gutenberg.org/files/1727/1727-h/1727-h.htm#chap${trial.book === "IX" ? "09" : trial.book === "X" ? "10" : trial.book === "XII" ? "12" : trial.book === "V" ? "05" : "21"}`} target="_blank" rel="noreferrer">Read the episode</a></details></div><div className="a-brief-options"><label className="a-field">Difficulty<select value={prefs.difficulty} onChange={e => setDifficulty(e.target.value as Difficulty)}><option value="easy">Easy</option><option value="normal">Medium</option><option value="hard">Hard</option></select></label>{rivalPanel}{best && <span className="od-personal-best"><Trophy size={16}/> {best.medal} · Best {best.score} · {Math.round(best.timeMs / 1000)}s</span>}<button className="a-btn a-primary fs-rich fs-start" disabled={!canStart} onClick={() => launch()}><Swords size={19}/><span><b>{canStart ? `Face ${trial.character}` : startHold[0]}</b><small>{canStart ? (oracleOn && !oracleKeys.includes(selected) ? "The Oracle asks first" : "Counts toward your voyage") : lockedReason || startHold[1]}</small></span>{canStart && <kbd>Enter</kbd>}</button><button className="a-btn fs-rich" disabled={!canStart} onClick={() => launch(true)}><GraduationCap size={18}/><span><b>Practice</b><small>Not saved</small></span></button>{selected === "lotus" && <div className="fs-race-brief"><span className="a-eyebrow">Rescue race</span><p>Race a rival trained by reinforcement learning on a second board: the same garden, one clock.</p><label className="a-field">Garden<select value={raceGarden} onChange={e => setRaceGarden(e.target.value)}>{RACE_LAYOUTS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}<option value="fresh">A new random garden</option></select></label><button className="a-btn fs-rich" onClick={launchRace}><Users size={18}/><span><b>Race the trained AI</b><small>Exhibition · not saved</small></span></button></div>}</div></div></section>}
         {screen === "play" && run && <p className="a-caption od-stage-note">The encounter is running in the full-screen stage. Press Escape to pause.</p>}
-        {screen === "result" && result && <section className={`a-result a-paper od-result fs-rich-result ${result.won ? "won" : "lost"}`}><ResultFrieze state={result}/><span className="a-eyebrow">Trial {trials.findIndex(t => t.id === selected) + 1} · {trial.title}</span><div className={`od-medal fs-medal-reveal ${result.practice ? "practice" : result.won ? medalFor(gameSummary(result)) : "failed"}`}><span className="fs-medal-rays" aria-hidden="true"/><Trophy size={49} strokeWidth={1}/><span>{result.practice ? "Practice" : result.won ? `${medalFor(gameSummary(result))} medal` : "No medal"}</span></div><h1>{result.practice ? run?.demo ? "A lesson in cunning" : "Practice complete" : result.won ? "Victory" : "Trial failed"}</h1><p>{result.practice ? "Nothing was saved. Take what you learned into the trial." : result.won ? trial.success : result.feedback}</p><div className="a-result-stats"><span><strong><CountUp value={result.score} still={sceneStill}/></strong>{selected === "bow" ? "axes" : selected === "circe" ? "brew points" : "score"}</span><span><strong><CountUp value={result.elapsed} still={sceneStill} format={clock}/></strong>time</span><span><strong>{difficultyNames[result.difficulty]}</strong>difficulty</span></div><PerformanceSeals state={result}/><div className="fs-result-side">{recapLine}<RivalDebrief state={result} rival={trial.character} online={rivalOnline} onSpeak={text => speak(text, selected)}/></div>{(selected === "bow" || selected === "circe" || !result.practice) && <p className="a-caption">{selected === "bow" || selected === "circe" ? `Odysseus ${result.score} · ${trial.character} ${result.rivalScore}` : ""}{selected !== "bow" && selected !== "circe" ? "" : !result.practice ? " · " : ""}{!result.practice && `Personal best ${save.records[selected].bests[result.difficulty]?.score ?? "—"}`}</p>}<div className="a-actions">{!result.practice && result.won && <button className="a-btn a-primary fs-rich" onClick={() => completed === trials.length || !nextTrial ? navigate("ending") : sailTo(selected, nextTrial.id)}><span><b>{completed === trials.length ? "Return to Ithaca" : "Next trial"}</b>{completed !== trials.length && nextTrial && <small>{nextTrial.title}</small>}</span><ArrowRight size={17}/></button>}<button className={`a-btn fs-rich ${!result.won || result.practice ? "a-primary" : ""}`} disabled={!rivalOnline || !run} onClick={() => save.started ? run && launch(result.practice, run.originalCave, run) : newVoyage()}><RotateCcw size={16}/><span><b>{!save.started ? "New game" : result.won ? "Replay" : "Retry"}</b>{!rivalOnline && <small>Connect your AI rival first</small>}</span></button><button className="a-btn a-ghost fs-rich" onClick={() => navigate("brief")}><SlidersHorizontal size={16}/><span><b>Briefing</b><small>Difficulty and strategy</small></span></button><button className="a-btn a-ghost fs-rich" onClick={() => navigate("map")}><Map size={16}/><span><b>Voyage map</b></span></button></div>{!result.practice && !result.won && <details className="od-accessibility-passage"><summary>Accessibility: request Athena's help</summary><p>An assisted passage is recorded separately and earns no medal.</p><button className="a-text-btn" onClick={() => setAssistance(true)}>Request an assisted passage</button></details>}</section>}
+        {screen === "result" && result && <section className={`a-result a-paper od-result fs-rich-result ${result.won ? "won" : "lost"}`}><ResultFrieze state={result}/><span className="a-eyebrow">Trial {trials.findIndex(t => t.id === selected) + 1} · {trial.title}</span><div className={`od-medal fs-medal-reveal ${result.practice ? "practice" : result.won ? medalFor(gameSummary(result)) : "failed"}`}><span className="fs-medal-rays" aria-hidden="true"/><Trophy size={49} strokeWidth={1}/><span>{result.practice ? "Practice" : result.won ? `${medalFor(gameSummary(result))} medal` : "No medal"}</span></div><h1>{result.practice ? run?.demo ? "A lesson in cunning" : "Practice complete" : result.won ? "Victory" : "Trial failed"}</h1><p>{result.practice ? "Nothing was saved. Take what you learned into the trial." : result.won ? trial.success : result.feedback}</p><div className="a-result-stats"><span><strong><CountUp value={result.score} still={sceneStill}/></strong>{selected === "bow" ? "axes" : selected === "circe" ? "brew points" : "score"}</span><span><strong><CountUp value={result.elapsed} still={sceneStill} format={clock}/></strong>time</span><span><strong>{difficultyNames[result.difficulty]}</strong>difficulty</span></div><PerformanceSeals state={result}/><div className="fs-result-side"><RoundReport state={result} log={roundLog} recap={recap} bardName={voices.bard.name} rivalName={trial.character} tactic={run && !run.lab && !run.demo ? { label: planLabel(selected, run.plan), reason: run.tacticReason ?? "" } : null} oracle={oracleLog[selected] ?? []} oracleOn={oracleOn} models={{ commentary: rival.commentary, oracle: rival.oracle ?? rival.model }} onSpeak={(text, speaker) => speak(text, speaker === "bard" ? "bard" : selected)}/></div>{(selected === "bow" || selected === "circe" || !result.practice) && <p className="a-caption">{selected === "bow" || selected === "circe" ? `Odysseus ${result.score} · ${trial.character} ${result.rivalScore}` : ""}{selected !== "bow" && selected !== "circe" ? "" : !result.practice ? " · " : ""}{!result.practice && `Personal best ${save.records[selected].bests[result.difficulty]?.score ?? "—"}`}</p>}<div className="a-actions">{!result.practice && result.won && <button className="a-btn a-primary fs-rich" onClick={() => completed === trials.length || !nextTrial ? navigate("ending") : sailTo(selected, nextTrial.id)}><span><b>{completed === trials.length ? "Return to Ithaca" : "Next trial"}</b>{completed !== trials.length && nextTrial && <small>{nextTrial.title}</small>}</span><ArrowRight size={17}/></button>}<button className={`a-btn fs-rich ${!result.won || result.practice ? "a-primary" : ""}`} disabled={!rivalOnline || !run} onClick={() => save.started ? run && launch(result.practice, run.originalCave, run) : newVoyage()}><RotateCcw size={16}/><span><b>{!save.started ? "New game" : result.won ? "Replay" : "Retry"}</b>{!rivalOnline && <small>Connect an AI model first</small>}</span></button><button className="a-btn a-ghost fs-rich" onClick={() => navigate("brief")}><SlidersHorizontal size={16}/><span><b>Briefing</b><small>Difficulty and tactic</small></span></button><button className="a-btn a-ghost fs-rich" onClick={() => navigate("map")}><Map size={16}/><span><b>Voyage map</b></span></button></div>{!result.practice && !result.won && <details className="od-accessibility-passage"><summary>Accessibility: request Athena's help</summary><p>An assisted passage is recorded separately and earns no medal.</p><button className="a-text-btn" onClick={() => setAssistance(true)}>Request an assisted passage</button></details>}</section>}
         {screen === "ending" && <section className="a-ending a-paper">{skin && <PixelAmbience preset="fireflies" still={sceneStill} strength={prefs.visuals}/>}<span className="a-eyebrow">Ithaca, at last</span><div className="a-family"><Portrait tile={0} label="Odysseus" large/><Portrait tile={3} label="Penelope" large/><Portrait tile={4} label="Telemachus" large/></div><h1>Home is more than a shore.</h1><p>The long crossing is behind you. Penelope recognizes the man who returned, and Telemachus stands beside his father. For this moment, the sea can wait.</p><div className="a-ending-report">{trials.map(t => <div key={t.id}><span>{t.title}</span><strong>{save.records[t.id].cleared === "assisted" ? "Assisted" : save.records[t.id].bests[prefs.difficulty]?.medal || "Cleared"}</strong></div>)}</div><div className="a-actions"><button className="a-btn a-primary" onClick={() => navigate("map")}>Voyage map</button><button className="a-btn" onClick={() => setRestart(true)}>New game</button></div></section>}
         {screen === "lab" && <AILabMode settings={lab} runs={labRuns} onSettings={setLab} onLaunch={launchLab} onClearRuns={() => setLabRuns([])} onBack={() => navigate("title")} locked={lockedReason || undefined}/>}
         {screen === "howto" && <section className="od-guide"><span className="a-eyebrow">How to play</span><h1>Every trial has its own rules.</h1><div className="od-guide-basics"><div><Compass size={26}/><h2>Follow the voyage</h2><p>Play the trials in any order. Continue opens the first unfinished one. Replay any trial for a better medal.</p></div><div><BrainCircuit size={26}/><h2>Face a thinking rival</h2><p>Before each round your AI model reads your recent attempts and picks the rival&apos;s strategy. The game still owns every collision, score and unlock.</p></div><div><Trophy size={26}/><h2>Earn your legend</h2><p>Win with no hits or misses for gold, up to two for silver, or finish for bronze. Best scores, times, and medals are saved for each difficulty.</p></div><div><Play size={26}/><h2>Take your time</h2><p>Escape pauses the game and the voices. F toggles fullscreen and F3 shows the rival&apos;s reasoning.</p></div></div><div className="od-control-list">{trials.map((t, i) => <article key={t.id}><span className="od-guide-number">0{i + 1}</span><TrialGlyph id={t.id}/><div><h2>{t.title}<small>{t.kind}</small></h2><p>{t.controls}</p></div></article>)}</div><div className="a-actions"><button className="a-btn a-primary fs-rich" disabled={!rivalOnline} onClick={launchDemo}><Play size={17}/><span><b>Watch a rescue</b><small>{rivalOnline ? "Demonstration · not saved" : "Connect your AI rival first"}</small></span></button><button className="a-btn fs-rich" onClick={() => navigate("lab")}><FlaskConical size={17}/><span><b>AI Lab</b></span></button><button className="a-btn a-ghost" onClick={() => navigate("title")}><ArrowLeft size={17}/> Main menu</button></div></section>}
@@ -519,11 +490,11 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       </main><footer className="a-footer" inert={blocked}><span>{completed} / 8 trials cleared</span><span/></footer>
     </>}
     {screen === "play" && run?.race && <LotusRaceRound key={run.key} difficulty={prefs.difficulty} plan={run.plan} layout={run.race.layout} onLeave={leaveRace} onAudio={frame => audio.current?.frame(frame)}/>}
-    {screen === "play" && run && !run.race && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} taunt={run.taunt} opening={run.opening} commentary={rivalOnline && voicePrefs.commentary} decisions={rivalOnline} onSpeak={speak} onSilence={silence} onSettings={() => setSettings(true)} onAudio={frame => audio.current?.frame(frame)} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "map")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined}/>}
+    {screen === "play" && run && !run.race && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} taunt={run.taunt} opening={run.opening} commentary={rivalOnline && voicePrefs.commentary} onSpeak={speak} onSilence={silence} onSettings={() => setSettings(true)} onAudio={frame => audio.current?.frame(frame)} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "map")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined}/>}
     {(storageError || audioError) && <div className="a-notice" role="status">{storageError || audioError}</div>}
     {settings && <div className="a-modal-backdrop"><section className="a-settings a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-settings-title"><div className="a-modal-head"><h2 id="a-settings-title">Settings</h2><button className="a-btn a-small" onClick={() => setSettings(false)}>Close</button></div>
       <div className="fs-settings-cols"><div>
-      <div className="a-connection fs-settings-rival" data-status={rival.status}><strong><BrainCircuit size={16}/> AI rival</strong><p role="status">{rival.message}</p>{rivalOnline && <dl className="fs-model-facts"><div><dt>Plans the rivals</dt><dd>{rival.model}</dd></div><div><dt>Voices the commentary</dt><dd>{rival.commentary}</dd></div>{oracleOn && <><div><dt>Writes the Oracle&apos;s questions</dt><dd>{rival.oracle ?? rival.model}</dd></div><div><dt>Searches the Odyssey</dt><dd>{rival.embedder ? `${rival.embedder} + BM25` : "BM25 keywords (no embedding service)"}</dd></div></>}<div><dt>Voice</dt><dd>{voiceLabels[voiceStatus]}</dd></div></dl>}<button className="a-btn a-small fs-rich" disabled={rival.status === "checking"} onClick={() => void checkModel()}><RefreshCw size={15}/><span><b>Check connection</b><small>Every trial needs a model</small></span></button>
+      <div className="a-connection fs-settings-rival" data-status={rival.status}><strong><BrainCircuit size={16}/> AI model</strong><p role="status">{rival.message}</p>{rivalOnline && <dl className="fs-model-facts"><div><dt>Voices the commentary</dt><dd>{rival.commentary}</dd></div>{oracleOn && <><div><dt>Writes the Oracle&apos;s questions</dt><dd>{rival.oracle ?? rival.model}</dd></div><div><dt>Searches the Odyssey</dt><dd>{rival.embedder ? `${rival.embedder} + BM25` : "BM25 keywords (no embedding service)"}</dd></div></>}<div><dt>Voice</dt><dd>{voiceLabels[voiceStatus]}</dd></div></dl>}<button className="a-btn a-small fs-rich" disabled={rival.status === "checking"} onClick={() => void checkModel()}><RefreshCw size={15}/><span><b>Check connection</b><small>Every trial needs a model</small></span></button>
         <details><summary>How to connect a model</summary><ol className="fs-connect-steps"><li><b>This computer</b> Install Ollama, run <code>ollama pull qwen3:4b-instruct</code>, then set <code>FARSHORE_MODEL_URL=http://127.0.0.1:11434/v1/chat/completions</code> and <code>FARSHORE_MODEL_NAME=qwen3:4b-instruct</code> in <code>.env</code> and restart the game server.</li><li><b>Google Colab</b> Open <code>colab/farshore_model_server.ipynb</code>, choose a T4 GPU runtime, run every cell, and paste the printed <code>FARSHORE_*</code> lines into <code>.env</code>. It also starts a neural voice.</li><li><b>Online accounts</b> Add an OpenAI, Groq or OpenRouter connection under Account.</li></ol></details></div>
       <div className="a-connection"><strong><Feather size={16}/> Commentary & voice</strong>
         <p className="a-caption" role="status">{voiceNotes[voiceStatus]}{voiceStatus === "loading" && voiceLoad.progress > 0 && voiceLoad.progress < 1 ? ` ${Math.round(voiceLoad.progress * 100)}%${voiceLoad.sizeMb ? ` of ${voiceLoad.sizeMb} MB` : ""}.` : ""}</p>
@@ -534,7 +505,11 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       </div>
       </div><div>
       <button className="a-setting-toggle" aria-pressed={prefs.sound} onClick={() => void toggleSound()}><span>Music & sounds<small>Every cue is also shown on screen.</small></span><strong>{prefs.sound ? "On" : "Off"}</strong></button><OdysseyPreferences preferences={prefs} onChange={setPrefs}/><button className="a-setting-toggle" aria-pressed={prefs.still} onClick={() => setPrefs(p => ({ ...p, still: !p.still }))}><span>Reduced motion<small>Stops decorative motion. Gameplay stays live.</small></span><strong>{prefs.still ? "On" : "Off"}</strong></button><button className="a-setting-toggle" aria-pressed={oracleOn} onClick={() => setOracleOn(v => { writeOracleEnabled(!v); return !v; })}><span>The Oracle&apos;s key<small>Answer a question from Homer&apos;s text before each trial.</small></span><strong>{oracleOn ? "On" : "Off"}</strong></button>{screen !== "play" && <div className="a-connection"><strong>Showcase</strong><p className="a-caption">Watch the crossing between two trials. Your voyage is unchanged.{sceneStill ? " Turn off Reduced motion to watch it." : ""}</p><button className="a-btn a-small" disabled={sceneStill} onClick={previewCrossing}>Preview a crossing</button></div>}</div></div></section></div>}
-    {oracleOpen && <OracleKey trialTitle={trial.title} state={oracle} onSolved={() => setOracleKeys(keys => keys.includes(selected) ? keys : [...keys, selected])} onEnter={() => launch()} onAgain={() => consultOracle(selected)} onClose={closeOracle}/>}
+    {oracleOpen && <OracleKey trialTitle={trial.title} state={oracle} onAnswer={(item, picked) => setOracleLog(log => ({ ...log, [item.trialId]: [...(log[item.trialId] ?? []), {
+      trial: item.trialId, question: item.question, picked: item.options[picked], answer: item.options[item.answer], correct: picked === item.answer,
+      evidence: item.evidence, ref: item.source.kind === "odyssey" ? `Homer, Odyssey, ${item.source.ref}` : item.source.ref,
+      model: item.generation.model, ms: item.generation.ms, retrieval: item.retrieval.mode === "hybrid" ? `${item.retrieval.embedder} meaning search with BM25 keywords` : "BM25 keyword search", mock: !!item.mock,
+    }].slice(-3) }))} onSolved={() => setOracleKeys(keys => keys.includes(selected) ? keys : [...keys, selected])} onEnter={() => launch()} onAgain={() => consultOracle(selected)} onClose={closeOracle}/>}
     {restart && <div className="a-modal-backdrop"><section className="a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-restart-title"><h2 id="a-restart-title">Start a new game?</h2><p>This clears your voyage, best scores and medals.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setRestart(false)}>Keep this voyage</button><button className="a-btn a-primary" onClick={newVoyage}>New game</button></div></section></div>}
     {assistance && <div className="a-modal-backdrop"><section className="a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-assist-title"><h2 id="a-assist-title">A little help from Athena.</h2><p>Your voyage marks this trial Assisted, with no medal or score. You can replay it later.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setAssistance(false)}>Keep trying</button><button className="a-btn a-primary" onClick={useAssistance}>Accept Athena's help</button></div></section></div>}
   </div>;

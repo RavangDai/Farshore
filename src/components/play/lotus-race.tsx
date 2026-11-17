@@ -73,7 +73,8 @@ function Crew({ rescued, carrying }: { rescued: number; carrying: boolean }) {
     </span>
   );
 }
-function Lives({ hits }: { hits: number }) {
+/** Three hearts; shared with the Lotus Hunt's scoreboard. */
+export function Lives({ hits }: { hits: number }) {
   return <span className="fs-race-lives" aria-label={`${3 - hits} of 3 lives`}>{[0, 1, 2].map(i => <Heart key={i} size={13} fill="currentColor" className={i < 3 - hits ? "full" : "empty"} />)}</span>;
 }
 

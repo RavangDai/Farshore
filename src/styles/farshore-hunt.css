@@ -1,0 +1,103 @@
+/* FARSHORE · The Lotus Hunt (lotus-hunt.tsx).
+   One garden, large, in the 16:9 stage: you drive the hunters, the trained
+   Odysseus runs the rescue. Built on the Rescue Race's scoreboard, live
+   strip and results styles (farshore-race.css); this file adds what the
+   hunt needs on top: the hunter chips, the sprint and leap badges, the
+   six crew dots, the single board,
+   the footer with the AI Live strip and the key hints, and the touch pad's
+   two extra buttons. */
+
+.fs-hunt { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.fs-hunt-bar { grid-template-columns: minmax(0, 1.25fr) auto minmax(0, 1.25fr) auto; }
+
+/* ------------------------------------------------------------ your hunters -- */
+
+.fs-hunt-chips { display: inline-flex; gap: 4px; }
+.fs-hunt-chip {
+  display: inline-grid; justify-items: center; gap: 2px;
+  min-width: 36px; padding: 4px 7px;
+  border: 1px solid #b88a4a66; border-radius: calc(var(--fs-round,1)*5px);
+  background: #03101dcc; color: #c7d6de;
+  font: 700 12px/1 var(--fs-font-ui, var(--fs-font-ui)); cursor: pointer;
+}
+.fs-hunt-chip small { font: max(var(--fs-font-floor,0px),10px)/1 var(--fs-font-ui, var(--fs-font-ui)); color: #7f98a6; letter-spacing: 0.04em; white-space: nowrap; }
+.fs-hunt-chip[data-possessed] { border-color: #f2c46d; color: #f2c46d; box-shadow: 0 0 10px #e9b85c66; }
+.fs-hunt-chip[data-possessed] small { color: #f2c46d; }
+.fs-hunt-chip[data-phase="away"] small { color: #d8b3ff; }
+.fs-hunt-chip[data-phase="arriving"] small, .fs-hunt-chip[data-phase="leaving"] small { color: #d8b3ff; animation: fs-pulse 1.1s ease-in-out infinite; }
+.fs-hunt-chip:hover:not(:disabled) { border-color: #e9b85c; }
+.fs-hunt-chip:disabled { cursor: default; opacity: 0.75; }
+
+/* ---------------------------------------------------------------- his leap -- */
+
+.fs-hunt-leap {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid #ffffff22;
+  font: 700 max(var(--fs-font-floor,0px),11px)/1 var(--fs-font-ui, var(--fs-font-ui)); letter-spacing: 0.08em; white-space: nowrap;
+}
+.fs-hunt-leap[data-state="sealed"] { color: #8fa3b0; border-color: #8fa3b044; }
+.fs-hunt-leap[data-state="cooling"] { color: #b9c8d2; border-color: #6fe0f544; }
+.fs-hunt-leap[data-state="ready"] { color: #6fe0f5; border-color: #32d4f5aa; background: #32d4f51f; box-shadow: 0 0 12px #32d4f566; animation: fs-pulse 1.4s ease-in-out infinite; }
+/* Hermes' sandals: calm while charged (they usually are), bright while he sprints. */
+.fs-hunt-sprint[data-state="ready"] { color: #f2dca6; border-color: #ffe4a355; background: none; box-shadow: none; animation: none; }
+.fs-hunt-sprint[data-state="active"] { color: #1b1405; border-color: #ffe4a3; background: #ffe4a3; box-shadow: 0 0 14px #ffe4a399; }
+.fs-hunt-sprint[data-state="cooling"] { border-color: #ffe4a333; }
+
+/* Six crew dots instead of the race's three. */
+.fs-hunt-crew { gap: 3px; }
+.fs-hunt-crew i { width: 11px; height: 11px; }
+
+/* ------------------------------------------------------------------- board -- */
+
+.fs-hunt-field {
+  display: grid; place-items: center; min-height: 0;
+  padding: clamp(6px, 1vh, 12px) clamp(8px, 1.2vw, 16px) 0;
+}
+.fs-hunt-board { width: 100%; height: 100%; grid-template-rows: minmax(0, 1fr); }
+.fs-hunt-board canvas { width: 100%; height: 100%; object-fit: contain; }
+
+/* ------------------------------------------------------------------ footer -- */
+
+.fs-hunt-foot {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  padding: 6px clamp(8px, 1.2vw, 16px) clamp(6px, 1vh, 10px);
+}
+.fs-app .fs-hunt-hint { margin: 0; font: 12px/1.2 var(--fs-font-ui, var(--fs-font-ui)); color: #9fb6c6; white-space: nowrap; }
+.fs-hunt-hint kbd {
+  display: inline-block; margin: 0 2px 0 6px; padding: 1px 5px;
+  border: 1px solid #b88a4a66; border-bottom-width: 2px; border-radius: calc(var(--fs-round,1)*3px);
+  background: #0b2437; color: #f1dfb6; font: 11px/1.3 ui-monospace, Consolas, monospace;
+}
+.fs-hunt-hint kbd:first-child { margin-left: 0; }
+
+/* His two powers sit beside the AI Live strip. */
+.fs-hunt-powers { display: inline-flex; gap: 6px; }
+
+/* ----------------------------------------------------------------- results -- */
+
+.fs-hunt-table th[scope="row"] { width: 60%; }
+.fs-hunt-table td { color: #f4e6c4; text-align: right; font-variant-numeric: tabular-nums; }
+.fs-hunt-result[data-winner="hunters"] h2 { color: #f2c46d; }
+.fs-hunt-result[data-winner="odysseus"] h2 { color: #6fe0f5; }
+.fs-hunt-result[data-winner="draw"] h2 { color: #d8b3ff; }
+
+/* ------------------------------------------------------------------ narrow -- */
+
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1024px) {
+  .fs-hunt-pad { grid-template-columns: repeat(3, 52px) 64px 64px; }
+  .fs-hunt-pad button:nth-child(5) { grid-column: 4; grid-row: 1 / 3; }
+  .fs-hunt-pad button:nth-child(6) { grid-column: 5; grid-row: 1 / 3; }
+  .fs-hunt-hint { display: none; }
+  .fs-hunt-foot { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+@media (max-width: 760px) {
+  /* The hunt fills a phone's screen instead of a letterboxed 16:9 strip. */
+  .fs-stage[data-label="Lotus-Eaters hunt"] .fs-stage-frame { aspect-ratio: auto; max-width: none; height: 100%; }
+  .fs-hunt-bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; }
+  .fs-hunt-chip { min-width: 30px; padding: 3px 5px; }
+  .fs-hunt-chip small { display: none; }
+  .fs-hunt-leap { padding: 2px 6px; }
+  .fs-hunt-field { padding: 4px 6px 0; }
+  .fs-hunt-board canvas { height: auto; }
+}

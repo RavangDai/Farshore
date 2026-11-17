@@ -150,6 +150,26 @@ Phase 2 (the palace battle against the suitors) is not implemented. Phase 1 is a
 
 ---
 
+## The Lotus Hunt — you play the guardians
+
+An exhibition mode on the Lotus-Eaters briefing ("Hunt the trained AI"), beside the Rescue Race. The trained PPO Odysseus (the race's rival, run in the browser with ONNX Runtime Web) rescues the crew on one garden; you drive the guardians.
+
+**Controls**: arrows or WASD step the hunter you possess; Tab or Q swaps; 1, 2, 3 select; Space summons or dismisses the third hunter; Escape pauses. Your hunter cannot enter the ship's lantern light (the ship tile and its four neighbours). The hunters you are not driving keep the game's own patrol and pursuit.
+
+**The race**: he must bring the whole crew aboard, six sailors, three waiting at a time; each one he lands is replaced by another wandering out at least six steps from the ship. You must catch him three times. A catch makes him drop the sailor he escorts and return to the ship. When the clock (120 s) runs out, the larger share of its goal wins (sailors out of six against catches out of three); equal shares draw, so a camping villain gains nothing. The policy only ever sees three waiting sailors and a count aboard that rises for the last three, as in training.
+
+**His two powers** (game rules applied at his decision time; the policy is unchanged):
+- *Hermes' sandals* are always his: when a hunter comes within two steps by path, he sprints for 1.2 s, stepping every 90 ms instead of 170 ms, then they recharge (14 / 11 / 8 s by difficulty). Not while moly or a fresh catch already protects him.
+- *The leap* is the price of your third hunter: Space calls it up; it rises three seconds later at the patrol point farthest from Odysseus (waiting if he stands on or beside the tile). While it is in the garden, and until it has fully faded after a dismissal, he can leap one hedge when cornered (no safe route and a hunter within two tiles), then not again for 12 / 10 / 7 s. He only half-sees a third guardian, since the model was trained on two.
+
+His close calls are broken with a little randomness so no single trap works every time.
+
+**Difficulty** (yours): your hunter steps every 140 / 150 / 160 ms on Easy / Medium / Hard, a little faster than his 170 ms (190 ms on Easy), so you can run him down unless he sprints or leaps. The scripted hunters use the board's Hard / Medium / Easy rules (600 ms with interception, 780 ms A* pursuit, 1050 ms patrol only).
+
+**Balance**: `node --experimental-strip-types scripts/hunt-balance.mjs` plays the shipped policy against scripted hunters on six gardens. On 2026-11-17, a bot that drives roughly like a person (200 ms reactions, occasional swaps, knows every path) won about three hunts in four on Easy and Medium and one in four to one in two on Hard; hunts lasted 25-60 s. Nobody at the keys always loses. Expect a real player to do somewhat worse than the bot. Design: `docs/superpowers/specs/2026-11-17-lotus-hunt-design.md`; rules in `src/lib/encounters/lotus-hunt.ts`, tests in `tests/lotus-hunt.test.mjs`.
+
+---
+
 ## Honest status summary
 
 All eight encounters are playable, with real win and lose conditions, real scoring, and a model-planned rival whose plan changes play. In three of them (Cyclops' Cave, Sirens' Passage and the Palace of Ithaca) the model also decides live from game-checked menus, and the rival gives a debrief after the round. The other five encounters run their engines' own logic, shaped by the plan. See `AI_ARCHITECTURE.md`.

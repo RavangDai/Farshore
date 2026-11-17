@@ -23,7 +23,7 @@ Why it matters: the project's AI story for class is a trained agent you can actu
 - Retraining the policy, a new action space, or a new observation version.
 - Replacing or changing the Rescue Race, solo play, training or evaluation behaviour.
 - Commentary or the language model: like the race, the hunt needs no model server.
-- A second magic power. The user said "1-2"; one ships now, the hook stays open.
+- ~~A second magic power.~~ Superseded by the balance pass below: Hermes' sandals ship as his second power.
 
 ## Anti-goals
 
@@ -119,3 +119,16 @@ Touch: the race's arrow pad plus two buttons, Swap and Third.
 ## Left to the builder
 
 Exact colours and the arc animation; the wording of result lines; whether the on-screen bloom pulses; how the HUD phrases the leap state. Tuning of step times and cooldowns after real play belongs to the user.
+
+## Balance pass (2026-11-17, later the same day)
+
+The user restated the vision ("Odysseus also strong AI opponent ... give him some special magical power like 1-2 ... so game become intense"). Before tuning, the shipped policy played the hunt against scripted hunters with the rules above (`scripts/hunt-balance.mjs`). The hunt was lopsided and short: Odysseus landed all three sailors in about 18 s in nearly every game. A sensible chasing bot won 0-3 of 18 hunts per difficulty, the leap fired less than once a hunt, and the 120 s clock never mattered. Your hunter (190-250 ms) was slower than him (170 ms), so a chase could not close.
+
+Changes, each checked against the simulation:
+
+- **Your hunter is a little faster than him**: 140 / 150 / 160 ms (Easy / Medium / Hard). On Easy he walks at 190 ms instead of 170 ms. A faster hunter alone did not make Easy easier, because the bots overshoot junctions at 130 ms; his pace did.
+- **Hermes' sandals, his second power** (always his): when a hunter is within two steps by path, he sprints for 1.2 s (a step every 90 ms), then recharges for 14 / 11 / 8 s. Not under moly or just after a catch. A catch ends a sprint. He answers the faster hunter, and the near-misses make the intensity.
+- **The whole crew: six sailors**, three waiting at a time; each one landed is replaced by a sailor at least six steps from the ship. The board the policy sees keeps at most three waiting sailors, and its count aboard only rises for the last three, so observations stay in the training range. Timeouts compare shares (sailors out of six against catches out of three).
+- The leap and the third hunter are unchanged.
+
+Result (bot that drives roughly like a person: 200 ms reactions, swaps at most every 1.5 s, perfect path knowledge; 24-36 hunts per cell, noisy by about ±10%): it wins about 80-90% on Easy, 75-80% on Medium, 35-45% on Hard. Hunts last 25-60 s. With nobody at the keys he always wins. Sprints come one to five times a hunt, and leaps one to two times when the third hunter is out. A real player should do worse than the bot, which knows every path. Tuning after real play belongs to the user. All rule values live in `HUNT`.

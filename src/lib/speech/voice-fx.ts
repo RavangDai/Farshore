@@ -37,7 +37,8 @@ export type Playback = { done: Promise<void>; stop(): void; setVolume(volume: nu
 /** Offsets the make-up gain the Web Audio compressor adds (about +1.7 dB at these settings). */
 const MAKEUP = 0.82;
 
-export function playWithFx(context: AudioContext, buffer: AudioBuffer, fx: VoiceFx, volume: number): Playback {
+/** `destination` defaults to the speakers; the audio manager passes its voice bus so narration follows the mixer. */
+export function playWithFx(context: AudioContext, buffer: AudioBuffer, fx: VoiceFx, volume: number, destination: AudioNode = context.destination): Playback {
   const output = context.createGain(), trim = context.createGain(), limiter = context.createDynamicsCompressor();
   output.gain.value = volume;
   trim.gain.value = MAKEUP;
@@ -49,7 +50,7 @@ export function playWithFx(context: AudioContext, buffer: AudioBuffer, fx: Voice
   limiter.release.value = 0.12;
   output.connect(limiter);
   limiter.connect(trim);
-  trim.connect(context.destination);
+  trim.connect(destination);
 
   const low = context.createBiquadFilter(), presence = context.createBiquadFilter(), high = context.createBiquadFilter();
   low.type = "lowshelf";

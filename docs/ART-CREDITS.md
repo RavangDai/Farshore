@@ -44,9 +44,9 @@ The October 19 encounter detail pass adds the original transparent sprite atlas 
 
 ## Music and sound
 
-The four voyage themes are original procedural compositions for Farshore, defined in `src/lib/audio/voyage-audio.ts`. Scene changes crossfade between themes.
+The menus' music and ambience loops and the sampled interface, Oracle and stinger effects come from the FARSHORE audio asset pack (`docs/ai-eval/Farshore-Audio-Assets`): original procedural starters made by its `tools/generate_starter.py`, with no commercial samples. They are mastered for the game (loudness, loop seams, fades) by `scripts/audio/master_audio.py`; `public/audio/farshore/generation-status.json` records each file's origin. The pack's voice lines were rendered again with Kokoro-82M (below) in place of its Flite starters. The four original procedural voyage themes in `src/lib/audio/voyage-audio.ts` still score the earlier modes.
 
-Every sound effect and ambience is original and rendered in code (`src/lib/audio/sounds.ts`), from physical models rather than recordings: plucked strings built from their partials for the lyre, struck bronze, stone, wood and glass bodies, glottal-pulse throats for Polyphemus, a sung vowel ensemble for the Sirens, scattered grains for gravel, rain and fire, and shaped noise for wind, surf and thunder. Reverbs are generated impulse responses. No external recordings, samples, or third-party music are bundled. During development an AudioSet classifier (Xenova/ast-finetuned-audioset-10-10-0.4593) was used only as a listening check, to confirm that each sound is heard as what it represents; it is not part of the game.
+Every gameplay sound effect and the ambience beds under the loops are original and rendered in code (`src/lib/audio/sounds.ts`), from physical models rather than recordings: plucked strings built from their partials for the lyre, struck bronze, stone, wood and glass bodies, glottal-pulse throats for Polyphemus, a sung vowel ensemble for the Sirens, scattered grains for gravel, rain and fire, and shaped noise for wind, surf and thunder. Reverbs are generated impulse responses. During development an AudioSet classifier (Xenova/ast-finetuned-audioset-10-10-0.4593) was used only as a listening check, to confirm that each sound is heard as what it represents; it is not part of the game.
 
 ## Voices
 

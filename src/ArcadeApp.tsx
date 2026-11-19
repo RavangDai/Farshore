@@ -5,6 +5,9 @@ import { RoundReport } from "./components/play/round-report";
 import { ARCADE_PREFS, ARCADE_SAVE, adaptivePlan, assistTrial, gamePlan, planDescription, clearedCount, medalFor, finishAttempt, newArcade, planLabel, readArcade, trialFor, trials, unlocked, standardPlan, type ArcadeSave, type Difficulty, type OpponentPlan, type TrialId } from "./lib/arcade/arcade";
 import { createGame, gameSummary, type GameState } from "./lib/arcade/arcade-runtime";
 import { VoyageAudio } from "./lib/audio/voyage-audio";
+import { readMixer, writeMixer, type MixerPrefs } from "./lib/audio/mixer";
+import { useAudioDirector } from "./components/audio/use-audio-director";
+import { NarrationCaption } from "./components/audio/narration-caption";
 import { encounterSounds } from "./lib/audio/cues";
 import "./styles/arcade.css";
 import "./styles/mythic.css";
@@ -96,6 +99,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const [rival, setRival] = useState<Rival>({ status: "checking", message: "Looking for your AI rival...", model: null, commentary: null });
   const [voicePrefs, setVoicePrefs] = useState<VoicePrefs>(readVoicePrefs), [speaking, setSpeaking] = useState(false), [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("checking"), [voiceLoad, setVoiceLoad] = useState<VoiceLoad>({ progress: 0, sizeMb: null });
   const [recap, setRecap] = useState<{ speaker: Speaker; text: string } | "pending" | null>(null);
+  /** The device's mix (master, ambience, interface, narration, subtitles), and whether sound is reaching the speakers. */
+  const [mixer, setMixer] = useState<MixerPrefs>(readMixer), [audioLive, setAudioLive] = useState(false);
   const [run, setRun] = useState<Run | null>(null), [result, setResult] = useState<GameState | null>(null);
   /** What happened in the finished round and what was said about it, for the round report. */
   const [roundLog, setRoundLog] = useState<RoundLog>(emptyLog);
@@ -144,12 +149,22 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const exhibition = selected === "lotus" && (briefMode === "race" || briefMode === "hunt");
   const briefReady = exhibition || canStart;
 
-  useEffect(() => { const service = new VoyageAudio(); audio.current = service; return () => { service.dispose(); audio.current = null; request.current?.abort(); }; }, []);
+  useEffect(() => { const service = new VoyageAudio(); audio.current = service; service.onState(setAudioLive); return () => { service.onState(null); service.dispose(); audio.current = null; request.current?.abort(); }; }, []);
+  useEffect(() => { writeMixer(mixer); }, [mixer]);
+  // Browsers only let sound start from a gesture: the first press or key anywhere unlocks it, not just a navigation.
+  useEffect(() => {
+    if (!prefs.sound) return;
+    const wake = () => { void audio.current?.unlock().catch(() => setAudioError("Audio could not start. Every cue is also visible.")); remove(); };
+    const remove = () => { window.removeEventListener("pointerdown", wake, true); window.removeEventListener("keydown", wake, true); };
+    window.addEventListener("pointerdown", wake, true);
+    window.addEventListener("keydown", wake, true);
+    return remove;
+  }, [prefs.sound]);
   useEffect(() => {
     const box = new VoiceBox(); voice.current = box; box.onSpeaking(setSpeaking); box.onStatus(setVoiceStatus); box.onLoad(setVoiceLoad);
     return () => { box.dispose(); voice.current = null; };
   }, []);
-  useEffect(() => { voice.current?.setVolume(voicePrefs.volume); if (!voicePrefs.voice) voice.current?.stop(); try { localStorage.setItem(VOICE_PREFS, JSON.stringify(voicePrefs)); } catch { /* Storage is optional. */ } }, [voicePrefs]);
+  useEffect(() => { voice.current?.setVolume(voicePrefs.volume * mixer.master); if (!voicePrefs.voice) voice.current?.stop(); try { localStorage.setItem(VOICE_PREFS, JSON.stringify(voicePrefs)); } catch { /* Storage is optional. */ } }, [voicePrefs, mixer.master]);
   useEffect(() => { try { localStorage.setItem(saveKey, JSON.stringify(save)); localStorage.setItem(preferencesKey, JSON.stringify(prefs)); setStorageError(""); } catch { setStorageError("Browser saving is unavailable. Keep this tab open to preserve your voyage."); } }, [save, prefs, saveKey, preferencesKey]);
   useEffect(() => { if (previousPreferences.current !== prefs) { previousPreferences.current = prefs; online?.command({ type: "preferences", preferences: prefs }); } }, [prefs, online]);
   useEffect(() => { heading.current?.focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: "instant" }); }, [screen]);
@@ -173,9 +188,12 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       settings: (open: boolean, tab: SettingsTab = "sound") => { setSettingsTab(tab); setSettings(open); },
       mode: (m: BriefMode) => setBriefMode(m),
       quality: (q: QualityChoice) => setQualityChoice(q),
+      // Starts a practice round directly, so browser checks of the in-play sound need no model (development only).
+      play: (trial: TrialId) => { setSelected(trial); setResult(null); setRun({ plan: standardPlan(trial), practice: true, modelPrepared: false, key: ++runKey.current }); setScreen("play"); },
     };
   }, [prefs.difficulty]);
-  useEffect(() => { audio.current?.update({ enabled: prefs.sound, music: prefs.music, effects: prefs.effects, ducked: speaking, quiet: settings, mood: screen === "ending" ? "home" : screen === "play" ? selected === "bow" ? "home" : "danger" : "voyage" }); }, [prefs.sound, prefs.music, prefs.effects, screen, selected, settings, speaking]);
+  // The mixer: the master and each channel. Settings stay audible, so a slider can be judged by ear.
+  useEffect(() => { audio.current?.update({ enabled: prefs.sound, music: prefs.music, effects: prefs.effects, ducked: speaking, quiet: false, mood: screen === "ending" ? "home" : screen === "play" ? selected === "bow" ? "home" : "danger" : "voyage", master: mixer.master, ambience: mixer.ambience, voice: voicePrefs.voice ? voicePrefs.volume : 0, ui: mixer.ui }); }, [prefs.sound, prefs.music, prefs.effects, screen, selected, speaking, mixer, voicePrefs.voice, voicePrefs.volume]);
   useEffect(() => { void checkModel(); }, []);
   // Starting a model service is noticed without a reload.
   useEffect(() => {
@@ -196,13 +214,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   useEffect(() => () => oracleRequest.current?.abort(), []);
   // Asking the Oracle's status starts its passage index building on the server, ahead of the first briefing.
   useEffect(() => { if (oracleOn && rivalOnline) void fetch("/api/oracle", { cache: "no-store" }).catch(() => {}); }, [oracleOn, rivalOnline]);
-  // Each environment has its own soundscape: the chapter views and briefings play the trial's ambience, the rest the open sea.
-  useEffect(() => {
-    if (screen === "play") return;
-    audio.current?.setLoops({});
-    audio.current?.setScene(screen === "trials" || screen === "brief" || screen === "result" ? TRIAL_COPY[selected].ambience : screen === "ending" ? "hall" : "sea");
-    if (screen === "brief") audio.current?.prepare(encounterSounds[selected]);
-  }, [screen, selected]);
+  // Each place's music and ambience are directed by useAudioDirector; the encounter's own effects render while its briefing is read.
+  useEffect(() => { if (screen === "brief") audio.current?.prepare(encounterSounds[selected]); }, [screen, selected]);
   // The bard reads the prologue aloud.
   useEffect(() => { if (screen === "intro") speak(prologueSpeech(prologue[intro]), "bard"); return () => voice.current?.stop(); }, [screen, intro]);
   // Lines the game knows ahead of time are fetched while the player reads, so they play at once.
@@ -223,7 +236,16 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     }
     document.addEventListener("keydown", key); return () => { document.removeEventListener("keydown", key); if (screen === "play") document.querySelector<HTMLButtonElement>(".a-round-overlay button")?.focus(); else heading.current?.focus({ preventScroll: true }); };
   }, [restart, assistance, oracleOpen]);
-  const speak = useCallback((text: string, id: VoiceId) => { if (voicePrefsRef.current.voice) voice.current?.say(text, id); }, []);
+  const director = useAudioDirector({
+    audio, screen, selected, live: audioLive, voiceOn: voicePrefs.voice, mixer, speaking,
+    outcome: screen === "result" && result ? (result.practice ? "practice" : result.won ? "victory" : "defeat") : null,
+    rivalOnline, rivalChecking: rival.status === "checking", aiReady: aiState === "ready", oracleLoading: oracle.status === "loading",
+    exhibition, planId: tactic.plan.planId, runKey: screen === "play" && run ? run.key : null,
+    recap: recap === "pending" ? "pending" : recap ? "text" : "none", dialog: restart || assistance || oracleOpen,
+  });
+  const speakLive = director.speakLive;
+  // A live line waits for a recorded one to finish rather than talking over it.
+  const speak = useCallback((text: string, id: VoiceId) => { if (voicePrefsRef.current.voice) speakLive(() => voice.current?.say(text, id)); }, [speakLive]);
   const silence = useCallback(() => voice.current?.stop(), []);
   /** Drops the taunt being written; "idle" lets the next briefing ask again. */
   function cancelAi() { generation.current++; request.current?.abort(); request.current = null; setAiState("idle"); setAiTaunt(""); }
@@ -359,7 +381,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     setPrefs(old => ({ ...old, sound: enabled }));
   }
   function setDifficulty(value: Difficulty) { cancelAi(); setPrefs(old => ({ ...old, difficulty: value })); }
-  function newVoyage() { online?.command({ type: save.started ? "restart" : "start" }); cancelAi(); setSave({ ...newArcade(), started: true }); setSelected("lotus"); setIntro(0); setRestart(false); setScreen("intro"); }
+  function newVoyage() { director.resetVoyage(); audio.current?.sample("sail-flap"); online?.command({ type: save.started ? "restart" : "start" }); cancelAi(); setSave({ ...newArcade(), started: true }); setSelected("lotus"); setIntro(0); setRestart(false); setScreen("intro"); }
   function continueVoyage() { if (nextTrial) openTrial(nextTrial.id, "title"); else navigate("ending"); }
   /**
    * After an encounter, Odysseus crosses the chart to the next island before
@@ -505,7 +527,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       : <ModelLab model={rival} />}</div>
   </main>;
 
-  return <div className={"a-app od-app fs-app cn-app" + (sceneStill ? " a-still" : "") + (prefs.contrast ? " od-contrast" : "")} data-screen={screen} data-skin="cinema" data-motion={sceneStill ? "reduced" : "full"} data-quality={quality} style={{ "--cn-accent": accent, "--cn-fx": String(prefs.visuals) } as CSSProperties}>
+  return <div className={"a-app od-app fs-app cn-app" + (sceneStill ? " a-still" : "") + (prefs.contrast ? " od-contrast" : "")} data-screen={screen} data-skin="cinema" data-motion={sceneStill ? "reduced" : "full"} data-quality={quality} style={{ "--cn-accent": accent, "--cn-fx": String(prefs.visuals) } as CSSProperties} onPointerOver={director.onPointerOver} onClickCapture={director.onClickCapture}>
     <MotionConfig reducedMotion={sceneStill ? "always" : "never"}>
       {world && <CinemaBackdrop world={world} quality={quality} still={sceneStill} paused={!!gate} />}
       {world && <div className="cn-grade" aria-hidden="true" />}
@@ -531,11 +553,13 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
         onSilence={silence}
         onDone={landed}
       /> : null}
-      {screen === "play" && run?.race && <LotusRaceRound key={run.key} difficulty={prefs.difficulty} plan={run.plan} layout={run.race.layout} onLeave={leaveRace} onAudio={frame => audio.current?.frame(frame)} />}
-      {screen === "play" && run?.hunt && <LotusHuntRound key={run.key} difficulty={prefs.difficulty} plan={run.plan} layout={run.hunt.layout} onLeave={leaveRace} onAudio={frame => audio.current?.frame(frame)} />}
-      {screen === "play" && run && !run.race && !run.hunt && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} taunt={run.taunt} opening={run.opening} commentary={rivalOnline && voicePrefs.commentary} onSpeak={speak} onSilence={silence} onSettings={() => openSettings("sound")} onAudio={frame => audio.current?.frame(frame)} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "brief")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined} />}
+      {screen === "play" && run?.race && <LotusRaceRound key={run.key} difficulty={prefs.difficulty} plan={run.plan} layout={run.race.layout} onLeave={leaveRace} onAudio={frame => { audio.current?.frame(frame); director.onFrame(frame); }} />}
+      {screen === "play" && run?.hunt && <LotusHuntRound key={run.key} difficulty={prefs.difficulty} plan={run.plan} layout={run.hunt.layout} onLeave={leaveRace} onAudio={frame => { audio.current?.frame(frame); director.onFrame(frame); }} />}
+      {screen === "play" && run && !run.race && !run.hunt && <ArcadeRound key={run.key} id={selected} difficulty={prefs.difficulty} plan={run.plan} practice={run.practice} seed={run.seed ?? 4200 + run.key * 19 + save.records[selected].attempts} still={sceneStill} shake={prefs.shake && !sceneStill ? 1 : 0} effects={sceneStill ? 0 : prefs.visuals} originalCave={run.originalCave} demo={run.demo} modelPrepared={run.modelPrepared} taunt={run.taunt} opening={run.opening} commentary={rivalOnline && voicePrefs.commentary} onSpeak={speak} onSilence={silence} onSettings={() => openSettings("sound")} onAudio={frame => { audio.current?.frame(frame); director.onFrame(frame); }} onFinish={finish} onLeave={() => navigate(run.lab ? "lab" : "brief")} labOverlay={run.lab ? { showPrediction: lab.showPrediction, showHistory: lab.showHistory } : undefined} />}
+      {mixer.subtitles && <NarrationCaption caption={director.caption} />}
       {(storageError || audioError) && <div className="a-notice cn-notice" role="status">{storageError || audioError}</div>}
       <SettingsPanel open={settings} initialTab={settingsTab} onClose={() => setSettings(false)} prefs={prefs} setPrefs={setPrefs} onToggleSound={() => void toggleSound()}
+        mixer={mixer} setMixer={setMixer}
         voicePrefs={voicePrefs} setVoicePrefs={setVoicePrefs} voiceStatus={voiceStatus} voiceLoad={voiceLoad} onTestVoice={() => speak(TEST_LINE, "bard")}
         rival={rival} onCheck={() => void checkModel()} oracleOn={oracleOn} onOracle={() => setOracleOn(v => { writeOracleEnabled(!v); return !v; })}
         quality={qualityChoice} resolved={quality} onQuality={chooseQuality} systemStill={systemStill} onCredits={() => { setSettings(false); navigate("credits"); }}
@@ -548,7 +572,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
         trial: item.trialId, question: item.question, picked: item.options[picked], answer: item.options[item.answer], correct: picked === item.answer,
         evidence: item.evidence, ref: item.source.kind === "odyssey" ? `Homer, Odyssey, ${item.source.ref}` : item.source.ref,
         model: item.generation.model, ms: item.generation.ms, retrieval: item.retrieval.mode === "hybrid" ? `${item.retrieval.embedder} meaning search with BM25 keywords` : "BM25 keyword search", mock: !!item.mock,
-      }].slice(-3) }))} onSolved={() => setOracleKeys(keys => keys.includes(selected) ? keys : [...keys, selected])} onEnter={enterGate} onAgain={() => consultOracle(selected)} onClose={closeOracle} />}
+      }].slice(-3) }))} onSolved={() => { audio.current?.sample("gate-open"); setOracleKeys(keys => keys.includes(selected) ? keys : [...keys, selected]); }} onEnter={enterGate} onAgain={() => consultOracle(selected)} onClose={closeOracle} />}
       {restart && <div className="a-modal-backdrop cn-modal-backdrop"><section className="a-modal a-paper cn-modal" role="dialog" aria-modal="true" aria-labelledby="a-restart-title"><h2 id="a-restart-title">Begin a new voyage?</h2><p>This clears your voyage, best scores and medals.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setRestart(false)}>Keep this voyage</button><button className="a-btn a-primary" onClick={newVoyage}>New voyage</button></div></section></div>}
       {assistance && <div className="a-modal-backdrop cn-modal-backdrop"><section className="a-modal a-paper cn-modal" role="dialog" aria-modal="true" aria-labelledby="a-assist-title"><h2 id="a-assist-title">A little help from Athena.</h2><p>Your voyage marks this trial Assisted, with no medal or score. You can replay it later.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setAssistance(false)}>Keep trying</button><button className="a-btn a-primary" onClick={useAssistance}>Accept Athena’s help</button></div></section></div>}
     </MotionConfig>

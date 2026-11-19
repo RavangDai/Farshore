@@ -11,7 +11,12 @@ import type { SoundName } from "./sounds.ts";
 // Pan runs from -1 (left) to 1 (right); rate shifts pitch (2 is an octave up).
 
 export type Cue = { sound: SoundName; pan?: number; gain?: number; rate?: number; delay?: number };
-export type AudioFrame = { cues: Cue[]; loops: Partial<Record<LoopName, number>>; scene: SceneName };
+/**
+ * `lead` is set only where a rival really keeps score against the player (Circe's
+ * brew duel, Antinous at the bow, the trained rival in the Lotus race), so the
+ * Oracle never announces a lead that does not exist.
+ */
+export type AudioFrame = { cues: Cue[]; loops: Partial<Record<LoopName, number>>; scene: SceneName; lead?: "player" | "rival" | "even" };
 
 const semitones = (n: number) => 2 ** (n / 12);
 const clamp01 = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
@@ -67,6 +72,7 @@ function cave(prev: CaveState | null, s: CaveState, frame: AudioFrame) {
 
 function mythic(prev: MythicState | null, s: MythicState, frame: AudioFrame) {
   const { cues, loops } = frame;
+  if (s.id === "circe" || s.id === "bow") frame.lead = s.score > s.rivalScore ? "player" : s.rivalScore > s.score ? "rival" : "even";
   if (s.id === "cyclops") {
     frame.scene = "cave";
     if (!prev || prev.id !== "cyclops") return;

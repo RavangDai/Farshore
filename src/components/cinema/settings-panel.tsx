@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { OnlinePreferences } from "../../lib/online/online";
 import { QUALITY_LABELS, type Quality, type QualityChoice } from "../../lib/cinema/quality";
 import type { VoiceLoad, VoicePrefs, VoiceStatus } from "../../lib/speech/voice";
+import type { MixerPrefs } from "../../lib/audio/mixer";
 import { Drawer } from "./chrome";
 
 export type SettingsTab = "sound" | "display" | "ai" | "about";
@@ -34,6 +35,8 @@ type Props = {
   prefs: OnlinePreferences;
   setPrefs: (update: (p: OnlinePreferences) => OnlinePreferences) => void;
   onToggleSound: () => void;
+  mixer: MixerPrefs;
+  setMixer: (update: (m: MixerPrefs) => MixerPrefs) => void;
   voicePrefs: VoicePrefs;
   setVoicePrefs: (update: (v: VoicePrefs) => VoicePrefs) => void;
   voiceStatus: VoiceStatus;
@@ -61,12 +64,19 @@ export function SettingsPanel(p: Props) {
       {tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className="cn-tab" onClick={() => setTab(id)}>{label}{tab === id && <i className="cn-tab-line" />}</button>)}
     </div>
     {tab === "sound" && <div className="cn-settings-group" role="tabpanel">
-      <Toggle on={p.prefs.sound} onClick={p.onToggleSound} title="Music & sounds" note="Every cue is also shown on screen." />
-      <Slider label="Music" value={p.prefs.music} onChange={v => p.setPrefs(o => ({ ...o, music: v }))} />
-      <Slider label="Effects" value={p.prefs.effects} onChange={v => p.setPrefs(o => ({ ...o, effects: v }))} />
+      <Toggle on={p.prefs.sound} onClick={p.onToggleSound} title="Music & sounds" note="Turns every sound off or on. Every cue is also shown on screen." />
+      <section className="cn-mixer" aria-label="Volume" data-off={!p.prefs.sound || undefined}>
+        <Slider label="Master" value={p.mixer.master} onChange={v => p.setMixer(m => ({ ...m, master: v }))} />
+        <Slider label="Music" value={p.prefs.music} onChange={v => p.setPrefs(o => ({ ...o, music: v }))} />
+        <Slider label="Ambience" value={p.mixer.ambience} onChange={v => p.setMixer(m => ({ ...m, ambience: v }))} />
+        <Slider label="Voice" value={p.voicePrefs.volume} step={0.05} onChange={v => p.setVoicePrefs(o => ({ ...o, volume: v }))} />
+        <Slider label="Effects" value={p.prefs.effects} onChange={v => p.setPrefs(o => ({ ...o, effects: v }))} />
+        <Slider label="Interface" value={p.mixer.ui} onChange={v => p.setMixer(m => ({ ...m, ui: v }))} />
+      </section>
+      <Toggle on={p.mixer.narration} onClick={() => p.setMixer(m => ({ ...m, narration: !m.narration }))} title="Cinematic narration" note="The bard narrates the opening, each trial's arrival and the homecoming, once per voyage." />
+      <Toggle on={p.mixer.subtitles} onClick={() => p.setMixer(m => ({ ...m, subtitles: !m.subtitles }))} title="Subtitles" note="Narration, characters and the Oracle appear as subtitles while they speak." />
       <Toggle on={p.voicePrefs.commentary} onClick={() => p.setVoicePrefs(v => ({ ...v, commentary: !v.commentary }))} title="Live commentary" note="The bard and your rival react as you play." />
       <Toggle on={p.voicePrefs.voice} onClick={() => p.setVoicePrefs(v => ({ ...v, voice: !v.voice }))} title="Spoken voice" note={`${voiceLabels[p.voiceStatus]}. ${voiceNotes[p.voiceStatus]}${p.voiceStatus === "loading" && p.voiceLoad.progress > 0 && p.voiceLoad.progress < 1 ? ` ${Math.round(p.voiceLoad.progress * 100)}%${p.voiceLoad.sizeMb ? ` of ${p.voiceLoad.sizeMb} MB` : ""}.` : ""}`} />
-      <Slider label="Voice" value={p.voicePrefs.volume} step={0.05} onChange={v => p.setVoicePrefs(o => ({ ...o, volume: v }))} />
       <button type="button" className="cn-ghost" disabled={!p.voicePrefs.voice} onClick={p.onTestVoice}><Volume2 size={16} strokeWidth={1.4} /><span>Test the bard’s voice</span></button>
     </div>}
     {tab === "display" && <div className="cn-settings-group" role="tabpanel">

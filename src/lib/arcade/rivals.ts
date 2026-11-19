@@ -4,7 +4,7 @@ import type { Space } from "../audio/dsp.ts";
 // Who speaks during an encounter. The model writes the words; the game decides
 // who is speaking, when, and from which facts. Voices are presentation only.
 export type Speaker = "bard" | "rival";
-export type VoiceId = "bard" | "odysseus" | "athena" | TrialId;
+export type VoiceId = "bard" | "odysseus" | "athena" | "oracle" | TrialId;
 
 /** How a neural line is placed in the scene once it reaches the browser. */
 export type VoiceFx = {
@@ -53,6 +53,8 @@ export const voices: Record<VoiceId, VoiceProfile> = {
   odysseus: { name: "Odysseus", kokoro: "am_michael", speed: 0.95, browser: { pitch: 0.95, rate: 0.95 }, fx: { space: "hall", wet: 0.08 } },
   // Athena counsels Odysseus in his own hall; Aoede is named for a Muse.
   athena: { name: "Athena", kokoro: "af_aoede", speed: 0.95, browser: { pitch: 1.02, rate: 0.95 }, fx: { space: "hall", wet: 0.16, high: 1.5 } },
+  // The Oracle of Delphi: one hushed, breath-close voice for every Oracle line, set in a wide, airy space.
+  oracle: { name: "The Oracle", kokoro: "af_nicole", speed: 0.9, browser: { pitch: 1.0, rate: 0.88 }, fx: { space: "ethereal", wet: 0.24, high: 1.5, low: -1, chorus: { delayMs: 11, depthMs: 1.5, gain: 0.18 } } },
   lotus: { name: "Lotus Guardians", kokoro: "af_heart", speed: 0.9, browser: { pitch: 1.05, rate: 0.9 }, fx: { space: "ethereal", wet: 0.24, high: 2 } },
   cyclops: { name: "Polyphemus", kokoro: "am_fenrir", speed: 0.88, browser: { pitch: 0.85, rate: 0.9 }, fx: { low: 4, presence: -2, space: "cave", wet: 0.24 } },
   aeolus: { name: "The Unbound Winds", kokoro: "am_puck", speed: 1.05, browser: { pitch: 1, rate: 1.05 }, fx: { space: "ethereal", wet: 0.2, high: 3 } },

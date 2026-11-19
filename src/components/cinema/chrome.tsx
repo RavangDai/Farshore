@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { difficultyNames, type Difficulty } from "../../lib/arcade/arcade";
 import { Helmet, LaurelBranch, SigilGlyph } from "./icons";
+import { uiSound } from "../../lib/audio/ui-bus";
 
 // A long frame (a world compiling, a voice decoding) should let a reveal finish, not crawl through it.
 if (typeof window !== "undefined") gsap.ticker.lagSmoothing(0);
@@ -85,7 +86,9 @@ export function DifficultySelect({ value, onChange, compact, bare }: { value: Di
  * detailed results. Traps focus, closes on Escape, returns focus on close.
  */
 export function Drawer({ open, title, onClose, children, side = "right", wide = false, label }: { open: boolean; title: string; onClose: () => void; children: ReactNode; side?: "right" | "left"; wide?: boolean; label?: string }) {
-  const panel = useRef<HTMLElement>(null), opener = useRef<HTMLElement | null>(null);
+  const panel = useRef<HTMLElement>(null), opener = useRef<HTMLElement | null>(null), wasOpen = useRef(open);
+  // The glass panel's own sound as it slides in or out (not on first render).
+  useEffect(() => { if (wasOpen.current !== open) uiSound(open ? "glass-open" : "glass-close"); wasOpen.current = open; }, [open]);
   useEffect(() => {
     if (!open) return;
     opener.current = document.activeElement as HTMLElement;

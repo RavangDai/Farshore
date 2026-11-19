@@ -46,7 +46,7 @@ function fakeEngine(calls = [], gate = null) {
 }
 
 test("voice profiles use real Kokoro voices graded C or better, at their natural pitch", () => {
-  assert.equal(Object.keys(voices).length, 11);
+  assert.equal(Object.keys(voices).length, 12);
   for (const [id, v] of Object.entries(voices)) {
     assert.ok(KOKORO.has(v.kokoro), `${id} uses ${v.kokoro}`);
     assert.match(KOKORO_GRADES[v.kokoro] ?? "", /^(A|B|C)[+-]?$/, `${id} uses ${v.kokoro}, graded ${KOKORO_GRADES[v.kokoro]}`);
@@ -60,6 +60,9 @@ test("voice profiles use real Kokoro voices graded C or better, at their natural
   assert.equal(accentOf(voices.bard), "gb");
   assert.equal(accentOf(voices.sirens), "us");
   assert.equal(isFemale(voices.circe), true);
+  // The Oracle keeps one voice for every announcement: hushed, in a wide airy space.
+  assert.equal(voices.oracle.kokoro, "af_nicole");
+  assert.equal(voices.oracle.fx.space, "ethereal");
   assert.equal(isFemale(voices.cyclops), false);
 });
 

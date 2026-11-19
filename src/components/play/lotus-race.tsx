@@ -211,7 +211,8 @@ export function LotusRaceRound({ difficulty, plan, layout: initialLayout, onLeav
       }
       if (aiAwaitingDecision(r)) decide();
       const sounded = structuredClone(r.human);
-      audio.current?.(audioFrame(heard.current, sounded));
+      // The two boards really race: whoever has more sailors aboard leads.
+      audio.current?.({ ...audioFrame(heard.current, sounded), lead: r.human.rescued > r.ai.rescued ? "player" : r.ai.rescued > r.human.rescued ? "rival" : "even" });
       heard.current = sounded;
       paint();
       if (r.result) { setResult(r.result); setPhase("done"); audio.current?.({ cues: [{ sound: r.result.winner === "human" ? "victory" : r.result.winner === "ai" ? "defeat" : "reply" }], loops: {}, scene: "garden" }); return; }

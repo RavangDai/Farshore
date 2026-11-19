@@ -455,6 +455,31 @@ button.cn-sigil:hover { background: rgba(228, 191, 121, 0.08); }
 .cn-app .cn-modal .a-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .cn-app .cn-notice { position: fixed !important; left: 50%; bottom: 16px; z-index: 95; transform: translateX(-50%); }
 
+/* ================================================================ sound == */
+/* The mixer: one glass card of channel sliders. */
+.cn-app .cn-mixer { display: grid; gap: 12px; padding: 14px 16px 16px; border: 1px solid var(--cn-glass-edge); border-radius: 16px; background: var(--cn-glass-bg); box-shadow: var(--cn-glass-shadow); transition: opacity 0.3s; }
+.cn-app .cn-mixer[data-off] { opacity: 0.5; }
+.cn-app .cn-drawer :is(.cn-toggle, .cn-field, .cn-model-status, .cn-showcase) { border-radius: 14px; }
+.cn-app .cn-mixer .cn-slider { padding: 0; }
+.cn-app .cn-mixer .cn-slider > span { font: 500 13.5px/1 var(--cn-font-ui); color: var(--cn-ivory-2); }
+/* The subtitle of a recorded line (narration, a character, the Oracle): a glass film caption,
+   placed so it never covers a screen's actions or the rival's own subtitle. */
+.cn-app .cn-narration { position: fixed; left: 50%; bottom: clamp(18px, 6vh, 56px); z-index: 75; display: flex; justify-content: center; width: min(720px, 92vw); transform: translateX(-50%); pointer-events: none; }
+.cn-app:is([data-screen="ending"], [data-screen="howto"], [data-screen="credits"], [data-screen="lab"]) .cn-narration { top: clamp(62px, 11vh, 96px); bottom: auto; }
+/* On a result the line sits below the panel, which rises a little to make room while it is spoken. */
+.cn-app[data-screen="result"] .cn-narration { bottom: clamp(8px, 1.6vh, 18px); }
+.cn-app[data-screen="result"] .cn-result-core { transition: transform 0.6s var(--cn-ease); }
+.cn-app[data-screen="result"]:has(.cn-narration-line) .cn-result-core { transform: translate(-50%, -56%); }
+.cn-app[data-screen="play"] .cn-narration { top: 20%; bottom: auto; }
+.cn-app:is([data-screen="title"], [data-screen="intro"]) .cn-narration { left: auto; right: clamp(18px, 4vw, 64px); width: min(620px, 50vw); transform: none; justify-content: flex-end; }
+.cn-app[data-screen="brief"] .cn-narration { left: auto; right: clamp(18px, 4vw, 64px); width: min(560px, 46vw); transform: none; justify-content: flex-end; }
+.cn-app:has(.cn-narration-line) .cn-brief .cn-subtitle-slot { opacity: 0; transition: opacity 0.4s; }
+.cn-app .cn-narration-line { display: flex; flex-direction: column; align-items: center; gap: 5px; margin: 0; padding: 10px 22px 12px; border: 1px solid rgba(228, 191, 121, 0.3); border-radius: 16px; background: var(--cn-glass-bg); box-shadow: var(--cn-glass-shadow); text-align: center; backdrop-filter: var(--cn-glass-blur); -webkit-backdrop-filter: var(--cn-glass-blur); }
+.cn-app .cn-narration-line b { color: var(--cn-gold); font: 600 10.5px/1 var(--cn-font-title); letter-spacing: 0.24em; text-transform: uppercase; }
+.cn-app .cn-narration-line[data-kind="oracle"] b { color: #cdbcff; }
+.cn-app .cn-narration-line[data-kind="character"] b { color: var(--cn-accent); }
+.cn-app .cn-narration-line span { color: var(--cn-ivory); font: italic 500 clamp(16px, 1.35vw, 20px)/1.4 var(--cn-font-serif); }
+
 /* ============================================================= phones == */
 @media (max-width: 760px), (max-height: 520px) {
   .cn-app .cn-screen:not(.cn-map) { position: relative; min-height: 100svh; overflow: visible; padding: 86px 20px 28px; display: flex; flex-direction: column; gap: 22px; }
@@ -471,6 +496,7 @@ button.cn-sigil:hover { background: rgba(228, 191, 121, 0.08); }
   .cn-app .cn-cta .cn-cta-laurel, .cn-app .cn-cta .cn-kbd { display: none; }
   .cn-app .cn-cta { padding-inline: 22px; letter-spacing: 0.14em; }
   .cn-app .cn-marker:not([data-on]) .cn-marker-name { display: none; }
+  .cn-app .cn-narration, .cn-app[data-screen="brief"] .cn-narration { left: 12px; right: 12px; width: auto; transform: none; justify-content: center; }
   .cn-app .cn-card { width: 118px; }
   .cn-app .cn-menu-nav { width: 100%; }
   .cn-app .cn-mark { width: 100%; }

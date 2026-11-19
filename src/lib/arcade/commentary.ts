@@ -1,6 +1,7 @@
 import type { Difficulty, TrialId } from "./arcade.ts";
 import type { GameState } from "./arcade-runtime.ts";
 import type { Speaker } from "./rivals.ts";
+import { failureMessage } from "../ai/call-errors.ts";
 
 /// Live commentary is derived from game events, never the other way round: the
 // engine owns every number, the model only puts words to facts it is handed.
@@ -177,16 +178,35 @@ type DirectorOptions = {
   staleMs?: number;
 };
 
-/** One commentary line, or "" when the model is unavailable or answers badly. */
-export async function requestLine(body: CommentaryRequest, signal?: AbortSignal, fetcher: Fetcher = (input, init) => fetch(input, init)) {
-  const response = await fetcher("/api/commentary", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(28000)]) : AbortSignal.timeout(28000),
+/** Why a commentary line did not come, in words a player can act on. */
+export class CommentaryError extends Error {}
+
+/** One commentary line from the back end, or a CommentaryError saying why none came. */
+export async function fetchLine(body: CommentaryRequest, signal?: AbortSignal, fetcher: Fetcher = (input, init) => fetch(input, init)) {
+  let response: Response;
+  try {
+    response = await fetcher("/api/commentary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(28000)]) : AbortSignal.timeout(28000),
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new CommentaryError(failureMessage(error, "The model took too long to write a line."));
+  }
+  const data = (await response.json().catch(() => ({}))) as { line?: unknown; error?: unknown };
+  const line = response.ok && typeof data.line === "string" ? cleanLine(data.line) : "";
+  if (!line) throw new CommentaryError(typeof data.error === "string" && data.error ? data.error : "The model sent back no line.");
+  return line;
+}
+
+/** One commentary line, or "" when the model is unavailable or answers badly. A cancelled request still rejects. */
+export function requestLine(body: CommentaryRequest, signal?: AbortSignal, fetcher?: Fetcher) {
+  return fetchLine(body, signal, fetcher).catch(error => {
+    if (error instanceof CommentaryError) return "";
+    throw error;
   });
-  const data = (await response.json()) as { line?: unknown };
-  return response.ok && typeof data.line === "string" ? cleanLine(data.line) : "";
 }
 
 /**

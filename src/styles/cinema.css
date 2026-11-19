@@ -315,6 +315,12 @@ button.cn-sigil:hover { background: rgba(228, 191, 121, 0.08); }
 .cn-app .cn-subtitle q { color: var(--cn-ivory); font: italic 500 clamp(17px, 1.45vw, 21px)/1.4 var(--cn-font-serif); quotes: "\201C" "\201D"; }
 .cn-app .cn-hear { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--cn-ivory-3); cursor: pointer; vertical-align: middle; }
 .cn-app .cn-hear:hover { color: var(--cn-gold); background: rgba(228, 191, 121, 0.1); }
+/* A failed AI call: plain words where the line would have been, and a way to ask again. */
+.cn-app .cn-subtitle[data-notice] { align-items: center; border-color: rgba(228, 191, 121, 0.45); }
+.cn-app .cn-subtitle-notice { color: var(--cn-ivory); font: 500 14.5px/1.45 var(--cn-font-ui); }
+.cn-app .cn-retry { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 14px; border: 1px solid rgba(228, 191, 121, 0.5); border-radius: 999px; background: rgba(228, 191, 121, 0.08); color: var(--cn-gold); font: 600 13px/1 var(--cn-font-ui); cursor: pointer; }
+.cn-app .cn-retry:hover { background: rgba(228, 191, 121, 0.16); color: #fff1d7; }
+.cn-app .cn-retry:focus-visible { outline: 2px solid var(--cn-gold); outline-offset: 2px; }
 
 /* ============================================================== drawers == */
 .cn-app .cn-drawer-backdrop { position: fixed; inset: 0; z-index: 80; background: rgba(3, 5, 9, 0.5); backdrop-filter: blur(3px); }

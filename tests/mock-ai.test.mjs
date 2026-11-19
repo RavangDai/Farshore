@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mockCommentary, mockMode, mockStatus, mockStrategy } from "../server/lib/mock-ai.ts";
+import { mockCommentary, mockMode, mockOracle, mockStatus, mockStrategy } from "../server/lib/mock-ai.ts";
 import { validPlan } from "../src/lib/arcade/arcade.ts";
 
 const ask = (mode, trialId = "cyclops", signal) => mockStrategy(new Request("http://localhost:3000/api/arcade", { method: "POST", body: JSON.stringify({ trialId, difficulty: "easy", recent: [] }), signal }), mode);
@@ -43,6 +43,14 @@ test("error and uncertain answer like the live service, and the -once modes reco
   assert.equal(uncertain.status, 422);
   assert.equal((await uncertain.json()).code, "invalid_plan");
   assert.equal(uncertain.headers.get("set-cookie"), null);
+});
+
+test("the Oracle's -once modes also fail one question and then recover", async () => {
+  const askOracle = mode => mockOracle(new Request("http://localhost:3000/api/oracle", { method: "POST", body: JSON.stringify({ trialId: "cyclops" }) }), mode);
+  const failed = await askOracle("error-once");
+  assert.equal(failed.status, 503);
+  assert.match(failed.headers.get("set-cookie"), /farshore-ai-mock=success/);
+  assert.equal((await askOracle("error")).headers.get("set-cookie"), null);
 });
 
 test("a slow strategy can be cancelled, and status and commentary follow the mode", async () => {

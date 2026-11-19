@@ -37,7 +37,8 @@ import type { LotusLayout } from "./lib/encounters/odyssey-games";
 import { AILabMode, labRunFrom, type LabRun, type LabSettings } from "./components/ai/ai-lab-mode";
 import { aiRuntimeOf } from "./lib/arcade/arcade-runtime";
 import { defaultPreferences, preferencesSchema, type AccountChip, type OnlineGame, type OnlinePreferences } from "./lib/online/online";
-import { factsFor, requestLine } from "./lib/arcade/commentary";
+import { CommentaryError, factsFor, fetchLine, requestLine } from "./lib/arcade/commentary";
+import { failureMessage, SERVER_DOWN } from "./lib/ai/call-errors";
 import { emptyLog, roundHighlights, type OracleAttempt, type RoundLog } from "./lib/arcade/report";
 import { voices, type Speaker, type VoiceId } from "./lib/arcade/rivals";
 import { VOICE_PREFS, VoiceBox, readVoicePrefs, type VoiceLoad, type VoicePrefs, type VoiceStatus } from "./lib/speech/voice";
@@ -99,6 +100,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const [rival, setRival] = useState<Rival>({ status: "checking", message: "Looking for your AI rival...", model: null, commentary: null });
   const [voicePrefs, setVoicePrefs] = useState<VoicePrefs>(readVoicePrefs), [speaking, setSpeaking] = useState(false), [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("checking"), [voiceLoad, setVoiceLoad] = useState<VoiceLoad>({ progress: 0, sizeMb: null });
   const [recap, setRecap] = useState<{ speaker: Speaker; text: string } | "pending" | null>(null);
+  /** Why the rival's opening line or the closing recap did not come, shown with a way to ask again. */
+  const [tauntError, setTauntError] = useState(""), [recapError, setRecapError] = useState("");
   /** The device's mix (master, ambience, interface, narration, subtitles), and whether sound is reaching the speakers. */
   const [mixer, setMixer] = useState<MixerPrefs>(readMixer), [audioLive, setAudioLive] = useState(false);
   const [run, setRun] = useState<Run | null>(null), [result, setResult] = useState<GameState | null>(null);
@@ -248,30 +251,33 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const speak = useCallback((text: string, id: VoiceId) => { if (voicePrefsRef.current.voice) speakLive(() => voice.current?.say(text, id)); }, [speakLive]);
   const silence = useCallback(() => voice.current?.stop(), []);
   /** Drops the taunt being written; "idle" lets the next briefing ask again. */
-  function cancelAi() { generation.current++; request.current?.abort(); request.current = null; setAiState("idle"); setAiTaunt(""); }
+  function cancelAi() { generation.current++; request.current?.abort(); request.current = null; setAiState("idle"); setAiTaunt(""); setTauntError(""); }
   async function checkModel(quiet = false) {
     if (!quiet) setRival(old => ({ ...old, status: "checking", message: "Looking for your AI rival…" }));
     try {
       const r = await fetch("/api/arcade", { signal: AbortSignal.timeout(6000) }); const v = await r.json();
       setRival({ status: v.aiAvailable ? "online" : "offline", message: typeof v.message === "string" ? v.message : "The AI rival could not be checked.", model: typeof v.model === "string" ? v.model : null, commentary: typeof v.commentary === "string" ? v.commentary : null, oracle: typeof v.oracle === "string" ? v.oracle : null, embedder: typeof v.embedder === "string" ? v.embedder : null });
-    } catch { setRival({ status: "offline", message: "The game could not reach an AI model. Start your model service, then check again.", model: null, commentary: null }); }
+    } catch (error) { setRival({ status: "offline", message: failureMessage(error, "The model check took too long. Check again in a moment."), model: null, commentary: null }); }
   }
   /**
    * The rival's opening taunt. The game has already chosen its tactic; the
    * model is handed that tactic and writes the line the rival opens with.
-   * Without live commentary, or when the model does not answer, the rival
-   * speaks its own written quote.
+   * Without live commentary the rival speaks its own written quote. When the
+   * model does not answer, the briefing says why and offers to ask again; the
+   * written quote stands in only if the player starts anyway.
    */
   async function prepare() {
     cancelAi(); const controller = new AbortController(), token = generation.current; request.current = controller;
     const id = selected, difficulty = prefs.difficulty, t = trialFor(id), { plan } = gamePlan(id, save.records[id].recent);
     setAiState("loading");
-    const line = voicePrefsRef.current.commentary
-      ? await requestLine({ trialId: id, difficulty, moment: "start", speaker: "rival", facts: { ...openingFacts(t.objective), event: `${t.character} prepares the ${planDescription(id, plan)}`.slice(0, 200) }, recent: [] }, controller.signal).catch(() => "")
-      : "";
+    let line = "", failed = "";
+    if (voicePrefsRef.current.commentary) {
+      try { line = await fetchLine({ trialId: id, difficulty, moment: "start", speaker: "rival", facts: { ...openingFacts(t.objective), event: `${t.character} prepares the ${planDescription(id, plan)}`.slice(0, 200) }, recent: [] }, controller.signal); }
+      catch (error) { if (error instanceof CommentaryError) failed = error.message; }
+    }
     if (token !== generation.current || controller.signal.aborted) return;
     request.current = null;
-    setAiTaunt(line || t.quote); setAiState("ready"); audio.current?.cue("reply");
+    setTauntError(failed); setAiTaunt(line || t.quote); setAiState("ready"); audio.current?.cue("reply");
     prefetchOpening(id, difficulty);
   }
   /**
@@ -334,7 +340,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     }
     setOracleOpen(false);
     const taunt = reuse ? reuse.taunt : aiState === "ready" ? aiTaunt : trial.quote;
-    wakeAudio(); cancelAi(); setRecap(null);
+    wakeAudio(); cancelAi(); setRecap(null); setRecapError("");
     const openingLine = opening.current ?? undefined; opening.current = null;
     setRun({ plan, practice, modelPrepared: true, originalCave, taunt, tacticReason: reuse ? reuse.tacticReason : tactic.reason, opening: openingLine, key: ++runKey.current }); setScreen("play"); audio.current?.cue("sail");
   }
@@ -346,12 +352,13 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   }
   function requestRecap(round: GameState) {
     const token = ++recapToken.current;
+    setRecapError("");
     if (!rivalOnline || !voicePrefsRef.current.commentary) { setRecap(null); return; }
     const speaker: Speaker = round.won ? "bard" : "rival";
     setRecap("pending");
-    void requestLine({ trialId: round.id as TrialId, difficulty: round.difficulty, moment: round.won ? "win" : "loss", speaker, facts: factsFor(round, "", roundHighlights(round)), recent: [] })
-      .then(text => { if (token !== recapToken.current) return; if (!text) { setRecap(null); return; } setRecap({ speaker, text }); speak(text, speaker === "bard" ? "bard" : round.id as TrialId); })
-      .catch(() => { if (token === recapToken.current) setRecap(null); });
+    void fetchLine({ trialId: round.id as TrialId, difficulty: round.difficulty, moment: round.won ? "win" : "loss", speaker, facts: factsFor(round, "", roundHighlights(round)), recent: [] })
+      .then(text => { if (token !== recapToken.current) return; setRecap({ speaker, text }); speak(text, speaker === "bard" ? "bard" : round.id as TrialId); })
+      .catch(error => { if (token !== recapToken.current) return; setRecap(null); setRecapError(error instanceof CommentaryError ? error.message : SERVER_DOWN); });
   }
   function finish(round: GameState, log: RoundLog = emptyLog()) {
     if (!round.done || round.id !== selected) return;
@@ -494,7 +501,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   else if (screen === "map") view = <VoyageMap save={save} selected={selected} quality={quality} still={sceneStill} corner={corner} headingRef={heading} onSelect={setSelected} onEnter={enterTrial} onTrials={() => navigate("trials")} onMenu={() => navigate("title")} />;
   else if (screen === "brief") view = <Briefing id={selected} save={save} difficulty={prefs.difficulty} mode={selected === "lotus" ? briefMode : briefMode === "practice" ? "practice" : "story"} still={sceneStill} corner={corner} status={briefStatus} headingRef={heading}
     ready={briefReady} holdLabel={rival.status === "checking" ? "Seeking the Oracle" : "Connect the Oracle"} oracleFirst={oracleOn && !oracleKeys.includes(selected)} garden={raceGarden}
-    taunt={aiState === "ready" && aiTaunt ? { speaker: trial.character, text: aiTaunt } : null}
+    taunt={aiState === "ready" && aiTaunt && !tauntError ? { speaker: trial.character, text: aiTaunt } : null}
+    tauntError={aiState === "ready" ? tauntError : ""} onRetryTaunt={() => void prepare()}
     rival={{ character: trial.character, tactic: planLabel(selected, tactic.plan), reason: tactic.reason, effect: PLAN_EFFECTS[selected]?.[tactic.plan.planId] ?? trial.adaptive, models: { commentary: rival.commentary, oracle: rival.oracle ?? rival.model } }}
     trainedMeta={trainedMeta ? { label: trainedMeta.label, steps: trainedMeta.steps } : null}
     onMode={setBriefMode} onGarden={setRaceGarden} onDifficulty={setDifficulty} onBegin={begin} onBlocked={() => (rival.status === "checking" ? void checkModel() : openSettings("ai"))}
@@ -506,6 +514,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       next={nextTrial ? { title: TRIAL_COPY[nextTrial.id].short } : null} finale={finale} canRetry={rivalOnline && !!run} retryNote={!rivalOnline ? "Connect a model first" : undefined}
       best={save.records[selected].bests[result.difficulty]?.score ?? null}
       recap={recap === "pending" ? "pending" : recap ? { speaker: recap.speaker === "bard" ? voices.bard.name : trial.character, text: recap.text } : null}
+      recapError={recapError} onRetryRecap={() => requestRecap(result)}
       scoreLabel={selected === "bow" ? "Axes" : selected === "circe" ? "Brew points" : "Score"} rivalScore={selected === "bow" || selected === "circe" ? `${result.rivalScore}` : undefined}
       details={<div className="cn-details-stack"><ResultFrieze state={result} /><PerformanceSeals state={result} /><RoundReport state={result} log={roundLog} recap={recap} bardName={voices.bard.name} rivalName={trial.character} tactic={run && !run.lab && !run.demo ? { label: planLabel(selected, run.plan), reason: run.tacticReason ?? "" } : null} oracle={oracleLog[selected] ?? []} oracleOn={oracleOn} models={{ commentary: rival.commentary, oracle: rival.oracle ?? rival.model }} onSpeak={(text, speaker) => speak(text, speaker === "bard" ? "bard" : selected)} /></div>}
       onContinue={() => (finale ? navigate("ending") : sailTo(selected, nextTrial!.id))}

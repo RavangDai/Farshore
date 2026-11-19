@@ -6,7 +6,7 @@ import { difficultyNames, trials, type ArcadeSave, type Difficulty, type TrialId
 import { RACE_LAYOUTS } from "../../lib/encounters/lotus-layouts";
 import { fieldNotes } from "../../lib/story/field-notes";
 import { TRIAL_COPY, TRIAL_LOOKS, chapterOf } from "../../lib/cinema/scenes";
-import { ChapterTitle, Cta, DifficultySelect, Drawer, Subtitle, Wordmark } from "./chrome";
+import { ChapterTitle, Cta, DifficultySelect, Drawer, RetryCall, Subtitle, Wordmark } from "./chrome";
 import { LaurelBranch } from "./icons";
 
 export type BriefMode = "story" | "race" | "hunt" | "practice";
@@ -28,6 +28,9 @@ type Props = {
   oracleFirst: boolean;
   garden: string;
   taunt: { speaker: string; text: string } | null;
+  /** Why the model's opening line did not come; "" when it came or was not asked for. */
+  tauntError: string;
+  onRetryTaunt: () => void;
   rival: { character: string; tactic: string; reason: string; effect: string; models: { commentary: string | null; oracle: string | null } };
   trainedMeta: { label: string; steps: number } | null;
   onMode: (m: BriefMode) => void;
@@ -77,7 +80,9 @@ export function Briefing(props: Props) {
         <button type="button" onClick={() => setDrawer("rival")}><Swords size={16} strokeWidth={1.4} aria-hidden="true" /><span>{exhibition ? "Trained rival" : "Rival"}</span></button>
       </nav>
     </section>
-    {!exhibition && taunt && <Subtitle speaker={taunt.speaker} text={taunt.text} action={<button type="button" className="cn-hear" onClick={props.onHear} aria-label={`Hear ${taunt.speaker}`}><Volume2 size={16} strokeWidth={1.5} /></button>} />}
+    {!exhibition && props.tauntError
+      ? <Subtitle notice speaker="Commentary" text={`The rival’s opening line did not arrive. ${props.tauntError}`} action={<RetryCall onClick={props.onRetryTaunt} label="Ask the model for the rival’s line again" />} />
+      : !exhibition && taunt && <Subtitle speaker={taunt.speaker} text={taunt.text} action={<button type="button" className="cn-hear" onClick={props.onHear} aria-label={`Hear ${taunt.speaker}`}><Volume2 size={16} strokeWidth={1.5} /></button>} />}
     <Drawer open={drawer === "controls"} title="Controls" onClose={() => setDrawer(null)}>
       <p className="cn-drawer-lead">{trial.controls}</p>
       <div className="cn-keys">{fieldNotes[id].keys.map(k => <kbd key={k}>{k}</kbd>)}</div>

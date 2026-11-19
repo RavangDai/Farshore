@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, 
 import { difficultyNames, trials, type Medal, type TrialId } from "../../lib/arcade/arcade";
 import type { GameState } from "../../lib/arcade/arcade-runtime";
 import { TRIAL_COPY, TRIAL_LOOKS, chapterOf } from "../../lib/cinema/scenes";
-import { Cta, Drawer, Subtitle, Wordmark } from "./chrome";
+import { Cta, Drawer, RetryCall, Subtitle, Wordmark } from "./chrome";
 import { LaurelWreath } from "./icons";
 
 const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}`;
@@ -24,6 +24,9 @@ type Props = {
   retryNote?: string;
   best: number | null;
   recap: { speaker: string; text: string } | "pending" | null;
+  /** Why the closing recap did not come; "" when it came or was not asked for. */
+  recapError: string;
+  onRetryRecap: () => void;
   details: ReactNode;
   scoreLabel: string;
   rivalScore?: string;
@@ -101,7 +104,9 @@ export function ResultScreen(p: Props) {
         </div>
       </div>
     </section>
-    {p.recap === "pending" ? <Subtitle speaker="The bard" text={null} /> : recap && <Subtitle speaker={recap.speaker} text={recap.text} action={<button type="button" className="cn-hear" onClick={p.onHear} aria-label="Hear it again"><Volume2 size={16} strokeWidth={1.5} /></button>} />}
+    {p.recap === "pending" ? <Subtitle speaker="The bard" text={null} />
+      : recap ? <Subtitle speaker={recap.speaker} text={recap.text} action={<button type="button" className="cn-hear" onClick={p.onHear} aria-label="Hear it again"><Volume2 size={16} strokeWidth={1.5} /></button>} />
+      : p.recapError && <Subtitle notice speaker="Commentary" text={`The round’s closing line did not arrive. ${p.recapError}`} action={<RetryCall onClick={p.onRetryRecap} label="Ask the model for the closing line again" />} />}
     <Drawer open={details} title={won ? "How the round went" : "What happened"} onClose={() => setDetails(false)} wide>{p.details}</Drawer>
   </main>;
 }

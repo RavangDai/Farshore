@@ -118,8 +118,10 @@ export async function mockOracle(request: Request, mode: MockMode) {
   if (!body?.trialId || !trialIds.includes(body.trialId)) return Response.json({ error: "Choose one of the eight trials." }, { status: 400 });
   try { await wait(mode === "slow" ? SLOW_MS : 900, request.signal); }
   catch { return Response.json({ error: "Question cancelled.", code: "cancelled" }, { status: 499 }); }
-  if (mode === "offline" || mode === "error" || mode === "error-once") return Response.json({ error: "The Oracle cannot be reached.", code: "unreachable" }, { status: 503 });
-  if (mode === "uncertain" || mode === "uncertain-once") return Response.json({ error: "The Oracle's question could not be checked against the text, so it was set aside. Ask again.", code: "invalid_question" }, { status: 422 });
+  // As with strategies, a "-once" failure is used up here, so New question then succeeds.
+  const headers: Record<string, string> = mode === "error-once" || mode === "uncertain-once" ? { "Set-Cookie": mockCookie("success") } : {};
+  if (mode === "offline" || mode === "error" || mode === "error-once") return Response.json({ error: "The Oracle cannot be reached. Check the model service, then ask again.", code: "unreachable" }, { status: 503, headers });
+  if (mode === "uncertain" || mode === "uncertain-once") return Response.json({ error: "The Oracle's question could not be checked against the text, so it was set aside. Ask again.", code: "invalid_question" }, { status: 422, headers });
   const { mockQuestion } = await import("../oracle/oracle.ts");
   return Response.json(await mockQuestion(body.trialId), { headers: { "Cache-Control": "no-store" } });
 }

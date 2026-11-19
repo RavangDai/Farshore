@@ -1,5 +1,6 @@
 import type { TrialId } from "../arcade/arcade";
 import type { OracleCheck, OracleQuestion } from "../../../server/oracle/oracle";
+import { failureMessage } from "./call-errors.ts";
 
 /**
  * The Oracle's Key, on the client: asking for a question, remembering the
@@ -42,13 +43,19 @@ export class OracleError extends Error {
 }
 
 /** One fresh question for a trial, avoiding the last few asked here. */
-export async function askOracle(trialId: TrialId, signal: AbortSignal): Promise<OracleQuestion> {
-  const response = await fetch("/api/oracle", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ trialId, avoid: recentQuestions(trialId) }),
-    signal: AbortSignal.any([signal, AbortSignal.timeout(200_000)]),
-  });
+export async function askOracle(trialId: TrialId, signal: AbortSignal, fetcher: typeof fetch = fetch): Promise<OracleQuestion> {
+  let response: Response;
+  try {
+    response = await fetcher("/api/oracle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trialId, avoid: recentQuestions(trialId) }),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(200_000)]),
+    });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new OracleError(failureMessage(error, "The Oracle took too long to answer. Ask again."), "network");
+  }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new OracleError(typeof body.error === "string" ? body.error : "The Oracle could not be reached.", body.code);
   return body as OracleQuestion;

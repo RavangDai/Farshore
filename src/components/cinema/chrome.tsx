@@ -1,6 +1,6 @@
 "use client";
 import gsap from "gsap";
-import { ChevronDown, CircleUser, FlaskConical, Settings, Volume2, VolumeX, X } from "lucide-react";
+import { ChevronDown, CircleUser, FlaskConical, RefreshCw, Settings, Volume2, VolumeX, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { difficultyNames, type Difficulty } from "../../lib/arcade/arcade";
@@ -115,10 +115,16 @@ export function Drawer({ open, title, onClose, children, side = "right", wide = 
 }
 
 /** A film subtitle: who speaks, and the line. Commentary and taunts appear here, never in a panel. */
-export function Subtitle({ speaker, text, action }: { speaker: string; text: string | null; action?: ReactNode }) {
-  return <div className="cn-subtitle-slot" aria-live="polite"><AnimatePresence mode="wait">{text && <motion.p key={text} className="cn-subtitle" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
-    <b>{speaker}</b><q>{text}</q>{action}
+/** A spoken line, or with `notice` a plain status message (such as a failed AI call) in the same place. */
+export function Subtitle({ speaker, text, action, notice }: { speaker: string; text: string | null; action?: ReactNode; notice?: boolean }) {
+  return <div className="cn-subtitle-slot" aria-live="polite"><AnimatePresence mode="wait">{text && <motion.p key={text} className="cn-subtitle" data-notice={notice || undefined} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
+    <b>{speaker}</b>{notice ? <span className="cn-subtitle-notice">{text}</span> : <q>{text}</q>}{action}
   </motion.p>}</AnimatePresence></div>;
+}
+
+/** The button beside a failed AI call's message that sends the same request again. */
+export function RetryCall({ onClick, label }: { onClick: () => void; label: string }) {
+  return <button type="button" className="cn-retry" onClick={onClick} aria-label={label}><RefreshCw size={14} strokeWidth={1.6} aria-hidden="true" /><span>Try again</span></button>;
 }
 
 /** The wordmark in a screen's corner; returns to the main menu. */

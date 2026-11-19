@@ -21,6 +21,7 @@ import "./styles/farshore-viewport.css";
 import "./styles/farshore-crossing.css";
 import "./styles/farshore-race.css";
 import "./styles/farshore-hunt.css";
+import "./styles/farshore-mythic.css";
 import "./styles/farshore-oracle.css";
 import "./styles/farshore-report.css";
 import "./styles/farshore-pixel.css";
@@ -29,6 +30,7 @@ import { TrialSelection } from "./components/menu/trial-selection";
 import { PixelAmbience, PixelFilters, PixelTransition, Typewriter, WordmarkAssembly } from "./components/fx/pixel-fx";
 import type { AmbiencePreset } from "./lib/render/pixel-fx";
 import { VoyageCrossing } from "./components/menu/voyage-crossing";
+import { MythicCinema } from "./components/menu/mythic-cinema";
 import { OracleKey } from "./components/menu/oracle-key";
 import { askOracle, readOracleEnabled, rememberQuestion, writeOracleEnabled, type OracleState } from "./lib/ai/oracle";
 import { LotusRaceRound } from "./components/play/lotus-race";
@@ -98,7 +100,10 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const [skin] = useState(() => { try { return new URLSearchParams(window.location.search).get("skin") === "classic" ? undefined : "pixel"; } catch { return "pixel"; } });
   const previousPreferences = useRef(prefs);
   const [systemStill, setSystemStill] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
-  const sceneStill = prefs.still || systemStill;
+  // The in-game setting decides. It starts from the device's reduced-motion preference
+  // (see loadPrefs), but a player who turns it off gets the cinematics even when the
+  // device asks for less motion; data-motion tells the stylesheets the same.
+  const sceneStill = prefs.still;
   useEffect(() => { const media = window.matchMedia("(prefers-reduced-motion: reduce)"); const update = () => setSystemStill(media.matches); media.addEventListener("change", update); return () => media.removeEventListener("change", update); }, []);
   const [selected, setSelected] = useState<TrialId>("lotus"), [intro, setIntro] = useState(0);
   const [settings, setSettings] = useState(false), [restart, setRestart] = useState(false), [assistance, setAssistance] = useState(false);
@@ -119,6 +124,10 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const [oracleOn, setOracleOn] = useState(readOracleEnabled);
   const [oracle, setOracle] = useState<OracleState>({ status: "idle", trial: null });
   const [oracleOpen, setOracleOpen] = useState(false);
+  /** The gate cinematic that plays when the Oracle's key turns (or its showcase preview). */
+  const [gate, setGate] = useState<{ trial: TrialId; preview?: boolean } | null>(null);
+  /** Set once WebGL fails: the films then fall back to the 2D crossing, and the gate opens without one. */
+  const [cinemaFailed, setCinemaFailed] = useState(false);
   /** Trials whose key the player has earned since opening their briefing. */
   const [oracleKeys, setOracleKeys] = useState<TrialId[]>([]);
   const oracleKeysRef = useRef(oracleKeys), oracleRequest = useRef<AbortController | null>(null);
@@ -273,6 +282,14 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   }
   /** After a wrong answer, the next visit to the Oracle brings a new question. */
   function closeOracle(answeredWrong: boolean) { setOracleOpen(false); if (answeredWrong) consultOracle(selected); }
+  /** The Oracle's key turns: Odysseus walks up and unlocks the trial's gate, then the trial begins. */
+  function enterGate() {
+    if (sceneStill || cinemaFailed) { launch(); return; }
+    setOracleOpen(false); wakeAudio(); setGate({ trial: selected });
+  }
+  function gateOpened() { const done = gate; setGate(null); if (!done?.preview) launch(); }
+  /** Showcase: watch the selected trial's gate open, without answering or starting anything. */
+  function previewGate() { setSettings(false); wakeAudio(); setGate({ trial: selected, preview: true }); }
   function launch(practice = false, originalCave = false, reuse?: Pick<Run, "plan" | "taunt" | "tacticReason">) {
     const plan = reuse?.plan ?? tactic.plan;
     if (!rivalOnline) return;
@@ -395,7 +412,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
 
   useEffect(() => {
     function key(e: KeyboardEvent) {
-      if (settings || restart || assistance || oracleOpen || (e.target as HTMLElement).closest("input,select,textarea,summary")) return;
+      if (settings || restart || assistance || oracleOpen || gate || (e.target as HTMLElement).closest("input,select,textarea,summary")) return;
       if (screen === "splash" && e.key === "Enter") { e.preventDefault(); navigate("title"); }
       else if (screen === "brief" && e.key === "Enter" && canStart && !(e.target as HTMLElement).closest("button,a")) { e.preventDefault(); launch(); }
       else if (screen === "title" && ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
@@ -407,8 +424,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       } else if (e.key === "Escape" && screen !== "play" && screen !== "title" && screen !== "crossing") navigate("title");
     }
     window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
-  }, [screen, settings, restart, assistance, canStart, save, selected, aiState, aiTaunt, rivalOnline]);
-  const blocked = settings || restart || assistance || oracleOpen;
+  }, [screen, settings, restart, assistance, oracleOpen, gate, canStart, save, selected, aiState, aiTaunt, rivalOnline]);
+  const blocked = settings || restart || assistance || oracleOpen || !!gate;
   const best = save.records[selected].bests[prefs.difficulty];
   const rivalChip = <div className="fs-rival-chip" data-status={rival.status} role="status">
     <BrainCircuit size={15}/>
@@ -430,7 +447,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
       : <p className="fs-rival-writing"><Loader2 size={14} className="fs-spin"/> {trial.character} {trial.character.endsWith("s") ? "are" : "is"} choosing words…</p>}
   </div>;
 
-  return <div className={"a-app od-app fs-app" + (sceneStill ? " a-still" : "") + (prefs.contrast ? " od-contrast" : "")} data-screen={screen} data-skin={skin}>
+  return <div className={"a-app od-app fs-app" + (sceneStill ? " a-still" : "") + (prefs.contrast ? " od-contrast" : "")} data-screen={screen} data-skin={skin} data-motion={sceneStill ? "reduced" : "full"}>
     {skin && <PixelFilters/>}
     {!sceneStill && (skin ? <PixelTransition key={`px-${screen}-${screen === "intro" ? intro : 0}`} kind={screen === "play" || screen === "crossing" ? "blocks" : "dither"}/> : <div className="fs-curtain" key={`curtain-${screen}-${screen === "intro" ? intro : 0}`} aria-hidden="true"><i/></div>)}
     {screen === "splash" ? <main className="od-splash fs-cinematic" inert={blocked}>
@@ -472,7 +489,18 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
         <div className="fs-prologue-pips" role="img" aria-label={`Part ${intro + 1} of ${prologue.length}`}>{prologue.map((_, i) => <i key={i} data-on={i <= intro || undefined}/>)}</div>
       </section>
       <div className="od-cinematic-footer"><span/><span>Esc returns to the menu</span></div>
-    </main> : screen === "crossing" && crossing ? <VoyageCrossing
+    </main> : screen === "crossing" && crossing && !cinemaFailed ? <MythicCinema
+      kind="journey"
+      key={`3d:${crossing.from}>${crossing.to}`}
+      from={crossing.from} to={crossing.to} preview={crossing.preview}
+      rival={!rivalOnline ? "waiting" : aiState === "ready" ? "ready" : "studying"}
+      headingRef={heading}
+      onSound={(name, gain, pan) => audio.current?.play([{ sound: name, gain, pan }])}
+      onSpeak={text => speak(text, "bard")}
+      onSilence={silence}
+      onDone={landed}
+      onFail={() => setCinemaFailed(true)}
+    /> : screen === "crossing" && crossing ? <VoyageCrossing
       key={`${crossing.from}>${crossing.to}`}
       save={save} from={crossing.from} to={crossing.to} preview={crossing.preview}
       rival={!rivalOnline ? "waiting" : aiState === "ready" ? "ready" : "studying"}
@@ -510,12 +538,16 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
         <button className="a-btn a-small" disabled={!voicePrefs.voice} onClick={() => speak(TEST_LINE, "bard")}><Volume2 size={15}/> Test the bard&apos;s voice</button>
       </div>
       </div><div>
-      <button className="a-setting-toggle" aria-pressed={prefs.sound} onClick={() => void toggleSound()}><span>Music & sounds<small>Every cue is also shown on screen.</small></span><strong>{prefs.sound ? "On" : "Off"}</strong></button><OdysseyPreferences preferences={prefs} onChange={setPrefs}/><button className="a-setting-toggle" aria-pressed={prefs.still} onClick={() => setPrefs(p => ({ ...p, still: !p.still }))}><span>Reduced motion<small>Stops decorative motion. Gameplay stays live.</small></span><strong>{prefs.still ? "On" : "Off"}</strong></button><button className="a-setting-toggle" aria-pressed={oracleOn} onClick={() => setOracleOn(v => { writeOracleEnabled(!v); return !v; })}><span>The Oracle&apos;s key<small>Answer a question from Homer&apos;s text before each trial.</small></span><strong>{oracleOn ? "On" : "Off"}</strong></button>{screen !== "play" && <div className="a-connection"><strong>Showcase</strong><p className="a-caption">Watch the crossing between two trials. Your voyage is unchanged.{sceneStill ? " Turn off Reduced motion to watch it." : ""}</p><button className="a-btn a-small" disabled={sceneStill} onClick={previewCrossing}>Preview a crossing</button></div>}</div></div></section></div>}
+      <button className="a-setting-toggle" aria-pressed={prefs.sound} onClick={() => void toggleSound()}><span>Music & sounds<small>Every cue is also shown on screen.</small></span><strong>{prefs.sound ? "On" : "Off"}</strong></button><OdysseyPreferences preferences={prefs} onChange={setPrefs}/><button className="a-setting-toggle" aria-pressed={prefs.still} onClick={() => setPrefs(p => ({ ...p, still: !p.still }))}><span>Reduced motion<small>Stops decorative motion and the cinematics. Gameplay stays live.{systemStill ? " Your device asks for reduced motion; turn this off to see them anyway." : ""}</small></span><strong>{prefs.still ? "On" : "Off"}</strong></button><button className="a-setting-toggle" aria-pressed={oracleOn} onClick={() => setOracleOn(v => { writeOracleEnabled(!v); return !v; })}><span>The Oracle&apos;s key<small>Answer a question from Homer&apos;s text before each trial.</small></span><strong>{oracleOn ? "On" : "Off"}</strong></button>{screen !== "play" && <div className="a-connection"><strong>Showcase</strong><p className="a-caption">Watch Odysseus walk on to the next trial, or the Oracle's key open a gate. Your voyage is unchanged.{sceneStill ? " Turn off Reduced motion to watch it." : ""}</p><button className="a-btn a-small" disabled={sceneStill} onClick={previewCrossing}>Preview a crossing</button> <button className="a-btn a-small" disabled={sceneStill || cinemaFailed} onClick={previewGate}>Preview the gate</button></div>}</div></div></section></div>}
+    {gate && <MythicCinema kind="unlock" key={`gate:${gate.trial}`} to={gate.trial} preview={gate.preview}
+      onSound={(name, gain, pan) => audio.current?.play([{ sound: name, gain, pan }])}
+      onDone={gateOpened}
+      onFail={() => { setCinemaFailed(true); gateOpened(); }}/>}
     {oracleOpen && <OracleKey trialTitle={trial.title} state={oracle} onAnswer={(item, picked) => setOracleLog(log => ({ ...log, [item.trialId]: [...(log[item.trialId] ?? []), {
       trial: item.trialId, question: item.question, picked: item.options[picked], answer: item.options[item.answer], correct: picked === item.answer,
       evidence: item.evidence, ref: item.source.kind === "odyssey" ? `Homer, Odyssey, ${item.source.ref}` : item.source.ref,
       model: item.generation.model, ms: item.generation.ms, retrieval: item.retrieval.mode === "hybrid" ? `${item.retrieval.embedder} meaning search with BM25 keywords` : "BM25 keyword search", mock: !!item.mock,
-    }].slice(-3) }))} onSolved={() => setOracleKeys(keys => keys.includes(selected) ? keys : [...keys, selected])} onEnter={() => launch()} onAgain={() => consultOracle(selected)} onClose={closeOracle}/>}
+    }].slice(-3) }))} onSolved={() => setOracleKeys(keys => keys.includes(selected) ? keys : [...keys, selected])} onEnter={enterGate} onAgain={() => consultOracle(selected)} onClose={closeOracle}/>}
     {restart && <div className="a-modal-backdrop"><section className="a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-restart-title"><h2 id="a-restart-title">Start a new game?</h2><p>This clears your voyage, best scores and medals.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setRestart(false)}>Keep this voyage</button><button className="a-btn a-primary" onClick={newVoyage}>New game</button></div></section></div>}
     {assistance && <div className="a-modal-backdrop"><section className="a-modal a-paper" role="dialog" aria-modal="true" aria-labelledby="a-assist-title"><h2 id="a-assist-title">A little help from Athena.</h2><p>Your voyage marks this trial Assisted, with no medal or score. You can replay it later.</p><div className="a-actions"><button autoFocus className="a-btn" onClick={() => setAssistance(false)}>Keep trying</button><button className="a-btn a-primary" onClick={useAssistance}>Accept Athena's help</button></div></section></div>}
   </div>;

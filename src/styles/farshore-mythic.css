@@ -1,0 +1,121 @@
+/* FARSHORE · The mythic cinematics in 3D (mythic-cinema.tsx), and the camera
+   moves between screens that make the menus feel like one ride.
+   The films reuse the crossing's letterbox shutter and skip button. */
+
+.fs-mythic {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  background: #020509;
+  color: #f4e6c4;
+  outline: none;
+  --fs-bar: #020509;
+}
+.fs-mythic-stage { position: absolute; inset: 0; opacity: 0; transition: opacity 0.7s ease; }
+.fs-mythic[data-ready] .fs-mythic-stage { opacity: 1; }
+.fs-mythic-stage canvas, .fs-mythic-gl { display: block; width: 100%; height: 100%; }
+
+/* The grade: a warm vignette and a breath of film grain over the 3D frame. */
+.fs-mythic-grade {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 55%, transparent 52%, #02050999 82%, #020509f2 100%),
+    linear-gradient(180deg, #1a0e0420, transparent 30%, transparent 70%, #04101a40);
+}
+.fs-mythic-grain {
+  position: absolute; inset: -50%; z-index: 2; pointer-events: none; opacity: 0.07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: fs-mythic-grain 0.9s steps(6) infinite;
+}
+@keyframes fs-mythic-grain {
+  0% { transform: translate(0, 0); } 20% { transform: translate(-3%, 2%); } 40% { transform: translate(2%, -3%); }
+  60% { transform: translate(-2%, -1%); } 80% { transform: translate(3%, 3%); } 100% { transform: translate(0, 0); }
+}
+
+/* The shutter opens to a wide frame and stays there. */
+.fs-mythic .fs-mythic-bar { z-index: 4; animation-duration: 1.6s; animation-delay: 0.2s; }
+
+.fs-mythic-loading {
+  position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; margin: 0;
+  font: 13px/1.4 var(--fs-font-ui); letter-spacing: 0.2em; text-transform: uppercase; color: #c9a466;
+}
+
+/* Route and rival, in the top bar; the bard's line, in the bottom bar. */
+.fs-mythic-top {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5; height: 6%;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 0 clamp(16px, 3vw, 40px);
+  font: max(var(--fs-font-floor,0px),12px)/1 var(--fs-font-ui); letter-spacing: 0.14em; text-transform: uppercase; color: #c9a466;
+  animation: fs-mythic-rise 0.8s var(--fs-cine, ease) 0.9s both;
+}
+.fs-mythic-top span { display: inline-flex; align-items: center; gap: 8px; }
+.fs-mythic-top small { font: inherit; color: #9fb6c6; }
+.fs-mythic-top small[data-rival="ready"] { color: #7dffb0; }
+.fs-mythic-line {
+  position: absolute; left: 50%; bottom: calc(6% + 16px); z-index: 5; width: min(760px, calc(100% - 420px));
+  display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 0;
+  /* `translate`, not `transform`, so the entrance animation cannot undo the centring. */
+  translate: -50% 0;
+  text-shadow: 0 1px 2px #000, 0 0 14px #000c;
+  font: italic clamp(13px, 1.25vw, 16px)/1.3 var(--fs-font-display); color: #e8dcc0; text-align: center;
+  animation: fs-mythic-rise 1s var(--fs-cine, ease) 0.6s both;
+}
+.fs-mythic-line > span { font: normal max(var(--fs-font-floor,0px),10px)/1 var(--fs-font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: #c9a466; white-space: nowrap; }
+
+/* The title card: carved light rising out of the film. */
+.fs-mythic-caption {
+  position: absolute; left: 0; right: 0; top: 12%; z-index: 5;
+  display: grid; justify-items: center; gap: 8px; padding: 0 24px; text-align: center; pointer-events: none;
+}
+.fs-mythic-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: max(var(--fs-font-floor,0px),12px)/1 var(--fs-font-ui); letter-spacing: 0.32em; text-transform: uppercase; color: #f2c46d;
+  text-shadow: 0 0 12px #e9b85c99;
+  animation: fs-mythic-rise 0.9s var(--fs-cine, ease) both;
+}
+.fs-mythic-caption h1 {
+  margin: 0; font: 400 clamp(30px, 4.6vw, 64px)/1.05 var(--fs-font-display); letter-spacing: 0.06em; color: #fff4d8;
+  text-shadow: 0 0 2px #fff4d8, 0 0 22px #e9b85caa, 0 6px 30px #000c;
+  animation: fs-mythic-title 1.6s var(--fs-cine, ease) both;
+}
+.fs-mythic-caption p {
+  margin: 0; font: max(var(--fs-font-floor,0px),13px)/1.3 var(--fs-font-ui); letter-spacing: 0.18em; text-transform: uppercase; color: #cfdbe2;
+  animation: fs-mythic-rise 1s var(--fs-cine, ease) 0.35s both;
+}
+@keyframes fs-mythic-title {
+  from { opacity: 0; letter-spacing: 0.42em; filter: blur(10px); transform: translateY(14px) scale(1.04); }
+  to { opacity: 1; letter-spacing: 0.06em; filter: blur(0); transform: none; }
+}
+@keyframes fs-mythic-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* The unlock ends in white-gold light; the walk fades to night. JS drives the opacity. */
+.fs-mythic-flash { position: absolute; inset: 0; z-index: 7; opacity: 0; pointer-events: none; background: #020509; }
+.fs-mythic-flash[data-kind="unlock"] { background: radial-gradient(60% 70% at 50% 45%, #ffffff, #fff1c8 45%, #f2c46d); }
+
+.fs-mythic .fs-mythic-skip { z-index: 8; bottom: calc(6% + 14px); }
+
+@media (max-width: 760px) {
+  .fs-mythic-top { height: auto; top: 8px; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .fs-mythic-line { width: calc(100% - 32px); bottom: calc(6% + 70px); }
+  .fs-mythic-caption { top: 14%; }
+}
+
+/* ------------------------------------------------------------ the ride ---
+   Every screen arrives like a camera move: out of depth, a little below the
+   eye line, drawing into focus. The backdrop drifts the other way, so the
+   foreground and the far scene part like layers of a diorama. Off in still
+   mode (the a-still rule in farshore.css stops every animation). */
+
+.fs-app .a-main > section,
+.fs-app .a-main > .od-guide {
+  animation: fs-ride-in 0.85s cubic-bezier(0.16, 0.84, 0.24, 1) both;
+  transform-origin: 50% 70%;
+}
+@keyframes fs-ride-in {
+  from { opacity: 0; transform: perspective(1400px) translate3d(0, 26px, -180px) rotateX(7deg); filter: blur(6px); }
+  60% { filter: blur(0); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.fs-app[data-screen="brief"] .a-brief-scene { animation: fs-ride-scene 1.4s cubic-bezier(0.16, 0.84, 0.24, 1) both; }
+@keyframes fs-ride-scene { from { transform: scale(1.12) translate3d(0, -2%, 0); filter: brightness(0.6); } to { transform: none; filter: none; } }

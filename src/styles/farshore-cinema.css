@@ -770,5 +770,5 @@
 /* The app adds .a-still for the system preference as well as the in-game
    toggle, so the rules above cover both. */
 @media (prefers-reduced-motion: reduce) {
-  .fs-curtain, .fs-fog { display: none; }
+  .fs-app:not([data-motion="full"]) .fs-curtain, .fs-app:not([data-motion="full"]) .fs-fog { display: none; }
 }

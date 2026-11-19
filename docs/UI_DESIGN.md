@@ -115,7 +115,7 @@ Replaces the previous abstract island-and-route map with eight hand-drawn SVG la
 
 ## Accessibility
 
-- Reduced motion is honoured at three levels: system preference, an explicit in-game toggle, and (for the cave) an additional Visual Effects strength slider independent of the motion toggle, so a player can keep full particle density while declining camera shake, or vice versa.
+- Reduced motion is honoured at three levels: the system preference (which sets the in-game toggle's starting value), the in-game toggle (which decides: a player on a device that asks for reduced motion can still turn it off and get the cinematics; `data-motion` on the app root tells the stylesheets), and (for the cave) an additional Visual Effects strength slider independent of the motion toggle, so a player can keep full particle density while declining camera shake, or vice versa.
 - Every colour-coded state (locked/unlocked/cleared islands, danger cues, candidate table rows) is paired with an icon, text label, or pattern, not colour alone.
 - Keyboard navigation is complete: arrow-key trial grid navigation, full pause-menu focus trapping, `Escape` to pause/resume, `F3` to cycle the inspector without losing focus context.
 - All interactive SVG/canvas regions carry `role`, `aria-label` and (for the voyage chart's island targets) `aria-pressed`/keyboard activation, not mouse-only hit targets.
@@ -131,4 +131,13 @@ Loaded after every other sheet and extending, not replacing, the language above.
 - **Buttons say what they do.** Menu, briefing, pause and result buttons carry a second line with the consequence or context ("Next: Cyclops' Cave · 1 of 8 cleared", "Same rival strategy · nothing is saved", "This attempt will not be saved").
 - **The codex.** Beside every board, a real column (never overlapping the board) holds the objective with live per-encounter trackers read from engine state, the rival card with its strategy and live line, the commentary log, and the bonus challenge. Commentary also appears as a broadcast subtitle over the action.
 - **Phones.** In portrait, the stage stops letterboxing to 16:9 and becomes a scrolling column: sticky HUD, the board at full width, its controls, the cue strip, then the inspector or codex.
-- **Reduced motion** (system setting or the in-game toggle) removes the curtain, mist, shutters, reveals and pulses; information stays in place.
+- **Reduced motion** (the in-game toggle, which starts from the system setting) removes the curtain, mist, shutters, reveals, pulses and the 3D cinematics; information stays in place.
+
+### The mythic cinematics (3D)
+
+Two short films in three.js, built from the Cyclops' Cave kit so they share one world with the 3D encounters: painted stone, marble, bronze braziers, ruins and sea cliffs, with Odysseus as the pixel sprite on a camera-facing card (crisp against painted stone, with bloom on fire and light). Timeline in `src/lib/story/cinema.ts` (pure and tested), drawn by `src/lib/render/cinema-world.ts`, shown by `src/components/menu/mythic-cinema.tsx`.
+
+- **The gate (7.4 s).** When the Oracle's key is won and the player presses "Enter the trial", Odysseus walks up a torch-lit causeway to the trial's bronze gate. The gold key falls in a shaft of light, tips into the sun-seal and turns a quarter, runes in the trial's colour ignite along the doors, the doors swing open on light, and the camera rides into it before the trial starts.
+- **The walk (8.8 s).** After a win, "Next trial" shows Odysseus walking out through the gate he opened, along the sea causeway, while the sky blends from one trial's light to the next, to the next trial's gate, its runes stirring under the title card. The bard reads the crossing line. It replaces the 2D chart crossing, which stays as the fallback when WebGL is unavailable.
+- Every screen inside the chrome arrives like a camera move (`fs-ride-in`: out of depth, slightly below the eye line, drawing into focus), and the briefing's scene settles from a push-in.
+- Enter, Space, Escape or the button skip a film. Settings → Showcase has "Preview a crossing" and "Preview the gate". Development builds expose `window.farshoreCinema` (`hold`, `seek`, `world`) for frame-exact checks.

@@ -1361,10 +1361,10 @@ body.fs-stage-open {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fs-chase[data-close="true"] .fs-chase-bar { animation: none; }
-  .fs-hud-track > i,
-  .fs-chase-bar > i,
-  .ai-distribution i > b { transition: none; }
+  .fs-app:not([data-motion="full"]) .fs-chase[data-close="true"] .fs-chase-bar { animation: none; }
+  .fs-app:not([data-motion="full"]) .fs-hud-track > i,
+  .fs-app:not([data-motion="full"]) .fs-chase-bar > i,
+  .fs-app:not([data-motion="full"]) .ai-distribution i > b { transition: none; }
 }
 
 /* ---------------------------------------------------------------- arena -- */
@@ -1611,10 +1611,9 @@ body.fs-stage-open {
 .fs-chart-still .fs-weather-storm .fs-bolt { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
-  .fs-chart-swell, .fs-chart-route, .fs-chart-wake, .fs-chart-ring,
-  .fs-weather-mist, .fs-weather-wind, .fs-weather-storm .fs-bolt,
-  .fs-weather-glow, .fs-chart-ship { animation: none; }
-  .fs-chart-wake { animation: none; }
+  .fs-app:not([data-motion="full"]) .fs-chart-swell, .fs-app:not([data-motion="full"]) .fs-chart-route, .fs-app:not([data-motion="full"]) .fs-chart-wake, .fs-app:not([data-motion="full"]) .fs-chart-ring,
+  .fs-app:not([data-motion="full"]) .fs-weather-mist, .fs-app:not([data-motion="full"]) .fs-weather-wind, .fs-app:not([data-motion="full"]) .fs-weather-storm .fs-bolt,
+  .fs-app:not([data-motion="full"]) .fs-weather-glow, .fs-app:not([data-motion="full"]) .fs-chart-ship { animation: none; }
 }
 
 /* Preview column. */

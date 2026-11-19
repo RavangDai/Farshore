@@ -77,5 +77,5 @@
 /* ------------------------------------------------- reduced motion -- */
 .fs-app.a-still[data-skin="pixel"] *, .fs-app.a-still[data-skin="pixel"] *::before, .fs-app.a-still[data-skin="pixel"] *::after { animation: none !important; transition: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  .fs-app.a-app[data-skin="pixel"] *, .fs-app.a-app[data-skin="pixel"] *::before, .fs-app.a-app[data-skin="pixel"] *::after { animation: none !important; transition: none !important; }
+  .fs-app.a-app[data-skin="pixel"]:not([data-motion="full"]) *, .fs-app.a-app[data-skin="pixel"]:not([data-motion="full"]) *::before, .fs-app.a-app[data-skin="pixel"]:not([data-motion="full"]) *::after { animation: none !important; transition: none !important; }
 }

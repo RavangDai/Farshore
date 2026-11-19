@@ -163,5 +163,5 @@
   .fs-preview-controls { margin-bottom:0; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .fs-app .fs-trial-card,.fs-app .m-sound-pad { transition:none!important; }
+  .fs-app:not([data-motion="full"]) .fs-trial-card,.fs-app:not([data-motion="full"]) .m-sound-pad { transition:none!important; }
 }

@@ -3,22 +3,45 @@
    The written version is in docs/UI_DESIGN.md ("Design tokens"). */
 
 :root {
-  /* Colour. One accent (gold) for interactive chrome; cyan is reserved for AI
-     state and AI data, so "the rival is thinking" never reads as danger. */
-  --fs-color-bg: #071523;
-  --fs-color-surface: #0b2033;
-  --fs-color-text: #f6f0e3;
-  --fs-color-text-muted: #93afc0;
-  --fs-color-accent: #e9b85c;
-  --fs-color-ai: #32d4f5;
-  --fs-color-error: #f4604f;
-  --fs-color-success: #9fe6b4;
+  /* The cinematic palette. Obsidian and deep ocean carry the night; bronze
+     and gold are the only metals; ivory is the text. Each trial adds its own
+     environmental accent (--cn-accent), set from lib/cinema/scenes.ts. */
+  --cn-obsidian: #080c13;
+  --cn-ocean: #102533;
+  --cn-bronze: #b98847;
+  --cn-gold: #e4bf79;
+  --cn-ivory: #f5e8d0;
+  --cn-ivory-2: rgba(245, 232, 208, 0.78);
+  --cn-ivory-3: rgba(245, 232, 208, 0.56);
+  --cn-line: rgba(228, 191, 121, 0.3);
+  --cn-line-soft: rgba(245, 232, 208, 0.14);
+  --cn-glass: rgba(8, 12, 19, 0.72);
+  --cn-accent: var(--cn-gold);
 
-  /* Type. Serif for story and headings, sans for interface details,
-     the pixel face for arcade labels, monospace inside the AI inspector. */
-  --fs-font-display: Georgia, "Palatino Linotype", serif;
-  --fs-font-ui: Arial, Helvetica, sans-serif;
-  --fs-font-pixel: Pixel, monospace;
+  /* Type. Cinzel for titles and chapter headings, Cormorant Garamond for the
+     editorial voice, Inter for controls and anything that must be read fast. */
+  --cn-font-title: "Cinzel Variable", "Cinzel", "Trajan Pro", Georgia, serif;
+  --cn-font-serif: "Cormorant Garamond Variable", "Cormorant Garamond", Garamond, Georgia, serif;
+  --cn-font-ui: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cn-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Legacy names, kept so every older sheet reads the same palette and type. */
+  --fs-color-bg: var(--cn-obsidian);
+  --fs-color-surface: var(--cn-ocean);
+  --fs-color-text: var(--cn-ivory);
+  --fs-color-text-muted: #a9b4bd;
+  --fs-color-accent: var(--cn-gold);
+  /* Cyan stays reserved for AI state and AI data, so "the rival is thinking" never reads as danger. */
+  --fs-color-ai: #7fd3e6;
+  --fs-color-error: #f0705c;
+  --fs-color-success: #a9e3b8;
+
+  /* Older sheets use "display" for body copy too, so it maps to the readable serif;
+     their headings are set in Cinzel by cinema-skin.css. */
+  --fs-font-display: var(--cn-font-serif);
+  --fs-font-ui: var(--cn-font-ui);
+  /* The pixel face is retired; anything that still asks for it gets Inter. */
+  --fs-font-pixel: var(--cn-font-ui);
   --fs-font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
 
   /* Five text sizes. */

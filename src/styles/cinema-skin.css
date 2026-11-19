@@ -1,0 +1,123 @@
+/* The cinematic skin over the gameplay stage and the older shared components
+   (pause veil, HUD, title card, race, hunt, Oracle, round report, AI Lab).
+   The classic sheets already read the tokens, so type and palette follow;
+   this sheet only refines surfaces to the same language: glass, hairline
+   bronze, Cinzel numerals, quiet chrome. Scoped to [data-skin="cinema"]. */
+
+.cn-app[data-skin="cinema"] {
+  --fs-gold: var(--cn-gold); --fs-edge: var(--cn-bronze); --fs-light: #fbe7b8; --fs-cream: var(--cn-ivory); --fs-blue: var(--cn-ocean);
+  --a-ink: var(--cn-ivory); --a-muted: #b3bcc4; --a-gold: var(--cn-gold); --a-line: rgba(228, 191, 121, 0.3);
+  --gold: var(--cn-gold); --bright-gold: #f6d796; --text: var(--cn-ivory); --muted: #b3bcc4; --midnight: var(--cn-obsidian); --navy: #0d1520; --panel: #111a26;
+  --fs-round: 1;
+  background: var(--cn-obsidian);
+}
+
+/* ------------------------------------------------------------ buttons -- */
+.cn-app[data-skin="cinema"] .a-btn { min-height: 46px; padding: 10px 20px; border: 1px solid var(--cn-line); border-radius: 3px; background: rgba(10, 15, 23, 0.72); color: var(--cn-ivory); font: 600 12px/1.2 var(--cn-font-ui); letter-spacing: 0.16em; text-transform: uppercase; box-shadow: none; backdrop-filter: blur(6px); transition: border-color 0.3s, color 0.3s, background-color 0.3s, transform 0.3s var(--cn-ease); }
+.cn-app[data-skin="cinema"] .a-btn:hover:not(:disabled) { border-color: var(--cn-gold); color: var(--cn-gold); background: rgba(14, 20, 30, 0.86); }
+.cn-app[data-skin="cinema"] .a-btn.a-primary { border-color: transparent; color: #1d1207; background: linear-gradient(180deg, #f9e3ab 0%, #e6bd76 36%, #c08b45 70%, #93642f 100%); box-shadow: inset 0 1px 0 rgba(255, 247, 220, 0.85), inset 0 -2px 0 rgba(70, 40, 12, 0.45); }
+.cn-app[data-skin="cinema"] .a-btn.a-primary:hover:not(:disabled) { color: #1d1207; filter: brightness(1.07); transform: translateY(-1px); }
+.cn-app[data-skin="cinema"] .a-btn.a-ghost { background: transparent; }
+.cn-app[data-skin="cinema"] .a-btn.fs-rich > span > b { font: 600 12.5px/1.25 var(--cn-font-ui); letter-spacing: 0.14em; }
+.cn-app[data-skin="cinema"] .a-btn.fs-rich > span > small { font: 400 11.5px/1.3 var(--cn-font-ui); letter-spacing: 0.02em; text-transform: none; opacity: 0.75; }
+.cn-app[data-skin="cinema"] .a-text-btn { color: var(--cn-gold); font-family: var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] .a-eyebrow { color: var(--cn-gold); font: 600 11px/1.3 var(--cn-font-title); letter-spacing: 0.32em; text-transform: uppercase; }
+.cn-app[data-skin="cinema"] kbd { padding: 3px 6px; border: 1px solid var(--cn-line); border-radius: 3px; background: rgba(245, 232, 208, 0.06); color: var(--cn-ivory); font: 600 11px/1 var(--cn-font-ui); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.4); }
+.cn-app[data-skin="cinema"] :is(h1, h2, h3) { font-family: var(--cn-font-title); }
+
+/* ------------------------------------------------------- stage & veil -- */
+.cn-app[data-skin="cinema"] .fs-stage { background: #05080d; }
+.cn-app[data-skin="cinema"] .fs-stage-veil { background: radial-gradient(ellipse at 50% 50%, rgba(8, 12, 19, 0.55), rgba(3, 5, 9, 0.88)); backdrop-filter: blur(5px); }
+.cn-app[data-skin="cinema"] .fs-veil-panel { border: 1px solid var(--cn-line); border-radius: 6px; background: linear-gradient(180deg, rgba(14, 19, 28, 0.94), rgba(7, 10, 16, 0.97)); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); color: var(--cn-ivory); }
+.cn-app[data-skin="cinema"] .fs-veil-panel h2 { color: var(--cn-ivory); font: 500 clamp(26px, 4vh, 34px)/1.15 var(--cn-font-title); letter-spacing: 0.1em; text-transform: uppercase; }
+.cn-app[data-skin="cinema"] .fs-veil-panel p { color: var(--cn-ivory-2); font-family: var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] .fs-veil-count { color: var(--cn-gold); font-family: var(--cn-font-title); font-weight: 600; text-shadow: 0 0 40px rgba(228, 191, 121, 0.6); }
+
+/* The countdown title card: the chapter as a film title. */
+.cn-app[data-skin="cinema"] .fs-title-card { border-color: var(--cn-line); border-radius: 6px; }
+.cn-app[data-skin="cinema"] .fs-title-card h2 { font: 500 clamp(34px, 6vh, 60px)/1.05 var(--cn-font-title); letter-spacing: 0.04em; color: var(--cn-ivory); background: none; -webkit-text-fill-color: currentColor; }
+.cn-app[data-skin="cinema"] .fs-title-chapter { color: var(--cn-gold); font: 600 12px/1.3 var(--cn-font-title); letter-spacing: 0.34em; text-transform: uppercase; }
+.cn-app[data-skin="cinema"] .fs-title-taunt { font: italic 500 clamp(17px, 2.6vh, 22px)/1.45 var(--cn-font-serif); color: var(--cn-ivory-2); }
+.cn-app[data-skin="cinema"] .fs-title-controls { font: 400 13px/1.5 var(--cn-font-ui); color: var(--cn-ivory-3); }
+.cn-app[data-skin="cinema"] .fs-title-count strong { color: #fbe3a8; font-family: var(--cn-font-title); }
+.cn-app[data-skin="cinema"] :is(.fs-trial-art, .a-portrait) { image-rendering: auto; }
+
+/* --------------------------------------------------------------- HUD -- */
+.cn-app[data-skin="cinema"] .fs-arcade-hud { font-family: var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] .fs-hud-block { border: 1px solid rgba(228, 191, 121, 0.22); border-radius: 6px; background: linear-gradient(180deg, rgba(10, 14, 22, 0.74), rgba(6, 9, 14, 0.82)); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); }
+.cn-app[data-skin="cinema"] .fs-hud-portrait { border: 1px solid var(--cn-gold); border-radius: 50%; box-shadow: 0 0 0 2px rgba(8, 12, 19, 0.8), 0 0 14px rgba(228, 191, 121, 0.35); image-rendering: auto; }
+.cn-app[data-skin="cinema"] .fs-hud-name { color: var(--cn-ivory); font: 600 11px/1 var(--cn-font-title); letter-spacing: 0.3em; }
+.cn-app[data-skin="cinema"] .fs-hud-hearts .full { color: #e8695a; filter: drop-shadow(0 0 4px rgba(232, 105, 90, 0.6)); }
+.cn-app[data-skin="cinema"] .fs-hud-hearts .empty { color: rgba(245, 232, 208, 0.2); }
+.cn-app[data-skin="cinema"] .fs-hud-title { color: var(--cn-ivory); font: 500 clamp(14px, 1.3vw, 18px)/1.1 var(--cn-font-title); letter-spacing: 0.12em; text-transform: uppercase; text-shadow: 0 2px 12px #000; }
+.cn-app[data-skin="cinema"] .fs-hud-objective { color: var(--cn-ivory-2); font: italic 500 14px/1.2 var(--cn-font-serif); letter-spacing: 0.02em; text-transform: none; }
+.cn-app[data-skin="cinema"] .fs-hud-track { border-radius: 999px; background: rgba(245, 232, 208, 0.12); }
+.cn-app[data-skin="cinema"] .fs-hud-track > i { border-radius: inherit; background: linear-gradient(90deg, #b9843f, var(--cn-gold)); box-shadow: 0 0 10px rgba(228, 191, 121, 0.6); }
+.cn-app[data-skin="cinema"] .fs-hud-score > span, .cn-app[data-skin="cinema"] .fs-hud-stat > span { color: var(--cn-ivory-3); font: 600 9.5px/1 var(--cn-font-ui); letter-spacing: 0.24em; }
+.cn-app[data-skin="cinema"] .fs-hud-score > strong { color: var(--cn-ivory); font: 500 clamp(20px, 2vw, 26px)/1 var(--cn-font-title); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.cn-app[data-skin="cinema"] .fs-hud-stat > strong { color: var(--cn-gold); font: 500 16px/1 var(--cn-font-title); font-variant-numeric: tabular-nums; }
+.cn-app[data-skin="cinema"] .fs-hud-pause { border: 1px solid var(--cn-line); border-radius: 50%; background: rgba(8, 12, 19, 0.6); color: var(--cn-ivory); }
+.cn-app[data-skin="cinema"] .fs-hud-pause:hover { border-color: var(--cn-gold); color: var(--cn-gold); }
+.cn-app[data-skin="cinema"] .fs-hud-cue { border: 1px solid rgba(228, 191, 121, 0.2); border-radius: 6px; background: linear-gradient(90deg, rgba(6, 9, 14, 0.86), rgba(6, 9, 14, 0.6)); backdrop-filter: blur(8px); }
+.cn-app[data-skin="cinema"] .fs-hud-cue strong { color: var(--cn-ivory); font: 600 12.5px/1.2 var(--cn-font-ui); letter-spacing: 0.08em; text-transform: uppercase; }
+.cn-app[data-skin="cinema"] .fs-hud-cue p { color: var(--cn-ivory-2); font: 400 13px/1.4 var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] .fs-hud-cue[data-danger="true"] { border-color: rgba(232, 105, 90, 0.55); }
+.cn-app[data-skin="cinema"] .fs-hud-cue[data-danger="true"] strong { color: #f3a191; }
+.cn-app[data-skin="cinema"] .fs-chase-bar { border-radius: 999px; background: rgba(245, 232, 208, 0.12); }
+.cn-app[data-skin="cinema"] .fs-chase-bar > i { border-radius: inherit; background: linear-gradient(90deg, #e8743a, #f0a35c); }
+/* The rival's live intent, from the engine's own state. */
+.cn-app[data-skin="cinema"] .fs-hud-intent { display: inline-flex; align-items: center; gap: 8px; max-width: min(560px, 46vw); margin-top: 6px; padding: 5px 12px 5px 8px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--cn-accent) 45%, transparent); border-radius: 999px; background: rgba(6, 9, 14, 0.72); color: var(--cn-accent); font: 400 12.5px/1.2 var(--cn-font-ui); white-space: nowrap; backdrop-filter: blur(6px); }
+.cn-app[data-skin="cinema"] .fs-hud-intent .cn-sigil-glyph { flex: none; filter: drop-shadow(0 0 4px currentColor); }
+.cn-app[data-skin="cinema"] .fs-hud-intent .cn-sigil-eye { animation: cn-pulse 1.6s ease-in-out infinite; }
+.cn-app[data-skin="cinema"] .fs-hud-intent b { flex: none; color: var(--cn-ivory); font: 600 10.5px/1 var(--cn-font-title); letter-spacing: 0.18em; text-transform: uppercase; }
+.cn-app[data-skin="cinema"] .fs-hud-intent > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--cn-ivory-2); }
+.cn-app[data-skin="cinema"] .fs-arena-status { font-family: var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] .fs-codex { font-family: var(--cn-font-ui); }
+
+/* ------------------------------------------------------ race & hunt -- */
+.cn-app[data-skin="cinema"] :is(.fs-race-bar, .fs-race-live, .fs-race-pad, .fs-race-panel) { font-family: var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] .fs-race-clock { font-family: var(--cn-font-title); font-variant-numeric: tabular-nums; }
+.cn-app[data-skin="cinema"] .fs-race-live-tag { font: 600 10px/1 var(--cn-font-ui); letter-spacing: 0.2em; }
+.cn-app[data-skin="cinema"] .fs-race-board { border-radius: 6px; }
+.cn-app[data-skin="cinema"] .fs-race-result h2 { font: 500 clamp(28px, 5vh, 44px)/1.1 var(--cn-font-title); letter-spacing: 0.06em; }
+.cn-app[data-skin="cinema"] .fs-race-result[data-winner="human"] h2 { background: linear-gradient(180deg, #fff3d0, #e7c27c 55%, #b47e3b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.cn-app[data-skin="cinema"] .fs-race-table { font-family: var(--cn-font-ui); }
+
+/* ------------------------------------------------- the Oracle's key -- */
+.cn-app[data-skin="cinema"] :is(.fs-oracle, .fs-oracle-card, .fs-oracle-panel) { font-family: var(--cn-font-ui); }
+.cn-app[data-skin="cinema"] :is(.fs-oracle, .fs-oracle-card, .fs-oracle-panel) :is(h2, h3) { font-family: var(--cn-font-title); letter-spacing: 0.04em; }
+
+/* ------------------------------------------------ round report (drawer) -- */
+.cn-drawer :is(.fs-report, .fs-result-side) { font-family: var(--cn-font-ui); color: var(--cn-ivory-2); }
+.cn-drawer .fs-result-side { position: static; width: auto; max-height: none; }
+
+/* ------------------------------------------------------------ AI Lab -- */
+.cn-lab .fs-lab { position: static; inset: auto; padding: 0; background: none; }
+.cn-lab .fs-lab-head { display: none; }
+.cn-lab :is(.fs-lab-pick, .fs-lab-compare, .fs-lab-explainer) { border: 1px solid var(--cn-line-soft); border-radius: 6px; background: rgba(8, 12, 19, 0.74); backdrop-filter: blur(10px); }
+.cn-lab .fs-lab-card { border-radius: 4px; }
+
+/* Portrait medallions where no painted face exists. */
+.cn-app .cn-medallion { display: inline-grid; place-items: center; border: 1px solid var(--cn-gold); border-radius: 50%; background: radial-gradient(circle at 50% 30%, #4a3720, #120d08 75%); color: var(--cn-gold); font: 600 1.15em/1 var(--cn-font-title); }
+
+/* ------------------------------------------- live commentary subtitles -- */
+/* In play the bard's and the rival's lines read as film subtitles: a small speaker
+   name in Cinzel, the line itself in Cormorant, sentence case, never shouted. */
+.cn-app[data-skin="cinema"] .fs-subtitle { padding: 10px 26px 12px; border: 0; background: linear-gradient(90deg, transparent, rgba(5, 8, 13, 0.78) 14%, rgba(5, 8, 13, 0.78) 86%, transparent); box-shadow: none; text-align: center; }
+.cn-app[data-skin="cinema"] .fs-subtitle > span { display: block; margin-bottom: 4px; color: var(--cn-gold); font: 600 10.5px/1 var(--cn-font-title); letter-spacing: 0.32em; text-transform: uppercase; }
+.cn-app[data-skin="cinema"] .fs-subtitle[data-speaker="rival"] > span { color: #f3a191; }
+.cn-app[data-skin="cinema"] .fs-subtitle > p { margin: 0; color: var(--cn-ivory); font: italic 500 clamp(17px, 2.6vh, 21px)/1.4 var(--cn-font-serif); letter-spacing: 0; text-transform: none; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8); }
+
+/* ------------------------------------------------- the Oracle's question -- */
+.cn-app[data-skin="cinema"] .fs-oracle { border: 1px solid var(--cn-line); border-radius: 8px; background: linear-gradient(180deg, rgba(14, 19, 28, 0.97), rgba(7, 10, 16, 0.98)); box-shadow: 0 40px 100px rgba(0, 0, 0, 0.65); }
+.cn-app[data-skin="cinema"] .fs-oracle h2#fs-oracle-title { color: var(--cn-ivory); font: 500 clamp(21px, 3.4vh, 27px)/1.35 var(--cn-font-serif); letter-spacing: 0; text-transform: none; }
+.cn-app[data-skin="cinema"] .fs-oracle-head { color: var(--cn-gold); font-family: var(--cn-font-title); }
+.cn-app[data-skin="cinema"] .fs-oracle-option { border-color: var(--cn-line-soft); border-radius: 4px; background: rgba(245, 232, 208, 0.03); color: var(--cn-ivory); font-family: var(--cn-font-ui); transition: border-color 0.3s, background-color 0.3s; }
+.cn-app[data-skin="cinema"] .fs-oracle-option:hover:not(:disabled) { border-color: var(--cn-gold); background: rgba(228, 191, 121, 0.07); }
+.cn-app[data-skin="cinema"] .fs-oracle summary, .cn-app[data-skin="cinema"] .od-pause-controls summary { color: var(--cn-gold); }
+.cn-app[data-skin="cinema"] :is(.fs-race-clock, .fs-hunt-clock) :is(strong, b, span:first-child) { font-family: var(--cn-font-title); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+
+/* Beating the trained rival: a laurel and one line that says what was beaten. */
+@keyframes cn-wreath-in { from { opacity: 0; transform: scale(0.6) rotate(-8deg); } to { opacity: 1; transform: none; } }
+.cn-app .cn-beat-ai { display: grid; place-items: center; margin: -6px 0 4px; filter: drop-shadow(0 0 18px rgba(228, 191, 121, 0.45)); animation: cn-wreath-in 1.2s var(--cn-ease) both; }
+.cn-app .cn-beat-ai-line { margin: 2px 0 6px; color: var(--cn-gold); font: italic 500 18px/1.4 var(--cn-font-serif); }

@@ -43,7 +43,7 @@ type Beat = "sky" | "voyage" | "arrived" | "card";
 
 /** The sprite sheet: Odysseus standing (tile 0) and his ship (tile 3), on transparency. */
 /** The pixel sprite sheet; its SVG <image> is drawn at the painted sheet's size, so the geometry below is unchanged. */
-const SHEET = ART.px.sprites;
+const SHEET = ART.hd.sprites;
 const SHEET_SIZE = 1254;
 const TILE = SHEET_SIZE / 2;
 /**

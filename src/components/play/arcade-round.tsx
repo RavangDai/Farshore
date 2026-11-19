@@ -487,6 +487,10 @@ export function ArcadeRound({
 
   const feed = isCave(round) ? caveFeed(round) : isBow(round) ? bowFeed(round) : isSong(round) ? songFeed(round) : planFeed(planned, difficulty, round.elapsed, [{ key: "now", label: "Right now", value: round.rivalLine || "Watching" }]);
   const status = statusOf(round);
+  // The HUD's one-line rival indicator: the live feed's headline for the rivals that decide
+  // in play, otherwise the engine's own current line, shortened to its first sentence.
+  const firstSentence = (text: string) => { const cut = text.split(/(?<=[.!?])\s/)[0] ?? text; return cut.length > 74 ? `${cut.slice(0, 72).trimEnd()}…` : cut; };
+  const intentText = isCave(round) || isBow(round) || isSong(round) ? feed.headline ?? "" : round.rivalLine ? firstSentence(round.rivalLine) : feed.headline ?? "";
   const latest = log.at(-1) ?? null;
   // The 2D encounter the model steers live keeps its compact panel in the sidebar.
   const live = isSong(round);
@@ -603,6 +607,7 @@ export function ArcadeRound({
           mode={inspector}
           onMode={chooseInspector}
           onPause={pause}
+          intent={phase === "active" && !demo ? { who: trial.character, text: intentText } : null}
         />
       }
       overlay={

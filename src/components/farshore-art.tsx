@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react";
 import { trials, type TrialId } from "../lib/arcade/arcade";
-import { ART, castPosition } from "../lib/art";
+import { ART } from "../lib/art";
 
-export const FARSHORE_ATLAS = ART.px.trials;
+/** The painted 4 x 3 atlas: eight trial scenes, then four portraits (Odysseus, Circe, a Siren, the Cyclops). */
+export const FARSHORE_ATLAS = ART.hd.trials;
 export const artPosition = (index: number) => `${index % 4 * 100 / 3}% ${Math.floor(index / 4) * 50}%`;
 
 export function FarshoreLogo({ compact = false }: { compact?: boolean }) {
@@ -18,7 +19,19 @@ export function TrialArtwork({ id, className = "" }: { id: TrialId; className?: 
   return <span className={`fs-trial-art ${className}`} style={{ backgroundPosition: artPosition(index), "--fs-art-position": artPosition(index) } as CSSProperties} aria-hidden="true"/>;
 }
 
-/** A portrait from the pixel cast sheet, which keeps the legacy numbering: painted faces where the arcade has them, the rest redrawn in the same palette. */
+/**
+ * Legacy portrait numbers that have a painted face or scene in the atlas
+ * (the same mapping scripts/pixelate-art.mjs used): portrait -> atlas tile.
+ */
+const PAINTED: Record<number, number> = { 0: 8, 5: 11, 6: 0, 7: 9, 9: 2, 11: 10, 12: 5, 13: 6 };
+
+/**
+ * A character portrait: the painted face where the atlas has one, otherwise a
+ * bronze medallion with the character's initial. Never pixel art.
+ */
 export function CharacterPortrait({ tile = 0, label = "Odysseus", large = false }: { tile?: number; label?: string; large?: boolean }) {
-  return <span role="img" aria-label={label} className={`a-portrait fs-portrait${large ? " large" : ""}`} style={{ backgroundImage: `url('${ART.px.cast}')`, backgroundSize: "500% 400%", backgroundPosition: castPosition(tile) }}/>;
+  const atlas = PAINTED[tile];
+  if (atlas === undefined) return <span role="img" aria-label={label} className={`a-portrait fs-portrait cn-medallion${large ? " large" : ""}`}>{label.replace(/^The /, "").charAt(0)}</span>;
+  const [x, y] = [(atlas % 4) * 100 / 3, Math.floor(atlas / 4) * 50];
+  return <span role="img" aria-label={label} className={`a-portrait fs-portrait${large ? " large" : ""}`} style={{ backgroundImage: `url('${ART.hd.trials}')`, backgroundSize: "400% 300%", backgroundPosition: `${x}% ${y}%` }}/>;
 }

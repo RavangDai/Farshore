@@ -381,9 +381,11 @@ export class CinemaWorld {
     this.heroTexture?.dispose();
     const texture = new THREE.Texture(image);
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-    texture.generateMipmaps = false;
+    // The painted sheet: smooth filtering, mipmapped for the long shots.
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.generateMipmaps = true;
+    texture.anisotropy = 4;
     texture.repeat.set(0.5, 0.5);
     texture.offset.set(0.5, 0.5);
     texture.needsUpdate = true;

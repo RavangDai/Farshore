@@ -1,0 +1,24 @@
+/* The account shell around the game: the loading screen and the account
+   dialog, in the cinematic palette and type. Loaded globally from the root
+   layout (the arcade's own screens are in cinema.css). */
+
+main.o-loading { display: grid; place-content: center; justify-items: center; gap: 18px; min-height: 100svh; background: radial-gradient(ellipse at 60% 40%, #13243a 0%, var(--cn-obsidian) 70%); color: var(--cn-ivory); font-family: var(--cn-font-ui); text-align: center; }
+main.o-loading h1 { margin: 0; font-size: clamp(48px, 9vw, 104px); }
+main.o-loading .fs-logo { font-family: var(--cn-font-title); font-weight: 600; letter-spacing: 0.03em; }
+main.o-loading .fs-logo-text { background: linear-gradient(180deg, #fff3d2 0%, #f3d491 26%, #d6a25a 54%, #8f5f2a 76%, #e3b46a 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 0; }
+main.o-loading .fs-loading-tagline { color: rgba(245, 232, 208, 0.78); font: 500 13px/1 var(--cn-font-title); letter-spacing: 0.46em; text-transform: uppercase; }
+main.o-loading .fs-loading-track { width: min(260px, 60vw); height: 1px; overflow: hidden; background: rgba(228, 191, 121, 0.2); }
+main.o-loading .fs-loading-track > i { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, var(--cn-gold), transparent); animation: cn-loading 1.6s ease-in-out infinite; }
+main.o-loading p { margin: 0; color: rgba(245, 232, 208, 0.56); font: 400 13px/1.4 var(--cn-font-ui); }
+@keyframes cn-loading { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+.o-shell[data-skin="cinema"] { background: var(--cn-obsidian); color: var(--cn-ivory); font-family: var(--cn-font-ui); }
+.o-shell[data-skin="cinema"] .o-backdrop { background: rgba(3, 5, 9, 0.66); backdrop-filter: blur(5px); }
+.o-shell[data-skin="cinema"] .o-account-dialog.o-split { border-color: rgba(228, 191, 121, 0.4); border-radius: 8px; background: linear-gradient(180deg, #0e1520, #070a10); box-shadow: 0 40px 100px rgba(0, 0, 0, 0.65); }
+.o-shell[data-skin="cinema"] .o-split h2 { color: var(--cn-ivory); font: 500 clamp(26px, 4.4vh, 36px)/1.15 var(--cn-font-title); letter-spacing: 0.06em; text-transform: none; text-shadow: none; }
+.o-shell[data-skin="cinema"] .o-split :is(p, label, small) { font-family: var(--cn-font-ui); }
+.o-shell[data-skin="cinema"] .o-split input:not([type=checkbox]), .o-shell[data-skin="cinema"] .o-split select { border-color: rgba(228, 191, 121, 0.3); background: #070b11; color: var(--cn-ivory); font-family: var(--cn-font-ui); }
+.o-shell[data-skin="cinema"] .o-art-title { font-family: var(--cn-font-title); }
+.o-shell[data-skin="cinema"] .o-card .a-btn { border-color: rgba(228, 191, 121, 0.35); border-radius: 3px; background: rgba(10, 15, 23, 0.8); font: 600 12px/1.2 var(--cn-font-ui); letter-spacing: 0.14em; text-transform: uppercase; }
+.o-shell[data-skin="cinema"] .o-card .a-btn.a-primary, .o-shell[data-skin="cinema"] .o-account-dialog .o-guest { border-color: transparent; color: #1d1207; background: linear-gradient(180deg, #f9e3ab 0%, #e6bd76 36%, #c08b45 70%, #93642f 100%); }
+.o-shell[data-skin="cinema"] .o-wordmark { font-family: var(--cn-font-title); letter-spacing: 0.4em; }

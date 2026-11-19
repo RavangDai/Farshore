@@ -10,6 +10,7 @@ import { loadLotusPolicy, type LotusModelMeta, type LotusPolicy } from "../../li
 import { audioFrame, type AudioFrame } from "../../lib/audio/cues";
 import { useFarshoreItems, useFarshoreSprites } from "../../lib/render/farshore-rendering";
 import { LOTUS_UNIT, drawLotusGarden } from "./adventure-game";
+import { LaurelWreath } from "../cinema/icons";
 import { GameStage } from "./game-stage";
 
 /**
@@ -286,8 +287,10 @@ export function LotusRaceRound({ difficulty, plan, layout: initialLayout, onLeav
           <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Leave the race</b><small>Back to the briefing</small></span></button>
         </>}
         {phase === "done" && result && words && <div className="fs-race-result" data-winner={result.winner}>
+          {result.winner === "human" && <div className="cn-beat-ai" aria-hidden="true"><LaurelWreath size={112} /></div>}
           <span className="a-eyebrow">RESCUE RACE · {layout.name.toUpperCase()} · {difficultyNames[difficulty].toUpperCase()}</span>
           <h2>{words.headline}</h2>
+          {result.winner === "human" && <p className="cn-beat-ai-line">You outran a policy trained for {meta ? `${(meta.steps / 1e6).toFixed(1)} million` : "two million"} steps.</p>}
           <p>{words.why}</p>
           <table className="fs-race-table">
             <thead><tr><th scope="col"><span className="sr-only">Measure</span></th><th scope="col">You</th><th scope="col">Trained AI</th></tr></thead>

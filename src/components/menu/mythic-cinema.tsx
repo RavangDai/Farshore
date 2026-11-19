@@ -78,7 +78,7 @@ export function MythicCinema(props: Props) {
   useEffect(() => {
     let world: CinemaWorld | null = null, frame = 0, cancelled = false;
     const sprites = new Image();
-    sprites.src = ART.px.sprites;
+    sprites.src = ART.hd.sprites;
     sprites.onload = () => world?.setSprites(sprites);
     const cues = cinemaCues(kind), total = DURATION[kind];
     let t = 0, last = 0, spoken = kind !== "journey", shown: Caption | null = null, held = false;

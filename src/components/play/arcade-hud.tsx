@@ -5,8 +5,9 @@ import { isBow, isCave, type GameState } from "../../lib/arcade/arcade-runtime";
 import { caveProgress, START_GAP } from "../../lib/encounters/cave-runner";
 import { BOW, bowScoreShown } from "../../lib/encounters/mythic";
 import { encounterCue, fieldNotes } from "../../lib/story/field-notes";
-import { ART, castPosition } from "../../lib/art";
+import { ART } from "../../lib/art";
 import { InspectorModeSwitch, type InspectorMode } from "../ai/ai-inspector";
+import { SigilGlyph } from "../cinema/icons";
 
 /** Odysseus' own portrait cell in the cast atlas. */
 
@@ -35,6 +36,7 @@ export function ArcadeHUD({
   mode,
   onMode,
   onPause,
+  intent,
 }: {
   state: GameState;
   difficulty: Difficulty;
@@ -42,6 +44,8 @@ export function ArcadeHUD({
   mode: InspectorMode;
   onMode: (mode: InspectorMode) => void;
   onPause: () => void;
+  /** What the rival is doing right now, read from the engine's own state (never invented). */
+  intent?: { who: string; text: string } | null;
 }) {
   const trial = trialFor(state.id as TrialId);
   const cue = encounterCue(state);
@@ -64,9 +68,9 @@ export function ArcadeHUD({
             role="img"
             aria-label="Odysseus"
             style={{
-              backgroundImage: `url('${ART.px.cast}')`,
-              backgroundSize: "500% 400%",
-              backgroundPosition: castPosition(0),
+              backgroundImage: `url('${ART.hd.trials}')`,
+              backgroundSize: "400% 300%",
+              backgroundPosition: "0% 100%",
             }}
           />
           <div className="fs-hud-captain">
@@ -106,6 +110,7 @@ export function ArcadeHUD({
             {cave && <b style={{ left: "40%" }} />}
             {cave && <b style={{ left: "78%" }} />}
           </div>}
+          {intent?.text && <span className="fs-hud-intent" aria-live="off" title={intent.text}><SigilGlyph size={16} /><b>{intent.who}</b><span>{intent.text}</span></span>}
         </div>
 
         <div className="fs-hud-right">

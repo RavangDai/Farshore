@@ -248,7 +248,7 @@
   position: absolute;
   inset: 0;
   z-index: -3;
-  background: #0c1d32 url('/art/farshore/px/sea.png') 18% center / cover no-repeat;
+  background: #0c1d32 url('/art/farshore/homeward-sea.png') 18% center / cover no-repeat;
 }
 .fs-prologue[data-slide="1"] .fs-prologue-art { background-position: 92% 40%; transform-origin: 80% 55%; }
 .fs-prologue-shade {
@@ -314,7 +314,7 @@
   aspect-ratio: 3 / 4;
   border: 1px solid #c79a52;
   border-radius: calc(var(--fs-round,1)*3px);
-  background-image: url('/art/farshore/px/trials.png');
+  background-image: url('/art/farshore/trials-and-cast.png');
   background-size: 400% 300%;
   box-shadow: 0 6px 18px #000a, inset 0 0 0 1px #00000066;
 }

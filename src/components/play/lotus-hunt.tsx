@@ -11,6 +11,7 @@ import { audioFrame, type AudioFrame, type Cue } from "../../lib/audio/cues";
 import { useFarshoreItems, useFarshoreSprites } from "../../lib/render/farshore-rendering";
 import { LOTUS_UNIT, drawLotusGarden } from "./adventure-game";
 import { GameStage } from "./game-stage";
+import { LaurelWreath } from "../cinema/icons";
 import { Lives } from "./lotus-race";
 
 /**
@@ -445,8 +446,10 @@ export function LotusHuntRound({ difficulty, plan, layout: initialLayout, onLeav
           <button className="a-btn fs-rich" onClick={onLeave}><LogOut size={17} /><span><b>Leave the hunt</b><small>Back to the briefing</small></span></button>
         </>}
         {phase === "done" && result && words && <div className="fs-race-result fs-hunt-result" data-winner={result.winner}>
+          {result.winner === "hunters" && <div className="cn-beat-ai" aria-hidden="true"><LaurelWreath size={112} /></div>}
           <span className="a-eyebrow">THE LOTUS HUNT · {layout.name.toUpperCase()} · {difficultyNames[difficulty].toUpperCase()}</span>
           <h2>{words.headline}</h2>
+          {result.winner === "hunters" && <p className="cn-beat-ai-line">You outwitted a policy trained for {meta ? `${(meta.steps / 1e6).toFixed(1)} million` : "two million"} steps.</p>}
           <p>{words.why}</p>
           <table className="fs-race-table fs-hunt-table">
             <tbody>

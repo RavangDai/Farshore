@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { loadWithoutFatalHandlers } from "./process-guard.ts";
 import { DSP_VERSION, encodeWav, prepareSpeech } from "./wav.ts";
 
 // Kokoro-82M, run inside the game server, so every player hears a natural
@@ -59,7 +60,8 @@ export async function createKokoroEngine(options: EngineOptions = {}): Promise<S
   const { env, AutoTokenizer, StyleTextToSpeech2Model } = await import("@huggingface/transformers");
   env.cacheDir = process.env.FARSHORE_MODEL_CACHE || path.join(process.cwd(), ".cache", "models");
   env.allowLocalModels = false;
-  const { KokoroTTS } = await import("kokoro-js");
+  // kokoro-js loads phonemizer, which would make every stray server error fatal (see process-guard.ts).
+  const { KokoroTTS } = await loadWithoutFatalHandlers(() => import("kokoro-js"));
   // Download progress, by bytes across every file the model needs.
   const files = new Map<string, { loaded: number; total: number }>();
   const progress_callback = (event: { status?: string; file?: string; loaded?: number; total?: number }) => {

@@ -1,5 +1,21 @@
 # FARSHORE — UI design system
 
+## The cinematic interface (2026-11-18)
+
+Supersedes the pixel skin below. The arcade root and the account shell carry `data-skin="cinema"`; the pixel sheets and fonts are no longer loaded. Gameplay engines, saves, routes and AI are unchanged.
+
+**Palette and type.** Obsidian `#080C13`, deep ocean `#102533`, ancient bronze `#B98847`, imperial gold `#E4BF79`, warm ivory `#F5E8D0`, defined once as `--cn-*` in `src/styles/tokens.css` (the older `--fs-*` names alias them). Each trial adds an environmental accent (`--cn-accent`) from `src/lib/cinema/scenes.ts`. Cinzel for titles and chapter headings, Cormorant Garamond for editorial lines, Inter for controls and readable interface text, all self-hosted through Fontsource (the CSP allows fonts from `self` only). Wide uppercase tracking is reserved for chapter numbers, navigation and small ceremonial labels.
+
+**Worlds.** One React Three Fiber canvas (`src/components/cinema/backdrop.tsx`, `three/stage.tsx`) sits behind every menu screen and is unmounted during play. It shows one world at a time: the moonlit Aegean (menu, prologue, pages), each trial's environment (chapter view, briefing, result), or the 3D voyage chart. Worlds that share a key glide between camera framings (chapter view to briefing to result); a different world dips to dark and back. Everything is procedural (`three/kit.ts`, `sky.tsx`, `fx.tsx`): no downloaded models, HDRIs or textures. Each world's environment lighting is prefiltered from its own sky colours.
+
+**Performance.** A new world's shaders compile with `compileAsync` (off the main thread where `KHR_parallel_shader_compile` exists) while the frame loop waits and the veil stays down; every world is padded to the same point-light count so standard materials are shared, not recompiled. A governor lowers the resolution when frames run long. Graphics quality (Automatic, Cinematic, Balanced, Lite) is a per-device setting in its own local key (`lib/cinema/quality.ts`); Lite and browsers without WebGL get the painted art, slowly drifting. Reduced motion renders composed still frames and skips GSAP reveals.
+
+**Motion.** GSAP runs the coordinated sequences (title reveal, chapter titles, map camera approaches, the victory laurel); Motion runs mount and unmount transitions (drawers, tabs, the carousel highlight, the map card). Lag smoothing is off so a long frame lets a reveal finish rather than crawl.
+
+**Progressive disclosure.** Each screen shows one title, one short objective and one primary action. Lore, controls, the rival's plan, detailed results and technical AI facts live in drawers (`chrome.tsx` `Drawer`: focus trap, Escape, focus return). Commentary and taunts appear as film subtitles, never as panels.
+
+**AI made visible.** The Oracle sigil (`OracleSigil`) reflects real state only: connected, unavailable, writing (the Oracle's question, the rival's taunt or the bard's recap is in flight), trained (the PPO policy, which needs no language model) and, in play, the rival's live line in the HUD. That line is the AI feed's headline for the rivals that decide in play (Cyclops, Sirens, Antinous) and the engine's own current line elsewhere. The AI Lab's "Models & measurements" tab shows the trained policy's metadata, its documented held-out evaluation, and an inference benchmark measured on the player's device.
+
 ## Design language
 
 **Cinematic Greek Mythology + Illustrated 2.5D Arcade + modern indie polish.** Navy and cobalt seas, amber/bronze torchlight, engraved gold typography, parchment-and-bronze framing. The style is established by the original menus (`src/styles/farshore.css`, `src/styles/farshore-brand.css`, `src/styles/farshore-detail.css`) and extended, not replaced, by the new gameplay stage and AI inspector (`src/styles/farshore-stage.css`).
@@ -44,7 +60,9 @@ Four families, each a token:
 
 The AI rival panel (all five states) and the shared page colours use only tokens. In the older stylesheets, every value that matched a token was replaced with it (179 font sizes, 244 font-family stacks, 38 colours and 393 spacing values). Values that are not on the scale remain, mostly in in-game HUD labels and minified menu rules. They will be moved onto the scale screen by screen in Phase 4.
 
-## The pixel skin (2026-11-14)
+## The pixel skin (2026-11-14, retired 2026-11-18)
+
+Replaced by the cinematic interface above; kept here as a record.
 
 Menus, cinematics, dialogs and the overlays during play are drawn as pixel art. Gameplay canvases (the 3D cave and hall, the 2D encounters) keep their painted rendering. `?skin=classic` shows the earlier painted look for comparison.
 

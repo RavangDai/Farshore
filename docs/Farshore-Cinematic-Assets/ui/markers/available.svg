@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
+  <defs>
+    <radialGradient id="glass" cx=".35" cy=".15" r=".8">
+      <stop stop-color="#34444b" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#101820" stop-opacity=".88"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="12" y1="12" x2="68" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f9e0ab"/><stop offset=".4" stop-color="#ad7840"/><stop offset=".75" stop-color="#d4af6f"/><stop offset="1" stop-color="#936b38"/>
+    </linearGradient>
+  </defs>
+  <circle cx="40" cy="40" r="32" fill="#080e15" fill-opacity=".2"/>
+  <circle cx="40" cy="40" r="28.5" fill="url(#glass)" stroke="url(#metal)" stroke-width="2"/>
+  <circle cx="40" cy="40" r="24.5" stroke="#f4d8a0" stroke-opacity=".13"/>
+</svg>

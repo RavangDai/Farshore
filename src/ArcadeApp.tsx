@@ -116,10 +116,9 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const [gate, setGate] = useState<{ trial: TrialId; preview?: boolean } | null>(null);
   /** Set once WebGL fails: the films then fall back to the 2D crossing, and the gate opens without one. */
   const [cinemaFailed, setCinemaFailed] = useState(false);
-  /** Graphics tier for the menu worlds; a failed 3D stage drops to the painted backdrops for the session. */
+  /** How much atmosphere the menus draw over the painted environments (Lite: the still paintings). */
   const [qualityChoice, setQualityChoice] = useState<QualityChoice>(readQualityChoice);
-  const [stageFailed, setStageFailed] = useState(false);
-  const quality = useMemo(() => (stageFailed ? "lite" : resolveQuality(qualityChoice)), [qualityChoice, stageFailed]);
+  const quality = useMemo(() => resolveQuality(qualityChoice), [qualityChoice]);
   /** The trained rival's own description, for the briefing's honest label. */
   const [trainedMeta, setTrainedMeta] = useState<LotusModelMeta | null>(null);
   const [labTab, setLabTab] = useState<"live" | "models">("live");
@@ -426,7 +425,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   }
   function leaveRace() { audio.current?.setLoops({}); setScreen("brief"); }
   function launchDemo() { if (!rivalOnline) return; wakeAudio(); cancelAi(); setSelected("lotus"); setRun({ plan: adaptivePlan("lotus"), practice: true, modelPrepared: false, demo: true, key: ++runKey.current }); setScreen("play"); }
-  function chooseQuality(choice: QualityChoice) { writeQualityChoice(choice); setStageFailed(false); setQualityChoice(choice); }
+  function chooseQuality(choice: QualityChoice) { writeQualityChoice(choice); setQualityChoice(choice); }
 
   useEffect(() => {
     function key(e: KeyboardEvent) {
@@ -462,7 +461,6 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
           : screen === "ending" ? { kind: "trial", id: "bow", framing: "result", mood: "victory" }
             : screen === "map" ? { kind: "map" }
               : { kind: "aegean", dim: screen === "lab" || screen === "howto" || screen === "credits" };
-  const clearedIds = trials.filter(t => save.records[t.id].cleared !== "pending").map(t => t.id);
   const accent = world?.kind === "trial" ? TRIAL_LOOKS[world.id].accent : AEGEAN_LOOK.accent;
   const doneFlags = trials.map(t => save.records[t.id].cleared !== "pending");
 
@@ -471,7 +469,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
     onContinue={continueVoyage} onNewVoyage={() => (save.started ? setRestart(true) : newVoyage())} onMap={() => navigate("map")} onHowTo={() => navigate("howto")} />;
   else if (screen === "intro") view = <Prologue slide={intro} still={sceneStill} corner={corner} headingRef={heading} onNext={() => (intro === 0 ? setIntro(1) : openTrial("lotus", "title"))} onSkip={() => navigate("map")} onMenu={() => navigate("title")} />;
   else if (screen === "trials") view = <TrialCarousel save={save} selected={selected} difficulty={prefs.difficulty} still={sceneStill} corner={corner} headingRef={heading} onSelect={setSelected} onEnter={enterTrial} onDifficulty={setDifficulty} onMap={() => navigate("map")} onMenu={() => navigate("title")} />;
-  else if (screen === "map") view = <VoyageMap save={save} selected={selected} live={quality !== "lite"} still={sceneStill} corner={corner} headingRef={heading} onSelect={setSelected} onEnter={enterTrial} onTrials={() => navigate("trials")} onMenu={() => navigate("title")} />;
+  else if (screen === "map") view = <VoyageMap save={save} selected={selected} quality={quality} still={sceneStill} corner={corner} headingRef={heading} onSelect={setSelected} onEnter={enterTrial} onTrials={() => navigate("trials")} onMenu={() => navigate("title")} />;
   else if (screen === "brief") view = <Briefing id={selected} save={save} difficulty={prefs.difficulty} mode={selected === "lotus" ? briefMode : briefMode === "practice" ? "practice" : "story"} still={sceneStill} corner={corner} status={briefStatus} headingRef={heading}
     ready={briefReady} holdLabel={rival.status === "checking" ? "Seeking the Oracle" : "Connect the Oracle"} oracleFirst={oracleOn && !oracleKeys.includes(selected)} garden={raceGarden}
     taunt={aiState === "ready" && aiTaunt ? { speaker: trial.character, text: aiTaunt } : null}
@@ -509,7 +507,7 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
 
   return <div className={"a-app od-app fs-app cn-app" + (sceneStill ? " a-still" : "") + (prefs.contrast ? " od-contrast" : "")} data-screen={screen} data-skin="cinema" data-motion={sceneStill ? "reduced" : "full"} data-quality={quality} style={{ "--cn-accent": accent, "--cn-fx": String(prefs.visuals) } as CSSProperties}>
     <MotionConfig reducedMotion={sceneStill ? "always" : "never"}>
-      {world && <CinemaBackdrop world={world} quality={quality} still={sceneStill} paused={!!gate} map={{ selected, cleared: clearedIds, onSelect: setSelected }} onFail={() => setStageFailed(true)} />}
+      {world && <CinemaBackdrop world={world} quality={quality} still={sceneStill} paused={!!gate} />}
       {world && <div className="cn-grade" aria-hidden="true" />}
       {view && <div className="cn-view" key={screen} inert={blocked}>{view}</div>}
       {screen === "crossing" && crossing && !cinemaFailed ? <MythicCinema

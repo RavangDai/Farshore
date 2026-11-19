@@ -1,0 +1,442 @@
+{
+  "assetRoot": "/audio/farshore",
+  "defaultVolumes": {
+    "master": 0.8,
+    "music": 0.34,
+    "ambience": 0.38,
+    "voice": 0.88,
+    "sfx": 0.52
+  },
+  "scenes": {
+    "home": {
+      "name": "The Long Way Home",
+      "ambience": [
+        "ambience/home.ogg",
+        "ambience/home.mp3"
+      ],
+      "music": [
+        "music/home.ogg",
+        "music/home.mp3"
+      ],
+      "loop": true,
+      "narration": "intro"
+    },
+    "voyage-map": {
+      "name": "Aegean Atlas",
+      "ambience": [
+        "ambience/voyage-map.ogg",
+        "ambience/voyage-map.mp3"
+      ],
+      "music": [
+        "music/voyage-map.ogg",
+        "music/voyage-map.mp3"
+      ],
+      "loop": true,
+      "narration": null
+    },
+    "lotus-eaters": {
+      "name": "Lotus-Eaters",
+      "ambience": [
+        "ambience/lotus-eaters.ogg",
+        "ambience/lotus-eaters.mp3"
+      ],
+      "music": [
+        "music/lotus-eaters.ogg",
+        "music/lotus-eaters.mp3"
+      ],
+      "loop": true,
+      "narration": "lotus-eaters"
+    },
+    "cyclops-cave": {
+      "name": "Cyclops' Cave",
+      "ambience": [
+        "ambience/cyclops-cave.ogg",
+        "ambience/cyclops-cave.mp3"
+      ],
+      "music": [
+        "music/cyclops-cave.ogg",
+        "music/cyclops-cave.mp3"
+      ],
+      "loop": true,
+      "narration": "cyclops-cave"
+    },
+    "aeolus": {
+      "name": "Aeolus",
+      "ambience": [
+        "ambience/aeolus.ogg",
+        "ambience/aeolus.mp3"
+      ],
+      "music": [
+        "music/aeolus.ogg",
+        "music/aeolus.mp3"
+      ],
+      "loop": true,
+      "narration": "aeolus"
+    },
+    "circes-palace": {
+      "name": "Circe's Palace",
+      "ambience": [
+        "ambience/circes-palace.ogg",
+        "ambience/circes-palace.mp3"
+      ],
+      "music": [
+        "music/circes-palace.ogg",
+        "music/circes-palace.mp3"
+      ],
+      "loop": true,
+      "narration": "circes-palace"
+    },
+    "sirens-passage": {
+      "name": "Sirens' Passage",
+      "ambience": [
+        "ambience/sirens-passage.ogg",
+        "ambience/sirens-passage.mp3"
+      ],
+      "music": [
+        "music/sirens-passage.ogg",
+        "music/sirens-passage.mp3"
+      ],
+      "loop": true,
+      "narration": "sirens-passage"
+    },
+    "scylla-charybdis": {
+      "name": "Scylla & Charybdis",
+      "ambience": [
+        "ambience/scylla-charybdis.ogg",
+        "ambience/scylla-charybdis.mp3"
+      ],
+      "music": [
+        "music/scylla-charybdis.ogg",
+        "music/scylla-charybdis.mp3"
+      ],
+      "loop": true,
+      "narration": "scylla-charybdis"
+    },
+    "calypsos-raft": {
+      "name": "Calypso's Raft",
+      "ambience": [
+        "ambience/calypsos-raft.ogg",
+        "ambience/calypsos-raft.mp3"
+      ],
+      "music": [
+        "music/calypsos-raft.ogg",
+        "music/calypsos-raft.mp3"
+      ],
+      "loop": true,
+      "narration": "calypsos-raft"
+    },
+    "ithaca": {
+      "name": "Ithaca",
+      "ambience": [
+        "ambience/ithaca.ogg",
+        "ambience/ithaca.mp3"
+      ],
+      "music": [
+        "music/ithaca.ogg",
+        "music/ithaca.mp3"
+      ],
+      "loop": true,
+      "narration": "ithaca"
+    }
+  },
+  "sfx": {
+    "ui-hover": {
+      "src": "sfx/ui-hover.wav",
+      "duration": 0.2,
+      "loop": false
+    },
+    "ui-select": {
+      "src": "sfx/ui-select.wav",
+      "duration": 0.45,
+      "loop": false
+    },
+    "ui-back": {
+      "src": "sfx/ui-back.wav",
+      "duration": 0.3,
+      "loop": false
+    },
+    "glass-open": {
+      "src": "sfx/glass-open.wav",
+      "duration": 0.65,
+      "loop": false
+    },
+    "glass-close": {
+      "src": "sfx/glass-close.wav",
+      "duration": 0.5,
+      "loop": false
+    },
+    "checkpoint-complete": {
+      "src": "sfx/checkpoint-complete.wav",
+      "duration": 1.7,
+      "loop": false
+    },
+    "checkpoint-locked": {
+      "src": "sfx/checkpoint-locked.wav",
+      "duration": 0.5,
+      "loop": false
+    },
+    "oracle-activate": {
+      "src": "sfx/oracle-activate.wav",
+      "duration": 1.6,
+      "loop": false
+    },
+    "oracle-thinking": {
+      "src": "sfx/oracle-thinking.wav",
+      "duration": 0.75,
+      "loop": false
+    },
+    "countdown": {
+      "src": "sfx/countdown.wav",
+      "duration": 0.32,
+      "loop": false
+    },
+    "trial-start": {
+      "src": "sfx/trial-start.wav",
+      "duration": 1.5,
+      "loop": false
+    },
+    "victory": {
+      "src": "sfx/victory.wav",
+      "duration": 3.6,
+      "loop": false
+    },
+    "defeat": {
+      "src": "sfx/defeat.wav",
+      "duration": 2.5,
+      "loop": false
+    },
+    "pickup": {
+      "src": "sfx/pickup.wav",
+      "duration": 0.6,
+      "loop": false
+    },
+    "sailor-rescue": {
+      "src": "sfx/sailor-rescue.wav",
+      "duration": 1.2,
+      "loop": false
+    },
+    "damage": {
+      "src": "sfx/damage.wav",
+      "duration": 0.42,
+      "loop": false
+    },
+    "warning": {
+      "src": "sfx/warning.wav",
+      "duration": 0.72,
+      "loop": false
+    },
+    "footstep-stone": {
+      "src": "sfx/footstep-stone.wav",
+      "duration": 0.32,
+      "loop": false
+    },
+    "footstep-grass": {
+      "src": "sfx/footstep-grass.wav",
+      "duration": 0.35,
+      "loop": false
+    },
+    "gate-open": {
+      "src": "sfx/gate-open.wav",
+      "duration": 1.6,
+      "loop": false
+    },
+    "cave-impact": {
+      "src": "sfx/cave-impact.wav",
+      "duration": 0.95,
+      "loop": false
+    },
+    "cyclops-growl": {
+      "src": "sfx/cyclops-growl.wav",
+      "duration": 2.7,
+      "loop": false
+    },
+    "boulder-rumble": {
+      "src": "sfx/boulder-rumble.wav",
+      "duration": 1.8,
+      "loop": false
+    },
+    "wind-gust": {
+      "src": "sfx/wind-gust.wav",
+      "duration": 1.8,
+      "loop": false
+    },
+    "sail-flap": {
+      "src": "sfx/sail-flap.wav",
+      "duration": 0.95,
+      "loop": false
+    },
+    "potion-mix": {
+      "src": "sfx/potion-mix.wav",
+      "duration": 1.35,
+      "loop": false
+    },
+    "magic-pulse": {
+      "src": "sfx/magic-pulse.wav",
+      "duration": 1.35,
+      "loop": false
+    },
+    "siren-note": {
+      "src": "sfx/siren-note.wav",
+      "duration": 2.25,
+      "loop": false
+    },
+    "maelstrom-surge": {
+      "src": "sfx/maelstrom-surge.wav",
+      "duration": 2.6,
+      "loop": false
+    },
+    "sea-monster-roar": {
+      "src": "sfx/sea-monster-roar.wav",
+      "duration": 2.6,
+      "loop": false
+    },
+    "raft-creak": {
+      "src": "sfx/raft-creak.wav",
+      "duration": 0.95,
+      "loop": false
+    },
+    "water-splash": {
+      "src": "sfx/water-splash.wav",
+      "duration": 0.8,
+      "loop": false
+    },
+    "bow-twang": {
+      "src": "sfx/bow-twang.wav",
+      "duration": 0.45,
+      "loop": false
+    },
+    "target-hit": {
+      "src": "sfx/target-hit.wav",
+      "duration": 0.65,
+      "loop": false
+    }
+  },
+  "voices": {
+    "intro": {
+      "src": "voice/intro.mp3",
+      "role": "Narrator",
+      "subtitle": "The war is over. But the gods are not finished with you. Eight trials stand between you and Ithaca. The sea remembers. The gods are watching. Your journey home begins now.",
+      "loop": false
+    },
+    "lotus-eaters": {
+      "src": "voice/lotus-eaters.mp3",
+      "role": "Narrator",
+      "subtitle": "Beware the sweetness of forgetting. The lotus has stolen your sailors' memories. Bring your crew home before the island claims them.",
+      "loop": false
+    },
+    "cyclops-cave": {
+      "src": "voice/cyclops-cave.mp3",
+      "role": "Narrator",
+      "subtitle": "Within the darkness, a single eye awaits. The cave is not your home. Run, and find the light beyond the mountain.",
+      "loop": false
+    },
+    "aeolus": {
+      "src": "voice/aeolus.mp3",
+      "role": "Narrator",
+      "subtitle": "The lord of winds has granted you a chance. Read the changing currents, master the storm, and guide your ship onward.",
+      "loop": false
+    },
+    "circes-palace": {
+      "src": "voice/circes-palace.mp3",
+      "role": "Narrator",
+      "subtitle": "Not every enchantment can be broken by strength. In Circe's palace, wisdom may be your only way through.",
+      "loop": false
+    },
+    "sirens-passage": {
+      "src": "voice/sirens-passage.mp3",
+      "role": "Narrator",
+      "subtitle": "Listen carefully, but do not surrender. The most beautiful song upon these waters may be your last.",
+      "loop": false
+    },
+    "scylla-charybdis": {
+      "src": "voice/scylla-charybdis.mp3",
+      "role": "Narrator",
+      "subtitle": "Between two terrors lies a narrow passage. Steady your vessel. Every choice you make will carry you closer to the far shore.",
+      "loop": false
+    },
+    "calypsos-raft": {
+      "src": "voice/calypsos-raft.mp3",
+      "role": "Narrator",
+      "subtitle": "Calypso's island can offer peace, but your journey is not yet ended. Freedom lies beyond the breaking waves.",
+      "loop": false
+    },
+    "ithaca": {
+      "src": "voice/ithaca.mp3",
+      "role": "Narrator",
+      "subtitle": "After all these years, the shores of Ithaca rise before you. One final trial remains. Claim the home you have longed for.",
+      "loop": false
+    },
+    "oracle-ready": {
+      "src": "voice/oracle-ready.mp3",
+      "role": "Oracle",
+      "subtitle": "The Oracle is ready. The rival awaits your challenge.",
+      "loop": false
+    },
+    "oracle-path": {
+      "src": "voice/oracle-path.mp3",
+      "role": "Oracle",
+      "subtitle": "The rival has chosen a path. Your next move may change everything.",
+      "loop": false
+    },
+    "oracle-rival-lead": {
+      "src": "voice/oracle-rival-lead.mp3",
+      "role": "Oracle",
+      "subtitle": "Your rival is gaining ground. Stay focused.",
+      "loop": false
+    },
+    "oracle-player-lead": {
+      "src": "voice/oracle-player-lead.mp3",
+      "role": "Oracle",
+      "subtitle": "You are ahead. Maintain your course.",
+      "loop": false
+    },
+    "oracle-unavailable": {
+      "src": "voice/oracle-unavailable.mp3",
+      "role": "Oracle",
+      "subtitle": "The Oracle is silent. You may continue without its guidance.",
+      "loop": false
+    },
+    "sailor-rescued": {
+      "src": "voice/sailor-rescued.mp3",
+      "role": "Odysseus",
+      "subtitle": "One more sailor safely home. Keep moving.",
+      "loop": false
+    },
+    "cyclops-approach": {
+      "src": "voice/cyclops-approach.mp3",
+      "role": "Cyclops",
+      "subtitle": "You tread upon the stones of my cave.",
+      "loop": false
+    },
+    "circe-challenge": {
+      "src": "voice/circe-challenge.mp3",
+      "role": "Circe",
+      "subtitle": "Come, wanderer. Let us see how well you understand enchantment.",
+      "loop": false
+    },
+    "sirens-warning": {
+      "src": "voice/sirens-warning.mp3",
+      "role": "Siren",
+      "subtitle": "Come closer, traveler. The sea has such sweet secrets.",
+      "loop": false
+    },
+    "victory": {
+      "src": "voice/victory.mp3",
+      "role": "Narrator",
+      "subtitle": "Another trial is behind you. The gods have witnessed your resolve. Continue your voyage.",
+      "loop": false
+    },
+    "defeat": {
+      "src": "voice/defeat.mp3",
+      "role": "Narrator",
+      "subtitle": "The sea has turned against you. Yet your story is not over. Rise, and try again.",
+      "loop": false
+    },
+    "homecoming": {
+      "src": "voice/homecoming.mp3",
+      "role": "Narrator",
+      "subtitle": "The long voyage has ended. The seas, the gods, the monsters, and the trials could not keep you from Ithaca. Welcome home, Odysseus.",
+      "loop": false
+    }
+  }
+}

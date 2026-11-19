@@ -1,44 +1,25 @@
-import type { TrialId } from "../arcade/arcade.ts";
 import type { SoundName } from "../audio/sounds.ts";
 
 /**
- * The mythic cinematics, as plain data and pure functions of time.
+ * The mythic cinematics, as plain data and pure functions of time. They film
+ * the cinematic asset pack's own paintings (drawn by lib/render/painted-film.ts):
  *
- * Two films, rendered in 3D by lib/render/cinema-world.ts:
- * - "unlock": after the Oracle's key is won, Odysseus walks up the causeway
- *   to the trial's great bronze gate. The key descends in a shaft of light,
- *   turns in the lock, runes catch fire along the seams, the doors swing open
- *   and the camera rides through the light into the trial.
- * - "journey": after a trial is won, Odysseus walks out through the gate he
- *   has just opened, along the sea causeway, toward the next trial's gate.
+ * - "unlock": after the Oracle's key is won. The camera pushes slowly into the
+ *   trial's painting; the key comes down as a mote of light, a seal of fire
+ *   flares where it turns, light pours out, and the film ends on a white-gold
+ *   flash into the trial.
+ * - "journey": after a trial is won. The cleared trial's painting pulls back,
+ *   the voyage map takes the frame and the camera sails from the cleared
+ *   checkpoint to the next along the route, then the next trial's painting
+ *   comes up and the film fades to dark before its briefing.
  *
- * World units are metres. The gate stands across the causeway at z = 0 (the
- * unlock) or z = JOURNEY_GATE_Z (the journey's next gate); Odysseus walks
- * toward -z. Everything here is deterministic in `t` (seconds), so a skipped
- * or slow frame never changes the film, and the tests can check every beat.
+ * Everything is deterministic in `t` (seconds), so a skipped or slow frame
+ * never changes the film, and the tests can check every beat.
  */
 
 export type CinemaKind = "unlock" | "journey";
-export type Vec = readonly [number, number, number];
 
 export const DURATION: Record<CinemaKind, number> = { unlock: 7.4, journey: 8.8 };
-export const JOURNEY_GATE_Z = -40;
-export const JOURNEY_PAST_GATE_Z = 6;
-/** Where the lock sits on the doors' seam. */
-export const LOCK: Vec = [0, 3.6, 0.3];
-
-/** Each trial's light: the sky, the sea, the sun and the colour its runes burn. */
-export type CinemaTheme = { sky: number; horizon: number; fog: number; sun: number; sunI: number; hemi: number; water: number; rune: number; near: number; far: number };
-export const CINEMA_THEMES: Record<TrialId, CinemaTheme> = {
-  cyclops: { sky: 0x2a1c2e, horizon: 0xd8743a, fog: 0x6a3a2c, sun: 0xffa060, sunI: 2.2, hemi: 1.1, water: 0x1c2c38, rune: 0xff6a28, near: 18, far: 120 },
-  sirens: { sky: 0x101c3a, horizon: 0x7a6aa8, fog: 0x3a3e66, sun: 0xd8c8ff, sunI: 1.5, hemi: 1.2, water: 0x142a4a, rune: 0x9ad8ff, near: 16, far: 110 },
-  lotus: { sky: 0x1e2c3a, horizon: 0xe89a7a, fog: 0x5a5a62, sun: 0xffc8a0, sunI: 2.0, hemi: 1.3, water: 0x1a4a4e, rune: 0x7dffb0, near: 20, far: 125 },
-  aeolus: { sky: 0x3a6a9a, horizon: 0xd8eef8, fog: 0x8ab4cc, sun: 0xfff4dc, sunI: 2.8, hemi: 1.6, water: 0x2a6a8a, rune: 0xc8f4ff, near: 30, far: 160 },
-  circe: { sky: 0x1a0e2a, horizon: 0xb04a9a, fog: 0x4a2a5a, sun: 0xf0a0ff, sunI: 1.8, hemi: 1.1, water: 0x22183a, rune: 0xe07aff, near: 16, far: 110 },
-  scylla: { sky: 0x141c22, horizon: 0x5a6a72, fog: 0x2e3a40, sun: 0xb8d0d8, sunI: 1.4, hemi: 1.0, water: 0x10262c, rune: 0x5fe6e0, near: 14, far: 100 },
-  calypso: { sky: 0x2a5a7a, horizon: 0xf2d8a0, fog: 0x7aa8b0, sun: 0xfff0c8, sunI: 2.6, hemi: 1.5, water: 0x1a7a8a, rune: 0xffe08a, near: 28, far: 150 },
-  bow: { sky: 0x1a1410, horizon: 0xe8a84a, fog: 0x5a4028, sun: 0xffd08a, sunI: 2.2, hemi: 1.2, water: 0x2a3a3a, rune: 0xffcf6a, near: 20, far: 120 },
-};
 
 export const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 /** How far `t` has moved through the span from `a` to `b`, from 0 to 1. */
@@ -50,122 +31,75 @@ const mix = (a: number, b: number, u: number) => a + (b - a) * u;
 
 // ------------------------------------------------------------------ Odysseus --
 
-export type Hero = { x: number; z: number; walking: boolean; speed: number };
-
-/** Unlock: down the causeway to the gate, a pause while the key works, then through the open doors. */
-const UNLOCK_WALK = { from: 15, stop: 2.4, start: 0, arrive: 2.7, leave: 5.5, gone: -7, x: -0.75 };
-/** Journey: out of the old gate and on to stop before the next one. */
-const JOURNEY_WALK = { from: 4.5, to: -31, start: 0.2, end: 8.4 };
-
-export function heroAt(kind: CinemaKind, t: number): Hero {
-  if (kind === "unlock") {
-    const w = UNLOCK_WALK;
-    if (t < w.arrive) {
-      const u = span(t, w.start, w.arrive);
-      return { x: mix(0, w.x, smooth(u)), z: mix(w.from, w.stop, easeOut(u)), walking: true, speed: (w.from - w.stop) / (w.arrive - w.start) * 3 * (1 - u) ** 2 };
-    }
-    if (t < w.leave) return { x: w.x, z: w.stop, walking: false, speed: 0 };
-    const u = span(t, w.leave, DURATION.unlock);
-    return { x: mix(w.x, 0, smooth(u)), z: mix(w.stop, w.gone, easeIn(u)), walking: true, speed: Math.max(1.4, (w.stop - w.gone) / (DURATION.unlock - w.leave) * 2 * u) };
-  }
-  const w = JOURNEY_WALK, u = span(t, w.start, w.end);
-  // A steady stride with an easy start and stop: smoothstep's slope is 1.5x the average at mid-walk.
-  const z = mix(w.from, w.to, smooth(u));
-  const speed = ((w.from - w.to) / (w.end - w.start)) * 6 * u * (1 - u);
-  return { x: Math.sin(t * 0.7) * 0.25, z, walking: u > 0 && u < 1, speed };
+/** When Odysseus is on foot (the footsteps follow this): up to the gate and, once it opens, through it; out of the cleared trial before he takes ship. */
+export function walkingAt(kind: CinemaKind, t: number): boolean {
+  return kind === "unlock" ? t < 2.7 || t > 5.5 : t > 0.2 && t < 2.4;
 }
 
-// ------------------------------------------------------- the key and the gate --
+// ------------------------------------------------------------ the journey --
 
-/** `pitch` tips the upright falling key (0) to point into the door (pi/2); `spin` and `turn` are about its shaft. */
-export type KeyPose = { visible: boolean; x: number; y: number; z: number; pitch: number; spin: number; turn: number; glow: number; scale: number };
+/** The journey's three paintings, back to front: the opacity of each layer, how far its camera has pushed in, and how far the voyage has sailed (0 at the cleared checkpoint, 1 at the next). */
+export type JourneyShot = { from: number; map: number; to: number; fromZoom: number; mapZoom: number; toZoom: number; voyage: number };
 
-/** The Oracle's key: down a shaft of light, into the lock, a quarter turn, then it burns away. */
-export function keyAt(t: number): KeyPose {
-  const appear = 2.5, inLock = 3.75, seated = 4.05, turned = 4.55, gone = 5.05;
-  if (t < appear || t >= gone) return { visible: false, x: LOCK[0], y: LOCK[1], z: LOCK[2], pitch: Math.PI / 2, spin: 0, turn: 0, glow: 0, scale: 0 };
-  const fall = easeOut(span(t, appear, inLock));
-  const seat = smooth(span(t, inLock, seated));
+export const JOURNEY_BEATS = { mapIn: [2.4, 3.0], sail: [3.0, 6.2], toIn: [6.0, 6.6] } as const;
+
+export function journeyShot(t: number): JourneyShot {
+  const { mapIn, sail, toIn } = JOURNEY_BEATS;
+  const mapUp = smooth(span(t, mapIn[0], mapIn[1])), toUp = smooth(span(t, toIn[0], toIn[1]));
+  const voyage = smooth(span(t, sail[0], sail[1]));
   return {
-    visible: true,
-    x: LOCK[0],
-    y: mix(11, LOCK[1], fall),
-    z: mix(1.6, mix(1.05, LOCK[2] + 0.04, seat), fall),
-    pitch: smooth(span(t, appear + 0.8, inLock)) * (Math.PI / 2),
-    // It spins as it falls and settles square to the lock.
-    spin: (1 - fall) * Math.PI * 6,
-    turn: smooth(span(t, seated, turned)) * (Math.PI / 2),
-    glow: 0.5 + 0.5 * span(t, turned, gone) + 0.3 * (1 - fall),
-    scale: span(t, appear, appear + 0.3) * (1 - easeIn(span(t, turned + 0.2, gone))),
+    // Stacked fades: the outgoing painting stays solid beneath the incoming one, so the frame never dims mid-fade.
+    from: mapUp < 1 ? 1 : 0,
+    map: toUp < 1 ? mapUp : 0,
+    to: toUp,
+    // The cleared trial pulls back; the chart rises a little mid-voyage to show the way; the next trial draws the eye in.
+    fromZoom: mix(1.1, 1, easeOut(span(t, 0, mapIn[1]))),
+    mapZoom: mix(2.3, 1.75, Math.sin(Math.PI * voyage)) - 0.15 * (1 - span(t, mapIn[0], sail[0])),
+    toZoom: mix(1, 1.09, smooth(span(t, toIn[0], DURATION.journey))),
+    voyage,
   };
 }
 
-/** How far open the doors are, 0 to 1 (the world turns 1 into about 80 degrees). */
-export function doorsAt(kind: CinemaKind, t: number) {
-  return kind === "unlock" ? smooth(span(t, 5.0, 6.5)) : 0;
+/**
+ * Where the ship's light is on the chart, as fractions of the map: a gentle
+ * arc from one checkpoint to the next (bowed to one side so it reads as a
+ * course, not a ruler line).
+ */
+export function voyagePoint(from: { x: number; y: number }, to: { x: number; y: number }, u: number) {
+  const mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2, dx = to.x - from.x, dy = to.y - from.y;
+  const cx = mx - dy * 0.18, cy = my + dx * 0.18;
+  const a = (1 - u) * (1 - u), b = 2 * u * (1 - u), c = u * u;
+  return { x: a * from.x + b * cx + c * to.x, y: a * from.y + b * cy + c * to.y };
 }
-/** The runes along the door seams, 0 (cold bronze) to 1 (burning). */
+
+// --------------------------------------------------------------- the gate --
+
+/** The unlock's camera push, the key's light coming down (y from above the frame, 0, to its centre, 1), the seal of fire and the pouring light. */
+export type GateShot = { zoom: number; key: { visible: boolean; y: number; glow: number }; seal: number; light: number };
+
+export function gateShot(t: number): GateShot {
+  const appear = 2.5, lands = 3.75, gone = 5.05;
+  const fall = easeOut(span(t, appear, lands));
+  return {
+    zoom: mix(1, 1.07, smooth(span(t, 0, 5))) + 0.1 * easeIn(span(t, 5, DURATION.unlock)),
+    key: { visible: t >= appear && t < gone, y: fall, glow: 0.5 + 0.5 * span(t, lands, gone) },
+    seal: runesAt("unlock", t),
+    light: lightAt("unlock", t),
+  };
+}
+
+/** The seal's fire, 0 (cold) to 1 (burning). In the journey, the next trial's call grows as it comes into view. */
 export function runesAt(kind: CinemaKind, t: number) {
   if (kind === "unlock") return smooth(span(t, 4.35, 5.0));
-  // The next gate stirs as Odysseus comes into sight of it.
   return 0.25 + 0.55 * smooth(span(t, 5.6, 8.0)) + 0.08 * Math.sin(t * 3);
 }
-/** Light pouring from behind the doors, 0 to 1. */
+/** Light pouring out once the key has turned, 0 to 1. */
 export function lightAt(kind: CinemaKind, t: number) {
   return kind === "unlock" ? smooth(span(t, 4.8, 6.6)) : 0;
 }
 /** The white-gold flash the unlock ends on, and the dark the journey fades into. */
 export function flashAt(kind: CinemaKind, t: number) {
   return kind === "unlock" ? easeIn(span(t, 6.7, DURATION.unlock)) : easeIn(span(t, 8.2, DURATION.journey));
-}
-
-// ----------------------------------------------------------------- the camera --
-
-/** A camera key: where it stands and what it looks at. `rel` keys ride along with Odysseus (z only). */
-export type Shot = { t: number; cam: Vec; look: Vec; rel?: boolean };
-
-export const SHOTS: Record<CinemaKind, Shot[]> = {
-  unlock: [
-    { t: 0, cam: [11, 8.5, 32], look: [0, 3.5, 4] },
-    { t: 1.5, cam: [6.5, 5.2, 19], look: [-0.4, 2.6, 5] },
-    { t: 2.8, cam: [2.8, 3.1, 8.8], look: [0, 3.7, 0] },
-    { t: 3.9, cam: [1.7, 3.9, 4.9], look: [0, 3.6, 0.2] },
-    { t: 4.8, cam: [1.05, 3.75, 3.7], look: [0, 3.6, 0.2] },
-    { t: 5.7, cam: [0.2, 3.4, 9.5], look: [0, 3.7, -4] },
-    // Into the light: the flash takes the frame just before the doorway.
-    { t: 7.4, cam: [0, 3.1, 1.3], look: [0, 3.0, -20] },
-  ],
-  journey: [
-    { t: 0, cam: [0, 2.4, 14], look: [0, 2.2, -10] },
-    // Through the old gate's open doorway, clear of its piers and leaves, then out to his side.
-    { t: 1.8, cam: [1.2, 3.6, 6], look: [0, 1.8, -6], rel: true },
-    { t: 3.2, cam: [3.2, 3.4, 4.5], look: [0, 1.7, -4], rel: true },
-    { t: 4.8, cam: [6.5, 2.1, -1.5], look: [0, 1.7, -2.5], rel: true },
-    { t: 6.6, cam: [-2.6, 2.2, -5.2], look: [0, 1.9, 2], rel: true },
-    { t: 8.8, cam: [2.2, 3.2, -16], look: [0, 5.2, -40] },
-  ],
-};
-
-const resolve = (s: Shot, heroZ: number) => ({ cam: [s.cam[0], s.cam[1], s.cam[2] + (s.rel ? heroZ : 0)] as Vec, look: [s.look[0], s.look[1], s.look[2] + (s.rel ? heroZ : 0)] as Vec });
-/** Uniform Catmull-Rom between p1 and p2. */
-const cr = (p0: number, p1: number, p2: number, p3: number, u: number) =>
-  0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
-
-/**
- * The camera at time `t`: a Catmull-Rom spline through the shots, so it
- * glides through each key rather than stopping at it. Keys that ride with
- * Odysseus are placed where he is now, so the tracking shots stay on him.
- */
-export function cameraAt(kind: CinemaKind, t: number): { cam: Vec; look: Vec } {
-  const shots = SHOTS[kind], heroZ = heroAt(kind, t).z;
-  const time = Math.max(shots[0].t, Math.min(shots[shots.length - 1].t, t));
-  let i = 0;
-  while (i < shots.length - 2 && time > shots[i + 1].t) i++;
-  const at = (k: number) => resolve(shots[Math.max(0, Math.min(shots.length - 1, k))], heroZ);
-  const [a, b, c, d] = [at(i - 1), at(i), at(i + 1), at(i + 2)];
-  const u = smooth(span(time, shots[i].t, shots[i + 1].t)) * 0.35 + span(time, shots[i].t, shots[i + 1].t) * 0.65;
-  const pick = (key: "cam" | "look") => [0, 1, 2].map(k => cr(a[key][k], b[key][k], c[key][k], d[key][k], u)) as unknown as Vec;
-  return { cam: pick("cam"), look: pick("look") };
 }
 
 // ------------------------------------------------------- sound and captions --
@@ -187,20 +121,23 @@ const SCORE: Record<CinemaKind, CinemaCue[]> = {
   ],
   journey: [
     { t: 0.05, sound: "wind", gain: 0.35 },
+    { t: 2.6, sound: "sail", gain: 0.5 },
+    { t: 3.3, sound: "oar", gain: 0.35, pan: -0.15 },
     { t: 4.0, sound: "gust", gain: 0.45 },
+    { t: 4.3, sound: "oar", gain: 0.35, pan: 0.15 },
+    { t: 5.3, sound: "oar", gain: 0.3, pan: -0.1 },
     { t: 5.8, sound: "distant-thunder", gain: 0.4 },
     { t: 6.4, sound: "blessing", gain: 0.55 },
     { t: 7.6, sound: "rumble", gain: 0.5 },
   ],
 };
 
-/** Footsteps while he walks, alternating feet, then the score; sorted by time. */
+/** Footsteps while he is on foot, alternating feet, then the score; sorted by time. */
 export function cinemaCues(kind: CinemaKind): CinemaCue[] {
   const steps: CinemaCue[] = [];
   let foot = 0;
   for (let t = 0.12; t < DURATION[kind]; t += STEP[kind]) {
-    const hero = heroAt(kind, t);
-    if (hero.walking && hero.speed > 0.6) steps.push({ t: Math.round(t * 100) / 100, sound: "step-stone", gain: 0.32, pan: foot++ % 2 ? 0.12 : -0.12 });
+    if (walkingAt(kind, t)) steps.push({ t: Math.round(t * 100) / 100, sound: "step-stone", gain: 0.32, pan: foot++ % 2 ? 0.12 : -0.12 });
   }
   return [...steps, ...SCORE[kind]].sort((a, b) => a.t - b.t);
 }
@@ -215,7 +152,7 @@ export type Caption = { from: number; to: number; eyebrow: string; title: string
 export function cinemaCaptions(kind: CinemaKind, past: { number: number; title: string } | null, next: { number: number; title: string; kind: string }): Caption[] {
   if (kind === "unlock") return [{ from: 5.25, to: DURATION.unlock, eyebrow: "The Oracle's key turns", title: next.title, line: `Trial ${next.number} of 8 · ${next.kind}` }];
   const out: Caption[] = [];
-  if (past) out.push({ from: 0.5, to: 3.2, eyebrow: `Trial ${past.number} cleared`, title: past.title });
+  if (past) out.push({ from: 0.5, to: 2.6, eyebrow: `Trial ${past.number} cleared`, title: past.title });
   out.push({ from: 5.9, to: DURATION.journey, eyebrow: `Trial ${next.number} of 8 · ahead`, title: next.title, line: next.kind });
   return out;
 }

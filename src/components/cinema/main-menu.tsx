@@ -40,7 +40,8 @@ export function MainMenu({ started, next, done, still, corner, headingRef, onCon
         .from(".cn-mark-crest i", { scaleX: 0, duration: 1.2, ease: "power2.inOut" }, "<0.2")
         .from(".cn-mark-name > span", { opacity: 0, y: 26, filter: "blur(10px)", duration: 1.3, stagger: 0.07 }, "<0.1")
         .from(".cn-mark-tag", { opacity: 0, letterSpacing: "0.9em", duration: 1.4 }, "<0.6")
-        .from(".cn-menu-nav > *", { opacity: 0, x: -24, duration: 0.9, stagger: 0.09 }, "<0.3")
+        // fromTo with clearProps: the buttons have CSS transitions, so a .from() could read a mid-transition end state.
+        .fromTo(".cn-menu-nav > *", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.9, stagger: 0.09, clearProps: "opacity,transform" }, "<0.3")
         .from(".cn-menu-foot", { opacity: 0, y: 12, duration: 1 }, "<0.3")
         .from(".cn-corner", { opacity: 0, y: -10, duration: 1 }, "<");
     }, root);

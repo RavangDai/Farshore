@@ -13,10 +13,11 @@
 }
 
 /* ------------------------------------------------------------ buttons -- */
-.cn-app[data-skin="cinema"] .a-btn { min-height: 46px; padding: 10px 20px; border: 1px solid var(--cn-line); border-radius: 3px; background: rgba(10, 15, 23, 0.72); color: var(--cn-ivory); font: 600 12px/1.2 var(--cn-font-ui); letter-spacing: 0.16em; text-transform: uppercase; box-shadow: none; backdrop-filter: blur(6px); transition: border-color 0.3s, color 0.3s, background-color 0.3s, transform 0.3s var(--cn-ease); }
-.cn-app[data-skin="cinema"] .a-btn:hover:not(:disabled) { border-color: var(--cn-gold); color: var(--cn-gold); background: rgba(14, 20, 30, 0.86); }
-.cn-app[data-skin="cinema"] .a-btn.a-primary { border-color: transparent; color: #1d1207; background: linear-gradient(180deg, #f9e3ab 0%, #e6bd76 36%, #c08b45 70%, #93642f 100%); box-shadow: inset 0 1px 0 rgba(255, 247, 220, 0.85), inset 0 -2px 0 rgba(70, 40, 12, 0.45); }
-.cn-app[data-skin="cinema"] .a-btn.a-primary:hover:not(:disabled) { color: #1d1207; filter: brightness(1.07); transform: translateY(-1px); }
+.cn-app[data-skin="cinema"] .a-btn { min-height: 46px; padding: 10px 20px; border: 1px solid var(--cn-glass-edge); border-radius: 12px; background: var(--cn-glass-bg); color: var(--cn-ivory); font: 500 13.5px/1.2 var(--cn-font-ui); letter-spacing: 0.02em; text-transform: none; box-shadow: var(--cn-glass-shadow); backdrop-filter: var(--cn-glass-blur); -webkit-backdrop-filter: var(--cn-glass-blur); transition: border-color 0.25s, color 0.25s, box-shadow 0.25s, transform 0.25s; }
+.cn-app[data-skin="cinema"] .a-btn:hover:not(:disabled) { border-color: #ffe6ac; color: #fff1d7; box-shadow: var(--cn-glass-shadow), 0 0 18px rgba(232, 178, 93, 0.18); }
+/* Primary actions in bronze glass, as in the asset pack's glass.css; never flat gold. */
+.cn-app[data-skin="cinema"] .a-btn.a-primary { border-color: var(--cn-bronze-edge); color: #fff1d7; background: var(--cn-bronze-glass); box-shadow: var(--cn-bronze-shadow); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); }
+.cn-app[data-skin="cinema"] .a-btn.a-primary:hover:not(:disabled) { border-color: #ffe6ac; color: #fff1d7; box-shadow: var(--cn-bronze-glow); transform: translateY(-1px); }
 .cn-app[data-skin="cinema"] .a-btn.a-ghost { background: transparent; }
 .cn-app[data-skin="cinema"] .a-btn.fs-rich > span > b { font: 600 12.5px/1.25 var(--cn-font-ui); letter-spacing: 0.14em; }
 .cn-app[data-skin="cinema"] .a-btn.fs-rich > span > small { font: 400 11.5px/1.3 var(--cn-font-ui); letter-spacing: 0.02em; text-transform: none; opacity: 0.75; }
@@ -96,6 +97,17 @@
 .cn-lab .fs-lab-head { display: none; }
 .cn-lab :is(.fs-lab-pick, .fs-lab-compare, .fs-lab-explainer) { border: 1px solid var(--cn-line-soft); border-radius: 6px; background: rgba(8, 12, 19, 0.74); backdrop-filter: blur(10px); }
 .cn-lab .fs-lab-card { border-radius: 4px; }
+.cn-app .cn-lab :is(.fs-lab-pick, .fs-lab-compare, .fs-lab-explainer) { border: 1px solid var(--cn-glass-edge); border-radius: 16px; background: var(--cn-glass-bg); box-shadow: var(--cn-glass-shadow); }
+.cn-app .cn-lab .fs-lab-card { border-radius: 12px; }
+.cn-app .cn-lab .a-setting-toggle { margin: 8px 0; padding: 12px 14px; border: 1px solid rgba(228, 191, 121, 0.25); border-radius: 12px; background: rgba(8, 13, 20, 0.55); color: var(--cn-ivory); font: 500 14.5px/1.3 var(--cn-font-ui); }
+.cn-app .cn-lab .a-setting-toggle[aria-pressed="true"] { border-color: rgba(228, 191, 121, 0.55); }
+.cn-app .cn-lab .a-setting-toggle small { color: var(--cn-ivory-3); font: 400 12.5px/1.45 var(--cn-font-ui); }
+.cn-app .cn-lab .a-setting-toggle strong { color: var(--cn-gold); font: 600 13px/1 var(--cn-font-ui); }
+.cn-app .cn-lab .fs-lab-segment { gap: 2px; padding: 3px; border: 1px solid rgba(228, 191, 121, 0.35); border-radius: 12px; background: rgba(6, 10, 16, 0.45); }
+.cn-app .cn-lab .fs-lab-segment button { border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--cn-ivory-2); font: 500 13.5px/1.2 var(--cn-font-ui); letter-spacing: 0; }
+.cn-app .cn-lab .fs-lab-segment button[aria-pressed="true"] { border-color: var(--cn-bronze-edge); background: var(--cn-bronze-glass); box-shadow: var(--cn-bronze-shadow); color: #fff1d7; }
+.cn-app .cn-lab .fs-lab-switch { padding: 6px 12px; border: 1px solid var(--cn-glass-edge); border-radius: 999px; background: rgba(8, 13, 20, 0.6); color: var(--cn-ivory-2); font: 500 12px/1.2 var(--cn-font-ui); letter-spacing: 0.01em; }
+.cn-app .cn-lab .fs-lab-launch .a-caption { color: var(--cn-ivory-3); }
 
 /* Portrait medallions where no painted face exists. */
 .cn-app .cn-medallion { display: inline-grid; place-items: center; border: 1px solid var(--cn-gold); border-radius: 50%; background: radial-gradient(circle at 50% 30%, #4a3720, #120d08 75%); color: var(--cn-gold); font: 600 1.15em/1 var(--cn-font-title); }

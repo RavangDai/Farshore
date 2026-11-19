@@ -69,9 +69,9 @@ export function ChapterTitle({ lines, still, className = "", headingRef, revealK
   return <h1 ref={ref} tabIndex={-1} className={`cn-chapter-title ${className}`}>{lines.map((l, i) => <span key={`${l}-${i}`} className="cn-line"><span>{l}</span></span>)}</h1>;
 }
 
-export function DifficultySelect({ value, onChange, compact }: { value: Difficulty; onChange: (d: Difficulty) => void; compact?: boolean }) {
-  return <label className="cn-select" data-compact={compact || undefined}>
-    <Helmet size={18} />
+export function DifficultySelect({ value, onChange, compact, bare }: { value: Difficulty; onChange: (d: Difficulty) => void; compact?: boolean; bare?: boolean }) {
+  return <label className="cn-select" data-compact={compact || undefined} data-bare={bare || undefined}>
+    {!bare && <Helmet size={18} />}
     <span className="sr-only">Difficulty</span>
     <select value={value} onChange={e => onChange(e.target.value as Difficulty)}>
       {(["easy", "normal", "hard"] as Difficulty[]).map(d => <option key={d} value={d}>{difficultyNames[d]}</option>)}

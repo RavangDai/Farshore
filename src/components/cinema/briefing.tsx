@@ -1,5 +1,5 @@
 "use client";
-import { Volume2 } from "lucide-react";
+import { BookOpen, Gamepad2, Swords, Volume2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { difficultyNames, trials, type ArcadeSave, type Difficulty, type TrialId } from "../../lib/arcade/arcade";
@@ -7,6 +7,7 @@ import { RACE_LAYOUTS } from "../../lib/encounters/lotus-layouts";
 import { fieldNotes } from "../../lib/story/field-notes";
 import { TRIAL_COPY, TRIAL_LOOKS, chapterOf } from "../../lib/cinema/scenes";
 import { ChapterTitle, Cta, DifficultySelect, Drawer, Subtitle, Wordmark } from "./chrome";
+import { LaurelBranch } from "./icons";
 
 export type BriefMode = "story" | "race" | "hunt" | "practice";
 
@@ -45,34 +46,35 @@ export function Briefing(props: Props) {
   const modes: BriefMode[] = id === "lotus" ? ["story", "race", "hunt", "practice"] : ["story", "practice"];
   const best = save.records[id].bests[difficulty];
   const exhibition = mode === "race" || mode === "hunt";
-  const beginLabel = !ready ? holdLabel : mode === "race" ? "Begin Race" : mode === "hunt" ? "Begin Hunt" : mode === "practice" ? "Begin Practice" : "Begin Trial";
+  const beginLabel = !ready ? holdLabel : mode === "race" ? "Begin race" : mode === "hunt" ? "Begin hunt" : mode === "practice" ? "Begin practice" : "Begin trial";
   const beginSub = !ready ? undefined : mode === "story" ? (oracleFirst ? "The Oracle asks first" : "Counts toward your voyage") : exhibition ? "Exhibition · not saved" : "Not saved";
   const chapter = trials.findIndex(t => t.id === id) + 1;
   return <main className="cn-screen cn-brief" style={{ "--cn-accent": TRIAL_LOOKS[id].accent } as CSSProperties}>
     <header className="cn-topbar"><Wordmark onClick={props.onBack} back />{corner}</header>
-    <section className="cn-brief-panel">
-      <span className="cn-ceremonial cn-ceremonial-rule">{chapterOf(id)}</span>
-      <ChapterTitle lines={copy.lines} still={still} headingRef={headingRef} revealKey={id} className="cn-title-brief" />
+    <section className="cn-brief-panel cn-glass">
+      <span className="cn-ceremonial cn-ruled">{chapterOf(id)}</span>
+      <ChapterTitle lines={[copy.short]} still={still} headingRef={headingRef} revealKey={id} className="cn-title-brief" />
+      <div className="cn-divider" aria-hidden="true"><i /><LaurelBranch size={16} flip /><LaurelBranch size={16} /><i /></div>
       <p className="cn-objective cn-objective-lead">{copy.objective}</p>
-      <div className="cn-tabs" role="tablist" aria-label="How to play this trial">
+      <div className="cn-tabs cn-segmented" role="tablist" aria-label="How to play this trial">
         {modes.map(m => <button key={m} type="button" role="tab" aria-selected={mode === m} className="cn-tab" onClick={() => props.onMode(m)}>
-          {MODE_LABELS[m]}{mode === m && <motion.i layoutId="cn-tab-line" className="cn-tab-line" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
+          {mode === m && <motion.i layoutId="cn-tab-line" className="cn-tab-line" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}<span>{MODE_LABELS[m]}</span>
         </button>)}
       </div>
       <div className="cn-brief-status">{status}</div>
-      <div className="cn-brief-row">
-        <DifficultySelect value={difficulty} onChange={props.onDifficulty} />
-        {exhibition && <label className="cn-select cn-select-garden"><span className="sr-only">Garden</span>
+      <div className="cn-brief-fields">
+        <div className="cn-brief-field"><span aria-hidden="true">Difficulty</span><DifficultySelect value={difficulty} onChange={props.onDifficulty} bare /></div>
+        {exhibition && <div className="cn-brief-field"><span aria-hidden="true">Garden</span><label className="cn-select cn-select-garden"><span className="sr-only">Garden</span>
           <select value={garden} onChange={e => props.onGarden(e.target.value)}>{RACE_LAYOUTS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}<option value="fresh">A new garden</option></select>
           <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
-        </label>}
-        {best && mode === "story" && <span className="cn-best"><span className={`cn-medal-dot ${best.medal}`} />{best.medal} · {best.score.toLocaleString()}</span>}
+        </label></div>}
+        {best && mode === "story" && <p className="cn-best"><span className={`cn-medal-dot ${best.medal}`} />{best.medal} · best {best.score.toLocaleString()}</p>}
       </div>
-      <Cta laurels onClick={ready ? props.onBegin : props.onBlocked} className="cn-cta-begin" sub={beginSub} kbd={ready ? "Enter" : undefined}>{beginLabel}</Cta>
+      <Cta laurels={ready} onClick={ready ? props.onBegin : props.onBlocked} className="cn-cta-begin" sub={beginSub} kbd={ready ? "Enter" : undefined} wide>{beginLabel}</Cta>
       <nav className="cn-brief-links" aria-label="More about this trial">
-        <button type="button" onClick={() => setDrawer("controls")}>Controls</button><i aria-hidden="true" />
-        <button type="button" onClick={() => setDrawer("lore")}>Lore</button><i aria-hidden="true" />
-        <button type="button" onClick={() => setDrawer("rival")}>{exhibition ? "The trained rival" : "Rival"}</button>
+        <button type="button" onClick={() => setDrawer("controls")}><Gamepad2 size={17} strokeWidth={1.4} aria-hidden="true" /><span>Controls</span></button><i aria-hidden="true" />
+        <button type="button" onClick={() => setDrawer("lore")}><BookOpen size={17} strokeWidth={1.4} aria-hidden="true" /><span>Lore</span></button><i aria-hidden="true" />
+        <button type="button" onClick={() => setDrawer("rival")}><Swords size={16} strokeWidth={1.4} aria-hidden="true" /><span>{exhibition ? "Trained rival" : "Rival"}</span></button>
       </nav>
     </section>
     {!exhibition && taunt && <Subtitle speaker={taunt.speaker} text={taunt.text} action={<button type="button" className="cn-hear" onClick={props.onHear} aria-label={`Hear ${taunt.speaker}`}><Volume2 size={16} strokeWidth={1.5} /></button>} />}

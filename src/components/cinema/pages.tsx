@@ -62,7 +62,7 @@ export function Credits({ corner, headingRef, onMenu }: { corner: ReactNode; hea
       <p className="cn-editorial">Inspired by Homer’s <em>Odyssey</em>. An independent adaptation with original rules and imagined settings.</p>
       <dl className="cn-facts cn-facts-grid">
         <div><dt>Project</dt><dd>FARSHORE · Bibek Pathak</dd></div>
-        <div><dt>Worlds</dt><dd>Procedural 3D with three.js and React Three Fiber; painted chapter art</dd></div>
+        <div><dt>Worlds</dt><dd>Painted environments and voyage map from the FARSHORE asset pack, with live atmosphere</dd></div>
         <div><dt>AI</dt><dd>PPO rival in ONNX Runtime Web · rule-based rivals with search · your connected language model for the Oracle and commentary · Kokoro-82M voices</dd></div>
         <div><dt>Motion</dt><dd>GSAP and Motion</dd></div>
         <div><dt>Type</dt><dd>Cinzel, Cormorant Garamond and Inter (SIL OFL) · Lucide icons (ISC)</dd></div>

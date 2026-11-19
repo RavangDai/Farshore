@@ -1,0 +1,16 @@
+{
+  "image": "voyage-map.png",
+  "width": 1672,
+  "height": 941,
+  "coordinateSystem": "Percentages relative to the un-cropped map image; anchor circle center at xPct/yPct.",
+  "checkpoints": [
+    {"id": "lotus-eaters", "number": "01", "name": "Lotus-Eaters", "xPct": 11.7, "yPct": 35.5, "environment": "../environments/01-lotus-eaters.png", "objective": "Bring three sailors home."},
+    {"id": "cyclops-cave", "number": "02", "name": "Cyclops’ Cave", "xPct": 25.5, "yPct": 26.8, "environment": "../environments/02-cyclops-cave.png", "objective": "Escape the giant’s cave."},
+    {"id": "aeolus", "number": "03", "name": "Aeolus", "xPct": 44.6, "yPct": 35.0, "environment": "../environments/03-aeolus.png", "objective": "Master the winds."},
+    {"id": "circes-palace", "number": "04", "name": "Circe’s Palace", "xPct": 63.7, "yPct": 28.8, "environment": "../environments/04-circes-palace.png", "objective": "Outsmart the enchantress."},
+    {"id": "sirens-passage", "number": "05", "name": "Sirens’ Passage", "xPct": 79.7, "yPct": 40.0, "environment": "../environments/05-sirens-passage.png", "objective": "Resist the sirens’ song."},
+    {"id": "scylla-charybdis", "number": "06", "name": "Scylla & Charybdis", "xPct": 64.0, "yPct": 62.9, "environment": "../environments/06-scylla-charybdis.png", "objective": "Survive the deadly strait."},
+    {"id": "calypsos-raft", "number": "07", "name": "Calypso’s Raft", "xPct": 38.1, "yPct": 72.2, "environment": "../environments/07-calypsos-raft.png", "objective": "Cross the broken waters."},
+    {"id": "ithaca", "number": "08", "name": "Ithaca", "xPct": 17.7, "yPct": 65.9, "environment": "../environments/08-ithaca.png", "objective": "Reclaim your home."}
+  ]
+}

@@ -70,14 +70,14 @@ export function ResultScreen(p: Props) {
       }
       tl.from(".cn-result-label", { opacity: 0, y: 10, duration: 0.8 }, tone === "victory" ? "<0.1" : 0.3)
         .from(".cn-result-title", { opacity: 0, y: 24, letterSpacing: tone === "victory" ? "0.3em" : "0.06em", filter: "blur(8px)", duration: 1.3 }, "<0.1")
-        .from(".cn-result-line, .cn-result-stats > *, .cn-result-actions > *", { opacity: 0, y: 14, duration: 0.8, stagger: 0.08 }, "<0.5");
+        .fromTo(".cn-result-line, .cn-result-stats > *, .cn-result-actions > *", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.08, clearProps: "opacity,transform" }, "<0.5");
     }, root);
     return () => ctx.revert();
   }, [still, tone]);
   const recap = p.recap && p.recap !== "pending" ? p.recap : null;
   return <main ref={root} className="cn-screen cn-result" data-tone={tone} style={{ "--cn-accent": TRIAL_LOOKS[id].accent } as CSSProperties}>
     <header className="cn-topbar"><Wordmark onClick={p.onMenu} />{p.corner}</header>
-    <section className="cn-result-core">
+    <section className="cn-result-core cn-glass">
       {tone === "victory" && <div className="cn-result-crown" data-medal={medal ?? undefined}><LaurelWreath size={190} /><span className="cn-result-medal">{medal ? `${medal}` : ""}</span></div>}
       <span className="cn-ceremonial cn-result-label">{chapterOf(id)} · {copy.short}</span>
       <h1 ref={p.headingRef as RefObject<HTMLHeadingElement>} tabIndex={-1} className="cn-result-title">{title}</h1>

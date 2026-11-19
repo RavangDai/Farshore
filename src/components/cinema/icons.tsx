@@ -37,17 +37,6 @@ export function LaurelWreath({ size = 180, className }: IconProps) {
   </svg>;
 }
 
-export function CompassRose({ size = 120, className }: IconProps) {
-  return <svg className={className} width={size} height={size} viewBox="0 0 120 120" aria-hidden="true" fill="none" stroke="currentColor">
-    <circle cx="60" cy="60" r="38" strokeWidth=".8" opacity=".6" />
-    <circle cx="60" cy="60" r="30" strokeWidth=".6" opacity=".4" strokeDasharray="2 3" />
-    <path d="M60 8l6 46-6 6-6-6zM60 112l-6-46 6-6 6 6zM8 60l46-6 6 6-6 6zM112 60l-46 6-6-6 6-6z" fill="currentColor" fillOpacity=".18" strokeWidth=".9" />
-    <path d="M60 8l6 46-6 6z" fill="currentColor" fillOpacity=".65" stroke="none" />
-    <path d="M60 30l3 27-3 3-3-3zM60 90l-3-27 3-3 3 3zM30 60l27-3 3 3-3 3zM90 60l-27 3-3-3 3-3z" transform="rotate(45 60 60)" strokeWidth=".7" />
-    {[["N", 60, 4], ["S", 60, 119], ["W", 2, 62], ["E", 118, 62]].map(([l, x, y]) => <text key={l as string} x={x as number} y={y as number} fontSize="9" textAnchor="middle" fill="currentColor" stroke="none" style={{ fontFamily: "var(--cn-font-title)" }}>{l}</text>)}
-  </svg>;
-}
-
 /** A Corinthian helmet: the difficulty mark. */
 export function Helmet({ size = 18, className }: IconProps) {
   return <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round">

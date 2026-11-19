@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  CINEMA_THEMES, DURATION, JOURNEY_GATE_Z, JOURNEY_PAST_GATE_Z, LOCK, SHOTS,
-  cameraAt, captionAt, cinemaCaptions, cinemaCues, cuesBetween, doorsAt, flashAt, heroAt, keyAt, lightAt, runesAt,
+  DURATION, JOURNEY_BEATS,
+  captionAt, cinemaCaptions, cinemaCues, cuesBetween, flashAt, gateShot, journeyShot, lightAt, runesAt, voyagePoint, walkingAt,
 } from "../src/lib/story/cinema.ts";
+import { CHECKPOINTS } from "../src/lib/cinema/map-layout.ts";
 import { sounds } from "../src/lib/audio/sounds.ts";
 import { trials } from "../src/lib/arcade/arcade.ts";
 
@@ -12,83 +13,64 @@ const KINDS = ["unlock", "journey"];
 const frames = kind => Array.from({ length: Math.round(DURATION[kind] / 0.02) + 1 }, (_, i) => Math.min(DURATION[kind], i * 0.02));
 const close = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
 
-test("every trial has a light for its gate", () => {
-  assert.deepEqual(Object.keys(CINEMA_THEMES).sort(), trials.map(t => t.id).sort());
-  for (const theme of Object.values(CINEMA_THEMES)) assert.ok(theme.near < theme.far && theme.sunI > 0);
+test("journey: the cleared trial, then the chart, then the next trial, always one painting in full", () => {
+  let prev = journeyShot(0);
+  assert.ok(close(prev.from, 1) && prev.map === 0 && prev.to === 0);
+  for (const t of frames("journey")) {
+    const s = journeyShot(t);
+    assert.ok([s.from, s.map, s.to, s.fromZoom, s.mapZoom, s.toZoom, s.voyage].every(Number.isFinite), `finite at ${t}`);
+    // Stacked fades: whichever painting is fading in, a solid one lies beneath it, so the frame never dims.
+    const solidBeneath = s.to > 0 ? s.map === 1 || s.to === 1 : s.map > 0 ? s.from === 1 || s.map === 1 : s.from === 1;
+    assert.ok(solidBeneath, `a dim frame at ${t}: ${JSON.stringify(s)}`);
+    assert.ok(s.fromZoom >= 1 && s.toZoom >= 1 && s.mapZoom >= 1.5, `zoomed out past the art at ${t}`);
+    // No jumps: the camera moves smoothly between frames 20 ms apart.
+    assert.ok(Math.abs(s.mapZoom - prev.mapZoom) < 0.05 && Math.abs(s.voyage - prev.voyage) < 0.03, `jump at ${t}`);
+    assert.ok(s.voyage >= prev.voyage - 1e-12, "the ship never sails back");
+    prev = s;
+  }
+  const end = journeyShot(DURATION.journey);
+  assert.ok(end.to === 1 && end.from === 0 && end.map === 0 && end.voyage === 1);
+  assert.equal(journeyShot(JOURNEY_BEATS.sail[0]).voyage, 0);
+  assert.equal(journeyShot(JOURNEY_BEATS.sail[1]).voyage, 1);
+  // The chart is in full for the whole voyage.
+  for (let t = JOURNEY_BEATS.sail[0]; t <= JOURNEY_BEATS.toIn[0]; t += 0.1) assert.ok(close(journeyShot(t).map, 1), `chart at ${t}`);
 });
 
-test("the camera is finite, above the causeway and glides through its first and last shots", () => {
-  for (const kind of KINDS) {
-    for (const t of frames(kind)) {
-      const { cam, look } = cameraAt(kind, t);
-      assert.ok([...cam, ...look].every(Number.isFinite), `${kind} ${t}`);
-      assert.ok(cam[1] > 0.8, `${kind} camera at y ${cam[1]} at ${t}`);
-    }
-    const shots = SHOTS[kind], first = cameraAt(kind, 0), last = cameraAt(kind, DURATION[kind]);
-    assert.ok(shots[0].cam.every((v, i) => close(v, first.cam[i])) && !shots[0].rel, kind);
-    assert.ok(shots.at(-1).cam.every((v, i) => close(v, last.cam[i])) && !shots.at(-1).rel, kind);
-    // No jumps: between frames 20 ms apart the camera moves less than half a metre.
-    let prev = cameraAt(kind, 0).cam;
-    for (const t of frames(kind).slice(1)) {
-      const { cam } = cameraAt(kind, t);
-      assert.ok(Math.hypot(cam[0] - prev[0], cam[1] - prev[1], cam[2] - prev[2]) < 0.5, `${kind} jump at ${t}`);
-      prev = cam;
+test("journey: the ship's light sails from one checkpoint to the next, and stays on the chart", () => {
+  for (let i = 0; i < trials.length - 1; i++) {
+    const a = CHECKPOINTS[trials[i].id], b = CHECKPOINTS[trials[i + 1].id];
+    const from = { x: a.x / 100, y: a.y / 100 }, to = { x: b.x / 100, y: b.y / 100 };
+    const start = voyagePoint(from, to, 0), end = voyagePoint(from, to, 1);
+    assert.ok(close(start.x, from.x) && close(start.y, from.y) && close(end.x, to.x) && close(end.y, to.y), trials[i].id);
+    for (let u = 0; u <= 1; u += 0.05) {
+      const p = voyagePoint(from, to, u);
+      assert.ok(p.x > 0 && p.x < 1 && p.y > 0 && p.y < 1, `${trials[i].id} off the chart at ${u}`);
     }
   }
 });
 
-test("unlock: he walks to the gate and waits; the doors open only after the key has turned", () => {
+test("unlock: the key comes down, the seal burns after it lands, light pours, and the film ends in the flash", () => {
+  assert.equal(gateShot(2.4).key.visible, false);
+  const falling = gateShot(3);
+  assert.ok(falling.key.visible && falling.key.y > 0 && falling.key.y < 1);
+  assert.ok(close(gateShot(3.75).key.y, 1));
+  assert.equal(gateShot(5.1).key.visible, false);
+  let zoom = 0;
   for (const t of frames("unlock")) {
-    const hero = heroAt("unlock", t), doors = doorsAt("unlock", t);
-    if (doors < 0.6) assert.ok(hero.z > 1.5, `through a closed door at ${t}: z ${hero.z}`);
-    if (t > 2.7 && t < 5.5) assert.equal(hero.walking, false);
-    if (doors > 0) assert.ok(keyAt(t).turn > 0 || !keyAt(t).visible, `doors moved before the key turned at ${t}`);
-    // The camera rides up to the doorway only once the doors stand open, and never through the leaves.
-    const cam = cameraAt("unlock", t).cam;
-    assert.ok(cam[2] > 0.9, `camera in the doors at ${t}`);
-    if (cam[2] < 3) assert.ok(doors > 0.85 || Math.abs(cam[0]) < 1.5 && t < 5.2, `camera at the closed doors at ${t}`);
+    const s = gateShot(t);
+    assert.ok(s.zoom >= zoom - 1e-12 && s.zoom >= 1, `the camera backs away at ${t}`);
+    zoom = s.zoom;
+    if (s.seal > 0) assert.ok(t > 3.75, `the seal burns before the key lands at ${t}`);
   }
-  assert.equal(heroAt("unlock", 0).z, 15);
-  assert.ok(heroAt("unlock", DURATION.unlock).z < -5, "he walks through at the end");
-  assert.equal(doorsAt("unlock", 4.9), 0);
-  assert.equal(doorsAt("unlock", 6.6), 1);
-  assert.equal(doorsAt("journey", 5), 0);
-});
-
-test("unlock: the key falls upright, tips into the lock, makes a quarter turn and burns away", () => {
-  assert.equal(keyAt(2.4).visible, false);
-  const falling = keyAt(2.9);
-  assert.ok(falling.visible && falling.y > LOCK[1] + 2 && falling.pitch < 0.3 && falling.spin > 1, JSON.stringify(falling));
-  const seated = keyAt(4.05);
-  assert.ok(close(seated.y, LOCK[1]) && close(seated.pitch, Math.PI / 2) && close(seated.spin, 0) && seated.turn < 0.01, JSON.stringify(seated));
-  assert.ok(close(keyAt(4.6).turn, Math.PI / 2, 1e-9));
-  assert.ok(keyAt(4.7).glow > keyAt(4.2).glow);
-  assert.equal(keyAt(5.1).visible, false);
   assert.ok(runesAt("unlock", 4.3) === 0 && runesAt("unlock", 5.0) === 1);
   assert.ok(lightAt("unlock", 4.7) === 0 && lightAt("unlock", 6.7) === 1);
   assert.ok(flashAt("unlock", 6.6) === 0 && flashAt("unlock", DURATION.unlock) === 1);
-});
-
-test("journey: out through the old gate, on to stop short of the next; the next gate's runes stir", () => {
-  const start = heroAt("journey", 0), end = heroAt("journey", DURATION.journey);
-  assert.ok(start.z < JOURNEY_PAST_GATE_Z && start.z > JOURNEY_PAST_GATE_Z - 3);
-  assert.ok(end.z > JOURNEY_GATE_Z + 5 && end.z < JOURNEY_GATE_Z + 12 && !end.walking);
-  let z = start.z;
-  for (const t of frames("journey")) {
-    const hero = heroAt("journey", t);
-    assert.ok(hero.z <= z + 1e-9, "he never walks back");
-    z = hero.z;
-    const cam = cameraAt("journey", t).cam;
-    assert.ok(cam[2] > JOURNEY_GATE_Z + 2, `camera in the next gate at ${t}`);
-    // Passing the old gate, the camera keeps inside its open doorway: the leaves stand at |x| > 2.9.
-    if (cam[2] > JOURNEY_PAST_GATE_Z - 3.6 && cam[2] < JOURNEY_PAST_GATE_Z + 1) assert.ok(Math.abs(cam[0]) < 2.7, `camera in the old gate's leaves at ${t}: x ${cam[0]}`);
-  }
   assert.ok(runesAt("journey", 8.2) > runesAt("journey", 2) + 0.4);
   assert.equal(lightAt("journey", 8), 0);
   assert.ok(flashAt("journey", 8.0) === 0 && flashAt("journey", DURATION.journey) === 1);
 });
 
-test("the cues are real sounds, sorted, inside the film, with footsteps only while he walks", () => {
+test("the cues are real sounds, sorted, inside the film, with footsteps only while he is on foot", () => {
   for (const kind of KINDS) {
     const cues = cinemaCues(kind);
     assert.ok(cues.length > 8, kind);
@@ -96,10 +78,13 @@ test("the cues are real sounds, sorted, inside the film, with footsteps only whi
       assert.ok(c.sound in sounds, `${kind}: no sound ${c.sound}`);
       assert.ok(c.t > 0 && c.t <= DURATION[kind]);
       if (i) assert.ok(c.t >= cues[i - 1].t);
-      if (c.sound === "step-stone") assert.ok(heroAt(kind, c.t).walking, `${kind}: a step at ${c.t} while standing`);
+      if (c.sound === "step-stone") assert.ok(walkingAt(kind, c.t), `${kind}: a step at ${c.t} while standing`);
     });
   }
   assert.ok(!cinemaCues("unlock").some(c => c.sound === "step-stone" && c.t > 2.8 && c.t < 5.5), "no steps while he waits at the gate");
+  // Once at sea, the voyage sounds like a ship, not a road.
+  const atSea = cinemaCues("journey").filter(c => c.t > JOURNEY_BEATS.mapIn[1] && c.t < JOURNEY_BEATS.toIn[0]);
+  assert.ok(!atSea.some(c => c.sound === "step-stone") && atSea.some(c => c.sound === "oar"));
 });
 
 test("cuesBetween plays every cue exactly once, whatever the frame rate", () => {
@@ -116,7 +101,7 @@ test("cuesBetween plays every cue exactly once, whatever the frame rate", () => 
   }
 });
 
-test("captions name the trial behind and the trial ahead", () => {
+test("captions name the trial behind (before the chart) and the trial ahead", () => {
   const unlock = cinemaCaptions("unlock", null, { number: 3, title: "The Lotus-Eaters", kind: "Maze rescue" });
   assert.equal(captionAt(unlock, 5), null);
   assert.equal(captionAt(unlock, 6).title, "The Lotus-Eaters");
@@ -124,6 +109,6 @@ test("captions name the trial behind and the trial ahead", () => {
   const journey = cinemaCaptions("journey", { number: 2, title: "Sirens' Passage" }, { number: 3, title: "The Lotus-Eaters", kind: "Maze rescue" });
   assert.equal(captionAt(journey, 1).title, "Sirens' Passage");
   assert.match(captionAt(journey, 1).eyebrow, /cleared/);
-  assert.equal(captionAt(journey, 4), null);
+  assert.equal(captionAt(journey, 4), null, "the chart has the frame to itself");
   assert.equal(captionAt(journey, 7).title, "The Lotus-Eaters");
 });

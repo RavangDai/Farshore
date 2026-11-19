@@ -2,22 +2,21 @@
 import { useEffect, useRef, useState, type Ref } from "react";
 import { ArrowRight, KeyRound, SkipForward } from "lucide-react";
 import { trials, type TrialId } from "../../lib/arcade/arcade";
-import { CINEMA_THEMES, DURATION, captionAt, cinemaCaptions, cinemaCues, cuesBetween, flashAt, type Caption, type CinemaKind } from "../../lib/story/cinema";
+import { DURATION, captionAt, cinemaCaptions, cinemaCues, cuesBetween, flashAt, type Caption, type CinemaKind } from "../../lib/story/cinema";
 import { crossingLines } from "../../lib/story/crossing";
 import type { SoundName } from "../../lib/audio/sounds";
-import { ART } from "../../lib/art";
-import type { CinemaWorld } from "../../lib/render/cinema-world";
+import type { PaintedFilm } from "../../lib/render/painted-film";
 
 /**
- * The mythic cinematics, in 3D: Odysseus unlocking a trial's gate with the
- * Oracle's key, and Odysseus walking from the trial he has won to the next.
+ * The mythic cinematics: the Oracle's key opening a trial, and the voyage
+ * from the trial just won to the next across the painted chart.
  *
  * The film itself is lib/story/cinema.ts (pure, tested) drawn by
- * lib/render/cinema-world.ts (three.js, loaded on demand). This screen runs the
- * clock, plays the cues, shows the captions and the letterbox, and ends the
- * film. Enter, Space, Escape or the button skip it. Where WebGL is missing it
- * calls `onFail` at once, so the caller can fall back. With reduced motion the
- * game never opens it.
+ * lib/render/painted-film.ts on the cinematic asset pack's paintings (loaded
+ * on demand). This screen runs the clock, plays the cues, shows the captions
+ * and the letterbox, and ends the film. Enter, Space, Escape or the button
+ * skip it. If the film cannot be built it calls `onFail`, so the caller can
+ * fall back. With reduced motion the game never opens it.
  */
 
 type Rival = "studying" | "ready" | "waiting";
@@ -76,22 +75,22 @@ export function MythicCinema(props: Props) {
   }, []);
 
   useEffect(() => {
-    let world: CinemaWorld | null = null, frame = 0, cancelled = false;
-    const sprites = new Image();
-    sprites.src = ART.hd.sprites;
-    sprites.onload = () => world?.setSprites(sprites);
+    let world: PaintedFilm | null = null, frame = 0, cancelled = false;
     const cues = cinemaCues(kind), total = DURATION[kind];
     let t = 0, last = 0, spoken = kind !== "journey", shown: Caption | null = null, held = false;
 
-    import("../../lib/render/cinema-world").then(({ CinemaWorld }) => {
+    import("../../lib/render/painted-film").then(async ({ PaintedFilm }) => {
       if (cancelled || !host.current) return;
       try {
-        world = new CinemaWorld(host.current, { kind, theme: CINEMA_THEMES[to], pastTheme: from ? CINEMA_THEMES[from] : undefined, sprites: sprites.complete && sprites.naturalWidth ? sprites : null });
+        world = new PaintedFilm(host.current, { kind, to, from });
       } catch {
         live.current.onFail();
         return;
       }
       world.render(0);
+      // The paintings decode first (a slow network still starts the film after a moment).
+      await Promise.race([world.ready, new Promise(r => window.setTimeout(r, 2500))]);
+      if (cancelled || !world) return;
       setReady(true);
       // Development builds expose the film, so a browser check can hold and seek it frame by frame.
       if (process.env.NODE_ENV !== "production") (window as unknown as { farshoreCinema?: unknown }).farshoreCinema = { world, seek: (to: number) => { t = Math.max(0, Math.min(total, to)); }, hold: (on: boolean) => { held = on; } };
@@ -114,7 +113,7 @@ export function MythicCinema(props: Props) {
       frame = requestAnimationFrame(tick);
     }).catch(() => { if (!cancelled) live.current.onFail(); });
 
-    // If the 3D world is slow to arrive, say so rather than show a black screen.
+    // If the paintings are slow to arrive, say so rather than show a black screen.
     const slow = window.setTimeout(() => setLate(true), 1500);
     return () => {
       cancelled = true;

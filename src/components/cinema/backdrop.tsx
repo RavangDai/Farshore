@@ -1,66 +1,86 @@
 "use client";
-import { Component, lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { TrialId } from "../../lib/arcade/arcade";
-import { trials } from "../../lib/arcade/arcade";
-import { ART } from "../../lib/art";
-import type { Quality } from "../../lib/cinema/quality";
-import { worldKey, type WorldSpec } from "../../lib/cinema/scenes";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { ENVIRONMENTS, envFor, envSrc, type EnvId } from "../../lib/cinema/art";
+import { QUALITY_BUDGET, type Quality } from "../../lib/cinema/quality";
+import type { WorldSpec } from "../../lib/cinema/scenes";
+import { AmbientFx } from "./ambient-fx";
 
-const Stage = lazy(() => import("./three/stage"));
-
-/** Catches a failure inside the 3D stage (shader compile, lost context) and falls back to paint. */
-class StageBoundary extends Component<{ onFail: () => void; children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch() { this.props.onFail(); }
-  render() { return this.state.failed ? null : this.props.children; }
+const loaded = new Set<string>();
+/** Fetches and decodes a painting before it is shown, so a cut never flashes an empty frame. */
+export function preloadArt(src: string): Promise<void> {
+  if (loaded.has(src)) return Promise.resolve();
+  const img = new Image();
+  img.decoding = "async";
+  img.src = src;
+  return img.decode().then(() => { loaded.add(src); }, () => {});
 }
 
-/** The painted fallback: the original illustrations, slowly drifting. Used on Lite and without WebGL. */
-export function PaintedBackdrop({ world }: { world: WorldSpec }) {
-  const index = world.kind === "trial" ? trials.findIndex(t => t.id === world.id) : -1;
-  const style: CSSProperties = index >= 0
-    ? { backgroundImage: `url('${ART.hd.trials}')`, backgroundSize: "400% 300%", backgroundPosition: `${(index % 4) * 100 / 3}% ${Math.floor(index / 4) * 50}%` }
-    : { backgroundImage: `url('${ART.hd.sea}')`, backgroundSize: "cover", backgroundPosition: world.kind === "map" ? "60% 70%" : "50% 50%" };
-  return <div className="cn-painted" data-kind={world.kind} data-mood={world.kind === "trial" ? world.mood : undefined}><i style={style} /></div>;
+type Framing = "wide" | "close" | "result";
+
+/**
+ * One painted environment in a stage box with the painting's exact aspect
+ * ratio, sized to cover the screen and anchored on its focal subject. The
+ * camera (framing zoom, slow drift, pointer sway) moves the whole box, so the
+ * effects stay pinned to the art.
+ */
+function ArtStage({ env, framing, fx }: { env: EnvId; framing: Framing; fx: { density: number; dpr: number; paused: boolean } | null }) {
+  const art = ENVIRONMENTS[env];
+  return <div className="cn-art-stage" style={{ "--fx": art.focus[0], "--fy": art.focus[1] } as CSSProperties}>
+    <div className="cn-art-cam" data-framing={framing}>
+      <div className="cn-art-drift">
+        <img className="cn-art-img" src={envSrc(env)} alt="" decoding="async" draggable={false} />
+        {fx && fx.density > 0 && <AmbientFx spec={art.fx} density={fx.density} dpr={fx.dpr} paused={fx.paused} />}
+      </div>
+    </div>
+  </div>;
 }
 
 /**
- * The single cinematic backdrop behind every menu screen. Worlds that share a
- * key (a trial's chapter view, briefing and result) glide between camera
- * framings in place; a different world dips to dark and back, like a cut.
+ * The cinematic backdrop behind every menu screen: the asset pack's painting
+ * for the screen, with its atmosphere drawn over it. Views of the same
+ * painting (a trial's chapter view and result) glide between framings; a new
+ * painting is decoded first and then cross-fades in. The voyage chart draws
+ * its own stage, so the backdrop stays dark beneath it.
  */
-export function CinemaBackdrop({ world, quality, still, paused = false, map, onFail }: { world: WorldSpec; quality: Quality; still: boolean; paused?: boolean; map: { selected: TrialId; cleared: TrialId[]; onSelect: (id: TrialId) => void }; onFail: () => void }) {
-  const [shown, setShown] = useState(world);
-  const [veil, setVeil] = useState(false);
-  const [readyKey, setReadyKey] = useState<string | null>(null);
-  const signature = JSON.stringify(world);
-  const shownKey = useRef(worldKey(world));
-  const painted = quality === "lite";
+export function CinemaBackdrop({ world, quality, still, paused = false }: { world: WorldSpec; quality: Quality; still: boolean; paused?: boolean }) {
+  const env = envFor(world);
+  const framing: Framing = world.kind === "trial" ? world.framing : "wide";
+  const [current, setCurrent] = useState<EnvId | null>(null);
+  const [leaving, setLeaving] = useState<EnvId | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const budget = QUALITY_BUDGET[quality];
+  const moving = !still && budget.drift;
+
   useEffect(() => {
-    const next = JSON.parse(signature) as WorldSpec;
-    if (worldKey(next) === shownKey.current) { setShown(next); return; }
-    if (still) { shownKey.current = worldKey(next); setShown(next); return; }
-    setVeil(true);
-    const swap = window.setTimeout(() => { shownKey.current = worldKey(next); setShown(next); }, 420);
-    // Failsafe: the veil never stays down longer than this, compiled or not.
-    const lift = window.setTimeout(() => setVeil(false), 5200);
-    return () => { clearTimeout(swap); clearTimeout(lift); };
-  }, [signature, still]);
-  // The veil lifts once the new world has compiled its shaders and drawn (or at once when painted).
+    if (env === current) return;
+    let live = true;
+    const show = () => { if (!live) return; setLeaving(current); setCurrent(env); };
+    if (env) preloadArt(envSrc(env)).then(show); else show();
+    return () => { live = false; };
+  }, [env, current]);
   useEffect(() => {
-    if (!veil) return;
-    const key = worldKey(shown);
-    if (key !== shownKey.current || (!painted && readyKey !== key)) return;
-    const t = window.setTimeout(() => setVeil(false), 160);
+    if (!leaving) return;
+    const t = window.setTimeout(() => setLeaving(null), still ? 0 : 1100);
     return () => clearTimeout(t);
-  }, [veil, shown, readyKey, painted]);
-  return <div className="cn-backdrop" data-mood={shown.kind === "trial" ? shown.mood : undefined} data-world={shown.kind}>
-    {painted ? <PaintedBackdrop world={shown} /> : <StageBoundary onFail={onFail}>
-      <Suspense fallback={<PaintedBackdrop world={shown} />}>
-        <Stage world={shown} quality={quality} still={still} paused={paused} map={map} onFail={onFail} onReady={setReadyKey} />
-      </Suspense>
-    </StageBoundary>}
-    <div className="cn-veil" data-on={veil || undefined} aria-hidden="true" />
+  }, [leaving, current, still]);
+
+  // The camera leans a little towards the pointer.
+  useEffect(() => {
+    const el = root.current;
+    if (!moving || !el) return;
+    let raf = 0, x = 0, y = 0;
+    const move = (e: PointerEvent) => {
+      x = (e.clientX / window.innerWidth) * 2 - 1; y = (e.clientY / window.innerHeight) * 2 - 1;
+      if (!raf) raf = requestAnimationFrame(() => { raf = 0; el.style.setProperty("--mx", x.toFixed(3)); el.style.setProperty("--my", y.toFixed(3)); });
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => { window.removeEventListener("pointermove", move); cancelAnimationFrame(raf); el.style.removeProperty("--mx"); el.style.removeProperty("--my"); };
+  }, [moving]);
+
+  const fx = moving ? { density: budget.particles, dpr: budget.dpr, paused } : null;
+  return <div ref={root} className="cn-backdrop" data-world={world.kind} data-mood={world.kind === "trial" ? world.mood : undefined} data-moving={moving || undefined}>
+    {/* Keyed by painting, so the one leaving stays mounted beneath while the new one fades in over it. */}
+    {leaving && leaving !== current && <ArtStage key={leaving} env={leaving} framing={framing} fx={null} />}
+    {current && <ArtStage key={current} env={current} framing={framing} fx={fx} />}
   </div>;
 }

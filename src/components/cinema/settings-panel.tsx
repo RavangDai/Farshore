@@ -70,7 +70,7 @@ export function SettingsPanel(p: Props) {
       <button type="button" className="cn-ghost" disabled={!p.voicePrefs.voice} onClick={p.onTestVoice}><Volume2 size={16} strokeWidth={1.4} /><span>Test the bard’s voice</span></button>
     </div>}
     {tab === "display" && <div className="cn-settings-group" role="tabpanel">
-      <label className="cn-field"><span><b>Graphics</b><small>{p.quality === "auto" ? `Automatic chose ${QUALITY_LABELS[p.resolved]} for this device.` : "Lite shows the painted art instead of 3D worlds."}</small></span>
+      <label className="cn-field"><span><b>Graphics</b><small>{p.quality === "auto" ? `Automatic chose ${QUALITY_LABELS[p.resolved]} for this device.` : "Lite keeps the paintings still, without drifting light, particles or camera sway."}</small></span>
         <select value={p.quality} onChange={e => p.onQuality(e.target.value as QualityChoice)}>{(Object.keys(QUALITY_LABELS) as QualityChoice[]).map(q => <option key={q} value={q}>{QUALITY_LABELS[q]}</option>)}</select>
       </label>
       <Slider label="Particles & glow" value={p.prefs.visuals} step={0.05} onChange={v => p.setPrefs(o => ({ ...o, visuals: v }))} />

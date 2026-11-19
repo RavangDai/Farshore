@@ -1,12 +1,13 @@
-// Graphics quality for the cinematic backdrops. Kept in its own local key
-// (not the synced preferences schema) because it describes this device, not
-// the player: the same account on a phone and a desktop wants different tiers.
+// How much atmosphere the menus draw over the painted environments. Kept in
+// its own local key (not the synced preferences schema) because it describes
+// this device, not the player: the same account on a phone and a desktop wants
+// different tiers. The paintings themselves are identical on every tier.
 
 export type Quality = "cinematic" | "balanced" | "lite";
 export type QualityChoice = Quality | "auto";
 export const QUALITY_KEY = "farshore-graphics-v1";
 
-export const QUALITY_LABELS: Record<QualityChoice, string> = { auto: "Automatic", cinematic: "Cinematic", balanced: "Balanced", lite: "Lite (painted)" };
+export const QUALITY_LABELS: Record<QualityChoice, string> = { auto: "Automatic", cinematic: "Cinematic", balanced: "Balanced", lite: "Lite (still art)" };
 
 export function readQualityChoice(): QualityChoice {
   try {
@@ -18,37 +19,26 @@ export function writeQualityChoice(choice: QualityChoice) {
   try { if (choice === "auto") localStorage.removeItem(QUALITY_KEY); else localStorage.setItem(QUALITY_KEY, choice); } catch { /* Storage is optional. */ }
 }
 
-let webgl: boolean | null = null;
-/** Whether this browser can create a WebGL2 context at all. Checked once. */
-export function hasWebGL(): boolean {
-  if (webgl !== null) return webgl;
-  try {
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2");
-    webgl = !!gl;
-    gl?.getExtension("WEBGL_lose_context")?.loseContext();
-  } catch { webgl = false; }
-  return webgl;
-}
-
 /** The tier this device gets when the player has not chosen one. */
 export function detectQuality(): Quality {
-  if (!hasWebGL()) return "lite";
   const nav = navigator as Navigator & { deviceMemory?: number };
   const cores = nav.hardwareConcurrency ?? 4, memory = nav.deviceMemory ?? 8;
   const phone = window.matchMedia?.("(pointer: coarse)").matches && Math.min(window.innerWidth, window.innerHeight) < 600;
-  if (phone || cores <= 2 || memory <= 2) return "balanced";
-  return cores >= 6 && memory >= 4 ? "cinematic" : "balanced";
+  if (cores <= 2 || memory <= 1) return "lite";
+  return phone || cores < 6 || memory < 4 ? "balanced" : "cinematic";
 }
 
 export function resolveQuality(choice: QualityChoice): Quality {
-  if (choice === "auto") return detectQuality();
-  if (choice !== "lite" && !hasWebGL()) return "lite";
-  return choice;
+  return choice === "auto" ? detectQuality() : choice;
 }
 
-/** Device pixel ratio cap and particle share for each tier. */
-export const QUALITY_BUDGET: Record<Exclude<Quality, "lite">, { dpr: [number, number]; particles: number; segments: number; antialias: boolean }> = {
-  cinematic: { dpr: [1, 1.75], particles: 1, segments: 1, antialias: true },
-  balanced: { dpr: [0.85, 1.15], particles: 0.55, segments: 0.6, antialias: false },
+/**
+ * What each tier draws: the share of particles, the effects canvas's pixel
+ * ratio cap, and whether the camera drifts and follows the pointer. Lite is
+ * the lightweight fallback: the still painting and nothing over it.
+ */
+export const QUALITY_BUDGET: Record<Quality, { particles: number; dpr: number; drift: boolean }> = {
+  cinematic: { particles: 1, dpr: 1.5, drift: true },
+  balanced: { particles: 0.5, dpr: 1, drift: true },
+  lite: { particles: 0, dpr: 1, drift: false },
 };

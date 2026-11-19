@@ -1,5 +1,6 @@
-/* FARSHORE · The mythic cinematics in 3D (mythic-cinema.tsx), and the camera
-   moves between screens that make the menus feel like one ride.
+/* FARSHORE · The mythic cinematics (mythic-cinema.tsx), filmed on the
+   cinematic asset pack's paintings (lib/render/painted-film.ts), and the
+   camera moves between screens that make the menus feel like one ride.
    The films reuse the crossing's letterbox shutter and skip button. */
 
 .fs-mythic {
@@ -14,9 +15,24 @@
 }
 .fs-mythic-stage { position: absolute; inset: 0; opacity: 0; transition: opacity 0.7s ease; }
 .fs-mythic[data-ready] .fs-mythic-stage { opacity: 1; }
-.fs-mythic-stage canvas, .fs-mythic-gl { display: block; width: 100%; height: 100%; }
 
-/* The grade: a warm vignette and a breath of film grain over the 3D frame. */
+/* The painted film: each painting in a box with its exact ratio; transforms move the camera. */
+.fs-film { position: absolute; inset: 0; overflow: hidden; background: #020509; }
+.fs-film-layer { position: absolute; inset: 0; overflow: hidden; }
+.fs-film-stage { position: absolute; left: 0; top: 0; will-change: transform; }
+.fs-film-art { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; }
+.fs-film-marker { position: absolute; transform: translate(-50%, -50%); filter: drop-shadow(0 0 6px rgba(239, 188, 100, 0.55)); }
+.fs-film-route-probe { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* The ship's light on the chart. */
+.fs-film-ship { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, #fff7de 0%, #ffd685 32%, rgba(255, 196, 96, 0.45) 56%, rgba(255, 176, 64, 0) 74%); box-shadow: 0 0 22px 8px rgba(255, 204, 120, 0.42); }
+/* The gate: the key's light coming down, the seal of fire, the light that pours out. */
+.fs-film-key { position: absolute; left: 50%; z-index: 1; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; opacity: 0; background: radial-gradient(circle, #fffaf0 0%, #ffe3a3 34%, rgba(255, 205, 120, 0) 72%); box-shadow: 0 0 34px 12px rgba(255, 214, 140, 0.5); }
+.fs-film-key::before { content: ""; position: absolute; left: 50%; bottom: 50%; width: 2px; height: 46vh; margin-left: -1px; background: linear-gradient(0deg, rgba(255, 236, 190, 0.85), rgba(255, 236, 190, 0)); }
+.fs-film-seal { position: absolute; left: 50%; top: 50%; z-index: 1; width: min(36vh, 320px); aspect-ratio: 1; border: 2px solid rgba(255, 216, 146, 0.9); border-radius: 50%; opacity: 0; box-shadow: 0 0 46px rgba(255, 190, 96, 0.7), inset 0 0 34px rgba(255, 190, 96, 0.5); }
+.fs-film-seal::after { content: ""; position: absolute; inset: 12%; border: 1px dashed rgba(255, 226, 170, 0.8); border-radius: 50%; animation: cn-spin 9s linear infinite; }
+.fs-film-pour { position: absolute; inset: 0; z-index: 1; opacity: 0; background: radial-gradient(ellipse 54% 60% at 50% 58%, rgba(255, 244, 214, 0.78), rgba(255, 206, 128, 0.32) 42%, rgba(255, 190, 96, 0) 72%); mix-blend-mode: screen; }
+
+/* The grade: a warm vignette and a breath of film grain over the frame. */
 .fs-mythic-grade {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background:

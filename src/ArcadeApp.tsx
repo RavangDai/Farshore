@@ -210,10 +210,11 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   useEffect(() => { if ((screen === "brief" || sailingToBrief) && rivalOnline && aiState === "idle") void prepare(); }, [screen, sailingToBrief, rivalOnline, aiState, selected, prefs.difficulty]);
   useEffect(() => { setOracleKeys([]); setOracleLog({}); }, [selected]);
   useEffect(() => { if (screen === "map" || screen === "title" || screen === "trials") setOracleKeys([]); }, [screen]);
+  // The Oracle starts writing while the ship is still at sea, like the rival's line, so its question is usually ready by the briefing.
   useEffect(() => {
-    if (screen !== "brief" || !oracleOn || !rivalOnline || oracleKeys.includes(selected) || exhibition) return;
+    if ((screen !== "brief" && !sailingToBrief) || !oracleOn || !rivalOnline || oracleKeys.includes(selected) || exhibition) return;
     if (oracle.trial !== selected) consultOracle(selected);
-  }, [screen, selected, oracleOn, rivalOnline, exhibition]);
+  }, [screen, sailingToBrief, selected, oracleOn, rivalOnline, exhibition]);
   useEffect(() => () => oracleRequest.current?.abort(), []);
   // Asking the Oracle's status starts its passage index building on the server, ahead of the first briefing.
   useEffect(() => { if (oracleOn && rivalOnline) void fetch("/api/oracle", { cache: "no-store" }).catch(() => {}); }, [oracleOn, rivalOnline]);

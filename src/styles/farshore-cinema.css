@@ -542,6 +542,18 @@
 
 /* ----------------------------------------------------- live commentary -- */
 
+/* The typed line (Typewriter): the untyped rest keeps its place invisibly, and
+   the full text is there once more for screen readers only. These lived in the
+   pixel skin's stylesheet, which is no longer loaded; without them every line
+   showed twice. */
+.fs-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fs-type { position: relative; cursor: default; }
+.fs-type-rest { visibility: hidden; }
+.fs-type-caret { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: baseline; }
+.fs-type-caret::after { content: ""; position: absolute; left: 1px; bottom: 0.1em; width: 0.5em; height: 0.12em; background: currentColor; animation: fs-type-blink 0.8s steps(2, jump-none) infinite; }
+.a-still .fs-type-caret::after { animation: none; }
+@keyframes fs-type-blink { from { opacity: 1; } to { opacity: 0; } }
+
 .fs-subtitle {
   position: absolute;
   left: 50%;

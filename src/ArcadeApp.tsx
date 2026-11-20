@@ -243,7 +243,8 @@ export default function ArcadeApp({ online, account }: { online?: OnlineGame; ac
   const director = useAudioDirector({
     audio, screen, selected, live: audioLive, voiceOn: voicePrefs.voice, mixer, speaking,
     outcome: screen === "result" && result ? (result.practice ? "practice" : result.won ? "victory" : "defeat") : null,
-    rivalOnline, rivalChecking: rival.status === "checking", aiReady: aiState === "ready", oracleLoading: oracle.status === "loading",
+    // "The Oracle is ready" is not said after the rival's line failed; the briefing is showing why instead.
+    rivalOnline, rivalChecking: rival.status === "checking", aiReady: aiState === "ready" && !tauntError, oracleLoading: oracle.status === "loading",
     exhibition, planId: tactic.plan.planId, runKey: screen === "play" && run ? run.key : null,
     recap: recap === "pending" ? "pending" : recap ? "text" : "none", dialog: restart || assistance || oracleOpen,
   });
